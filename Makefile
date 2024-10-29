@@ -3,7 +3,7 @@ SRC			= main.cpp
 OBJS		= $(SRC:.cpp=.o)
 
 CXX			= c++
-CPPFLAGS	= -Wall -Wextra -Werror -O3 -g
+CPPFLAGS	= -Wall -Wextra -Werror -g
 
 all: $(NAME)
 
