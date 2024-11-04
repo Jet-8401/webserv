@@ -1,9 +1,10 @@
 NAME		= webserv
-SRC			= main.cpp
+FILES		= main.cpp
+SRC			= $(addprefix srcs/,$(FILES))
 OBJS		= $(SRC:.cpp=.o)
 
 CXX			= c++
-CPPFLAGS	= -Wall -Wextra -Werror -g
+CPPFLAGS	= -Wall -Wextra -Werror -g -O3 -Iheaders/
 
 all: $(NAME)
 

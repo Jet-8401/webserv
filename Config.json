@@ -1,0 +1,27 @@
+{
+	"client_max_body_size": "1k",
+
+	"server": {
+		"port": 80,
+		"host": "192.168.1.1",
+		// server_name: "example.com"
+		"client_max_body_size": "5M", // default in octet
+		"error_pages": {
+			"4xx": {
+				"codes": [404, 405, 406],
+				"path": "~/webserv/error_pages/4xx.html"
+			}
+		},
+		"location": {
+			"paths": ["/", "/home"],
+			"root": "/www/html",
+			"index": "index.html",
+			"methods": ["GET"],
+			"autoindex": true,
+			"redirections": {
+				"300": "multliple_choice_url",
+				"301": "url"
+			}
+		}
+	}
+}

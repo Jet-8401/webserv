@@ -3,19 +3,24 @@
 
 # include "HttpResponse.hpp"
 # include "HttpRequest.hpp"
-# include <sstream>
+# include "HttpConfig.hpp"
 
 class HttpServer {
 	private:
 		HttpServer(void);
+		HttpServer(const HttpServer& src);
 
 		HttpServer&	operator=(const HttpServer& src);
 
-	public:
-		typedef class HttpResponse Response;
-		typedef class HttpRequest Request;
+		HttpConfig		_config;
+		int				_socket_fd;
+		int&			_epoll_fd;
 
-		HttpServer(std::stringstream& config); // or ifstream
+	public:
+		typedef HttpResponse Response;
+		typedef HttpRequest Request;
+
+		HttpServer(HttpConfig& configuration);
 		virtual ~HttpServer(void);
 };
 
