@@ -12,7 +12,7 @@ class HttpServer {
 
 		HttpServer&	operator=(const HttpServer& src);
 
-		HttpConfig		_config;
+		HttpConfig&		_config;
 		int				_socket_fd;
 		int&			_epoll_fd;
 

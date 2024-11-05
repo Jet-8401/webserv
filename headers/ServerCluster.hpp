@@ -4,11 +4,8 @@
 # include <map>
 # include "HttpServer.hpp"
 
-# define ERR_FILE_OPEN "Cannot open file: "
-
 class ServerCluster {
 	private:
-		ServerCluster(void);
 		ServerCluster(const ServerCluster& src);
 
 		ServerCluster&	operator=(const ServerCluster& rhs);
@@ -20,10 +17,10 @@ class ServerCluster {
 		std::map<int*, HttpServer&>	_servers;
 
 	public:
-		ServerCluster(const std::string& configPath);
+		ServerCluster(void);
 		virtual	~ServerCluster(void);
 
-		void	importConfig(const std::string& configPath);	// Throw exception if failure
+		int	importConfig(const std::string& configPath);
 		int	listenAll(void) const;
 };
 

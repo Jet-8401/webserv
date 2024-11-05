@@ -2,25 +2,29 @@
 # define HTTP_CONFING_HPP
 
 # include <cstdint>
+# include <set>
 # include <string>
+# include <map>
 
-class HttpConfig {
-	private:
-		static HttpConfig	_global;	// global configuration
+class GlobalConfig {
+	protected:
+		std::string	_root;
+		std::string	_error_pages;
+		bool		_autoindex;
+		long		_client_max_body_size;
+};
 
-        std::string	_server_name;
-		std::string	_host;				// listen address
-        std::string	_default_root;
-        std::string	_root_error;
-        uint16_t	_port;
+class Location : public GlobalConfig {
+	protected:
+		std::set<std::string>	_methods;
+};
 
-	public:
-		HttpConfig(void);
-		HttpConfig(const HttpConfig& src);
-
-		HttpConfig&	operator=(const HttpConfig& rhs);
-
-		virtual	~HttpConfig(void);
+class ServerConfig : public GlobalConfig {
+	protected:
+		std::string							_server_name;
+		int									_host;
+		uint16_t							_port;
+		std::map<std::string, Location&>	_locations;
 };
 
 #endif
