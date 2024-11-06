@@ -24,4 +24,10 @@ class ServerCluster {
 		int	listenAll(void) const;
 };
 
+/*
+GET / http/1.1
+	^---------------------------------------------------!
+epoll_ctl -> fd -> socket -> Server -> ServerConfig -> Location
+*/
+
 #endif

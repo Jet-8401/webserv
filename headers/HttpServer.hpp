@@ -3,7 +3,7 @@
 
 # include "HttpResponse.hpp"
 # include "HttpRequest.hpp"
-# include "HttpConfig.hpp"
+# include "ServerConfig.hpp"
 
 class HttpServer {
 	private:
@@ -12,7 +12,7 @@ class HttpServer {
 
 		HttpServer&	operator=(const HttpServer& src);
 
-		HttpConfig&		_config;
+		ServerConfig&	_config;
 		int				_socket_fd;
 		int&			_epoll_fd;
 
@@ -20,7 +20,7 @@ class HttpServer {
 		typedef HttpResponse Response;
 		typedef HttpRequest Request;
 
-		HttpServer(HttpConfig& configuration);
+		HttpServer(ServerConfig& configuration);
 		virtual ~HttpServer(void);
 };
 
