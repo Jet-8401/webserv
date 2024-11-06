@@ -18,6 +18,12 @@ class Location {
 		const std::string&				getErrorPages(void) const;
 		const bool&						getAutoIndex(void) const;
 		const long&						getClientMaxBodySize(void) const;
+
+        void setAutoindex(const std::string& value);
+        void setMethods(const std::string& value);
+        void setRoot(const std::string& value);
+        void setErrorPage(const std::string& value);
+        void setClientMaxBodySize(const std::string& value);
 };
 
 #endif

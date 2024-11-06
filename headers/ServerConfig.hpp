@@ -25,6 +25,15 @@ class ServerConfig {
 		const int&								getHost(void) const;
 		const uint16_t&							getPort(void) const;
 		const std::map<std::string, Location&>&	getLocations(void) const;
+
+		void setPort(const std::string& value);
+        void setHost(const std::string& value);
+        void setServerName(const std::string& value);
+        void setIndex(const std::string& value);
+        void setRoot(const std::string& value);
+        void setClientMaxBodySize(const std::string& value);
+        void setErrorPage(const std::string& value);
+        void addLocation(const std::string& path, const Location& location);
 };
 
 #endif

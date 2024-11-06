@@ -1,4 +1,4 @@
-NAME = websev
+NAME = webserv
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 SRCS = main.cpp Config.cpp Parser.cpp
 HDRS = Config.hpp ConfigValue.hpp Parser.hpp
