@@ -7,21 +7,21 @@
 
 class HttpServer {
 	private:
-		HttpServer(void);
-		HttpServer(const HttpServer& src);
-
-		HttpServer&	operator=(const HttpServer& src);
-
-		ServerConfig&	_config;
+		ServerConfig	_config;
 		int				_socket_fd;
-		int&			_epoll_fd;
+		int				_epoll_fd;
 
 	public:
 		typedef HttpResponse Response;
 		typedef HttpRequest Request;
 
-		HttpServer(ServerConfig& configuration);
+		HttpServer(void);
+		HttpServer(const HttpServer& src);
 		virtual ~HttpServer(void);
+
+		HttpServer&	operator=(const HttpServer& src);
+
+		int	listen(void) const;
 };
 
 #endif

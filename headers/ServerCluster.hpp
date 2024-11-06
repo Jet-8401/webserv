@@ -14,7 +14,8 @@ class ServerCluster {
 		// std::map<socket_fd*, server_instance>
 		// easier to deal when a socket connection is detected
 		// socket_fd is a pointer to the socket_fd of a HttpServer instance
-		std::map<int*, HttpServer&>	_servers;
+		typedef std::map<int*, HttpServer&> servers_type_t;
+		servers_type_t	_servers;
 
 	public:
 		ServerCluster(void);
