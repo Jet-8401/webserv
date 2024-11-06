@@ -10,7 +10,7 @@
 class ServerConfig {
 	protected:
 		std::vector<std::string>			_server_names;
-		int									_host;
+		std::string							_host;
 		uint16_t							_port;
 		std::map<std::string, Location&>	_locations;
 
@@ -22,7 +22,7 @@ class ServerConfig {
 		ServerConfig&	operator=(const ServerConfig& rhs);
 
 		const std::vector<std::string>&			getServerNames(void) const;
-		const int&								getHost(void) const;
+		const std::string&						getHost(void) const;
 		const uint16_t&							getPort(void) const;
 		const std::map<std::string, Location&>&	getLocations(void) const;
 

@@ -1,8 +1,17 @@
 #include "../headers/HttpServer.hpp"
 #include "../headers/WebServ.hpp"
+#include <cstring>
+#include <netinet/in.h>
 #include <stdexcept>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <netinet/ip.h>
+#include <arpa/inet.h>
+
+// Static variables
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const int	HttpServer::backlog = 1024;
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -42,7 +51,20 @@ HttpServer&	HttpServer::operator=(const HttpServer& rhs)
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 // Bind a name to a socket and listen for connections.
+// for further informations see `man 7 ip`
 int	HttpServer::listen(void) const
 {
+	sockaddr_in	addr;
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(this->_config.getPort());
+	addr.sin_addr.s_addr = inet_addr(this->_config.getHost().c_str());
+
+	if (bind(this->_socket_fd, (sockaddr*) &addr, sizeof(addr)) == -1)
+		return (error(ERR_BINDING_SOCKET, true), -1);
+
+	if (listen(this->_socket_fd, HttpServer::backlog) == -1)
+		return (error(ERR_LISTENING, true), -1);
 	return (0);
 }

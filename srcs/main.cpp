@@ -1,7 +1,8 @@
-#include "../headers/WebServ.hpp"
+#include "../headers/HttpServer.hpp"
 
 int	main(int argc, char* argv[])
 {
+	/*
 	ServerCluster	cluster;
 
 	if (argc != 2)
@@ -10,5 +11,9 @@ int	main(int argc, char* argv[])
 		return (1);
 
 	cluster.listenAll();
+	*/
+
+	HttpServer	server;
+
 	return (0);
 }

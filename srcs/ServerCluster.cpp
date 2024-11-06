@@ -151,3 +151,14 @@ int ServerCluster::parseLocationBlock(std::istringstream& iss, Location& locatio
     }
     return (error("Unexpected end of location block", true), -1);
 }
+
+int	ServerCluster::listenAll(void) const {
+
+	// create epoll
+
+	for (it = this->_servers.begin(); it != this->_servers.end(); it++)
+		if ((*it).second.listen() == -1)
+			return (-1);
+	return (0);
+
+}

@@ -12,6 +12,8 @@ class HttpServer {
 		int				_epoll_fd;
 
 	public:
+		static const int	backlog;
+
 		typedef HttpResponse Response;
 		typedef HttpRequest Request;
 
