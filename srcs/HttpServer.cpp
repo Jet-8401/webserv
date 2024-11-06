@@ -64,7 +64,7 @@ int	HttpServer::listen(void) const
 	if (bind(this->_socket_fd, (sockaddr*) &addr, sizeof(addr)) == -1)
 		return (error(ERR_BINDING_SOCKET, true), -1);
 
-	if (listen(this->_socket_fd, HttpServer::backlog) == -1)
+	if (::listen(this->_socket_fd, HttpServer::backlog) == -1)
 		return (error(ERR_LISTENING, true), -1);
 	return (0);
 }

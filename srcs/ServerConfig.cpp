@@ -38,7 +38,7 @@ const std::vector<std::string>&	ServerConfig::getServerNames(void) const
 	return (this->_server_names);
 }
 
-const int&	ServerConfig::getHost(void) const
+const std::string&	ServerConfig::getHost(void) const
 {
 	return (this->_host);
 }
@@ -60,7 +60,7 @@ void ServerConfig::setPort(const std::string& value)
 
 void ServerConfig::setHost(const std::string& value)
 {
-    _host = inet_addr(value.c_str());
+    _host = value;
 }
 
 void ServerConfig::setServerName(const std::string& value)

@@ -68,12 +68,12 @@ int ServerCluster::parseHttpBlock(std::istringstream& iss)
 {
     std::string token;
     iss >> token;
-    if (!isOpenBrace(token))
+    if (token != "{")
         return (error("Expected '{' after http", true), -1);
 
     while (iss >> token)
     {
-        if (isCloseBrace(token))
+        if (token == "}")
             return (0);
         else if (token == "server")
         {
@@ -89,12 +89,12 @@ int ServerCluster::parseServerBlock(std::istringstream& iss, ServerConfig& confi
 {
     std::string token;
     iss >> token;
-    if (!isOpenBrace(token))
+    if (token != "{")
         return (error("Expected '{' after server", true), -1);
 
     while (iss >> token)
     {
-        if (isCloseBrace(token))
+        if (token == "}")
         {
             int* sock_fd = new int(-1);
             _servers[*sock_fd] = HttpServer(config);
@@ -154,7 +154,9 @@ int ServerCluster::parseLocationBlock(std::istringstream& iss, Location& locatio
 
 int	ServerCluster::listenAll(void) const {
 
-	// create epoll
+	servers_type_t::const_iterator it;
+
+    // create epoll
 
 	for (it = this->_servers.begin(); it != this->_servers.end(); it++)
 		if ((*it).second.listen() == -1)
