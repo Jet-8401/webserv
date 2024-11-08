@@ -2,6 +2,7 @@
 # define LOCATION_HPP
 
 # include <string>
+#include <cstdlib>
 # include <set>
 
 class Location {
@@ -13,6 +14,8 @@ class Location {
 		long					_client_max_body_size;
 
 	public:
+		Location(void);
+
 		const std::set<std::string>&	getMethods(void) const;
 		const std::string&				getRoot(void) const;
 		const std::string&				getErrorPages(void) const;

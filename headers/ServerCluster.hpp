@@ -19,8 +19,8 @@ class ServerCluster {
         int parseHttpBlock(std::istringstream& iss);
         int parseServerBlock(std::istringstream& iss, ServerConfig& config);
         int parseLocationBlock(std::istringstream& iss, Location& location);
-        static std::map<std::string, void (ServerConfig::*)(const std::string&)> serverDirectives;
-        static std::map<std::string, void (Location::*)(const std::string&)> locationDirectives;
+        static std::map<std::string, void (ServerConfig::*)(const std::string&)> serverSetters;
+        static std::map<std::string, void (Location::*)(const std::string&)> locationSetters;
         static void initDirectives();
 
 
@@ -30,6 +30,7 @@ class ServerCluster {
 
 		int	importConfig(const std::string& config_path);
 		int	listenAll(void) const;
+		const servers_type_t& getServers() const { return _servers; }
 };
 
 /*

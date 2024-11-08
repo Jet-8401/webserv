@@ -2,7 +2,7 @@
 # define SERVER_CONFIG_HPP
 
 # include "Location.hpp"
-# include <cstdint>
+# include <stdint.h>
 # include <string>
 # include <map>
 # include <vector>
@@ -12,7 +12,7 @@ class ServerConfig {
 		std::vector<std::string>			_server_names;
 		std::string							_host;
 		uint16_t							_port;
-		std::map<std::string, Location&>	_locations;
+		std::map<std::string, Location>	_locations;
 
 	public:
 		ServerConfig(void);
@@ -24,7 +24,7 @@ class ServerConfig {
 		const std::vector<std::string>&			getServerNames(void) const;
 		const std::string&						getHost(void) const;
 		const uint16_t&							getPort(void) const;
-		const std::map<std::string, Location&>&	getLocations(void) const;
+		const std::map<std::string, Location>&	getLocations(void) const;
 
 		void setPort(const std::string& value);
         void setHost(const std::string& value);

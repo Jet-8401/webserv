@@ -4,7 +4,7 @@
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 ServerConfig::ServerConfig(void):
-	_host(0),
+	_host(""),
 	_port(0)
 {}
 
@@ -48,7 +48,7 @@ const uint16_t&	ServerConfig::getPort(void) const
 	return (this->_port);
 }
 
-const std::map<std::string, Location&>&	ServerConfig::getLocations(void) const
+const std::map<std::string, Location>&	ServerConfig::getLocations(void) const
 {
 	return (this->_locations);
 }
@@ -85,12 +85,12 @@ void ServerConfig::setClientMaxBodySize(const std::string& value)
     // Parse size with unit (M, K, etc)
     std::string size = value;
     long multiplier = 1;
-    if (size.back() == 'M' || size.back() == 'm')
+    if (size[size.length() - 1] == 'M' || size[size.length() - 1] == 'm')
     {
         multiplier = 1024 * 1024;
         size.erase(size.size() - 1);
     }
-    else if (size.back() == 'K' || size.back() == 'k')
+    else if (size[size.length() - 1] == 'K' || size[size.length() - 1] == 'k')
     {
         multiplier = 1024;
         size.erase(size.size() - 1);

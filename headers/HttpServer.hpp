@@ -1,6 +1,6 @@
 #ifndef HTTP_SERVER
 # define HTTP_SERVER
-
+# include <sys/types.h>
 # include "HttpResponse.hpp"
 # include "HttpRequest.hpp"
 # include "ServerConfig.hpp"
@@ -18,12 +18,14 @@ class HttpServer {
 		typedef HttpRequest Request;
 
 		HttpServer(void);
+		HttpServer(const ServerConfig& config);
 		HttpServer(const HttpServer& src);
 		virtual ~HttpServer(void);
 
 		HttpServer&	operator=(const HttpServer& src);
 
 		int	listen(void) const;
+		const ServerConfig& getConfig() const { return _config; }
 };
 
 #endif

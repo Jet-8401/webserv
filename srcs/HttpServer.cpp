@@ -25,6 +25,15 @@ HttpServer::HttpServer(void):
 		throw std::runtime_error(ERR_SOCKET_CREATION);
 }
 
+HttpServer::HttpServer(const ServerConfig& config):
+    _config(config),
+    _epoll_fd(-1)
+{
+    this->_socket_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    if (this->_socket_fd == -1)
+        throw std::runtime_error(ERR_SOCKET_CREATION);
+}
+
 HttpServer::HttpServer(const HttpServer& src):
 	_config(src._config),
 	_socket_fd(src._socket_fd),

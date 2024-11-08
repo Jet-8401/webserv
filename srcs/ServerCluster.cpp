@@ -2,29 +2,30 @@
 #include <cstdio>
 #include <unistd.h>
 #include <sstream>
+#include <iostream>
 #include "../headers/WebServ.hpp"
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-std::map<std::string, void (ServerConfig::*)(const std::string&)> ServerCluster::serverDirectives;
-std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::locationDirectives;
+std::map<std::string, void (ServerConfig::*)(const std::string&)> ServerCluster::serverSetters;
+std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::locationSetters;
 
 void ServerCluster::initDirectives()
 {
-    serverDirectives["listen"] = &ServerConfig::setPort;
-    serverDirectives["host"] = &ServerConfig::setHost;
-    serverDirectives["server_name"] = &ServerConfig::setServerName;
-    serverDirectives["index"] = &ServerConfig::setIndex;
-    serverDirectives["root"] = &ServerConfig::setRoot;
-    serverDirectives["client_max_body_size"] = &ServerConfig::setClientMaxBodySize;
-    serverDirectives["error_page"] = &ServerConfig::setErrorPage;
+    serverSetters["listen"] = &ServerConfig::setPort;
+    serverSetters["host"] = &ServerConfig::setHost;
+    serverSetters["server_name"] = &ServerConfig::setServerName;
+    serverSetters["index"] = &ServerConfig::setIndex;
+    serverSetters["root"] = &ServerConfig::setRoot;
+    serverSetters["client_max_body_size"] = &ServerConfig::setClientMaxBodySize;
+    serverSetters["error_page"] = &ServerConfig::setErrorPage;
 
-    locationDirectives["autoindex"] = &Location::setAutoindex;
-    locationDirectives["methods"] = &Location::setMethods;
-    locationDirectives["root"] = &Location::setRoot;
-    locationDirectives["error_page"] = &Location::setErrorPage;
-    locationDirectives["client_max_body_size"] = &Location::setClientMaxBodySize;
+    locationSetters["autoindex"] = &Location::setAutoindex;
+    locationSetters["methods"] = &Location::setMethods;
+    locationSetters["root"] = &Location::setRoot;
+    locationSetters["error_page"] = &Location::setErrorPage;
+    locationSetters["client_max_body_size"] = &Location::setClientMaxBodySize;
 }
 
 ServerCluster::ServerCluster(void) : _epoll_fd(-1)
@@ -92,18 +93,23 @@ int ServerCluster::parseServerBlock(std::istringstream& iss, ServerConfig& confi
     if (token != "{")
         return (error("Expected '{' after server", true), -1);
 
+    std::cout << "Parsing server block..." << std::endl; // Debug
+
     while (iss >> token)
     {
+        std::cout << "Token: " << token << std::endl; // Debug
         if (token == "}")
         {
-            int* sock_fd = new int(-1);
-            _servers[*sock_fd] = HttpServer(config);
+            HttpServer server(config);
+            _servers[_servers.size()] = server; // Use size as key instead of invalid socket fd
+            std::cout << "Added server with port: " << config.getPort() << std::endl; // Debug
             return (0);
         }
         else if (token == "location")
         {
             std::string path;
             iss >> path;
+            std::cout << "Parsing location: " << path << std::endl; // Debug
             Location location;
             if (parseLocationBlock(iss, location) < 0)
                 return (-1);
@@ -111,13 +117,13 @@ int ServerCluster::parseServerBlock(std::istringstream& iss, ServerConfig& confi
         }
         else
         {
-            std::map<std::string, void (ServerConfig::*)(const std::string&)>::iterator it = serverDirectives.find(token);
-            if (it != serverDirectives.end())
+            std::map<std::string, void (ServerConfig::*)(const std::string&)>::iterator it = serverSetters.find(token);
+            if (it != serverSetters.end())
             {
                 std::string value;
-                iss >> value;
-                if (value.back() == ';')
-                    value.erase(value.size() - 1);
+                std::getline(iss, value, ';'); // Read until semicolon
+                value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
+                std::cout << "Setting " << token << " to " << value << std::endl; // Debug
                 (config.*(it->second))(value);
             }
         }
@@ -138,12 +144,12 @@ int ServerCluster::parseLocationBlock(std::istringstream& iss, Location& locatio
             return (0);
         else
         {
-            std::map<std::string, void (Location::*)(const std::string&)>::iterator it = locationDirectives.find(token);
-            if (it != locationDirectives.end())
+            std::map<std::string, void (Location::*)(const std::string&)>::iterator it = locationSetters.find(token);
+            if (it != locationSetters.end())
             {
                 std::string value;
                 iss >> value;
-                if (value.back() == ';')
+                if (value[value.size() - 1] == ';')
                     value.erase(value.size() - 1);
                 (location.*(it->second))(value);
             }
