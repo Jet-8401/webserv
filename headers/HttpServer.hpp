@@ -25,7 +25,7 @@ class HttpServer {
 		HttpServer&	operator=(const HttpServer& src);
 
 		int	listen(void) const;
-		const ServerConfig& getConfig() const { return _config; }
+		const ServerConfig& getConfig() const;
 };
 
 #endif

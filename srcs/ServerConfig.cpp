@@ -1,4 +1,5 @@
 #include "../headers/ServerConfig.hpp"
+#include <sstream>
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -48,7 +49,7 @@ const uint16_t&	ServerConfig::getPort(void) const
 	return (this->_port);
 }
 
-const std::map<std::string, Location>&	ServerConfig::getLocations(void) const
+const std::map<std::string, Location*>&	ServerConfig::getLocations(void) const
 {
 	return (this->_locations);
 }
@@ -65,7 +66,11 @@ void ServerConfig::setHost(const std::string& value)
 
 void ServerConfig::setServerName(const std::string& value)
 {
-    _server_names.push_back(value);
+ 	std::istringstream iss(value);
+    std::string name;
+    while (iss >> name) {
+        _server_names.push_back(name);
+    }
 }
 
 void ServerConfig::setIndex(const std::string& value)
@@ -105,7 +110,7 @@ void ServerConfig::setErrorPage(const std::string& value)
     (void)value;
 }
 
-void ServerConfig::addLocation(const std::string& path, const Location& location)
+void ServerConfig::addLocation(const std::string& path, Location* location)
 {
     _locations[path] = location;
 }

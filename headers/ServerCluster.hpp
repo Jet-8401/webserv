@@ -1,7 +1,7 @@
 #ifndef SERVER_CLUSTER_HPP
 # define SERVER_CLUSTER_HPP
 
-# include <map>
+# include <vector>
 # include "HttpServer.hpp"
 
 class ServerCluster {
@@ -13,12 +13,12 @@ class ServerCluster {
 		// std::map<socket_fd*, server_instance>
 		// easier to deal when a socket connection is detected
 		// socket_fd is a pointer to the socket_fd of a HttpServer instance
-		typedef std::map<int, HttpServer> servers_type_t;
+		typedef std::vector<HttpServer> servers_type_t;
 		servers_type_t	_servers;
 
         int parseHttpBlock(std::istringstream& iss);
         int parseServerBlock(std::istringstream& iss, ServerConfig& config);
-        int parseLocationBlock(std::istringstream& iss, Location& location);
+        int parseLocationBlock(std::istringstream& iss, Location* location);
         static std::map<std::string, void (ServerConfig::*)(const std::string&)> serverSetters;
         static std::map<std::string, void (Location::*)(const std::string&)> locationSetters;
         static void initDirectives();
@@ -30,7 +30,7 @@ class ServerCluster {
 
 		int	importConfig(const std::string& config_path);
 		int	listenAll(void) const;
-		const servers_type_t& getServers() const { return _servers; }
+		const servers_type_t& getServers() const;
 };
 
 /*

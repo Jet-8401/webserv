@@ -58,7 +58,10 @@ HttpServer&	HttpServer::operator=(const HttpServer& rhs)
 
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
+const ServerConfig& HttpServer::getConfig() const
+{
+	return _config;
+}
 // Bind a name to a socket and listen for connections.
 // for further informations see `man 7 ip`
 int	HttpServer::listen(void) const

@@ -35,6 +35,11 @@ ServerCluster::ServerCluster(void) : _epoll_fd(-1)
 
 ServerCluster::~ServerCluster(void) {}
 
+const ServerCluster::servers_type_t& ServerCluster::getServers() const
+{
+	return _servers;
+}
+
 int ServerCluster::importConfig(const std::string& config_path)
 {
     FILE* file = fopen(config_path.c_str(), "r");
@@ -101,19 +106,23 @@ int ServerCluster::parseServerBlock(std::istringstream& iss, ServerConfig& confi
         if (token == "}")
         {
             HttpServer server(config);
-            _servers[_servers.size()] = server; // Use size as key instead of invalid socket fd
+            _servers.push_back(server); // Use size as key instead of invalid socket fd
             std::cout << "Added server with port: " << config.getPort() << std::endl; // Debug
             return (0);
         }
         else if (token == "location")
         {
-            std::string path;
-            iss >> path;
-            std::cout << "Parsing location: " << path << std::endl; // Debug
-            Location location;
+	        std::string paths;
+	        std::getline(iss, paths);
+            std::cout << "Parsing location: " << paths  << "|" << std::endl; // Debug
+            Location *location = new Location();
             if (parseLocationBlock(iss, location) < 0)
                 return (-1);
-            config.addLocation(path, location);
+            std::istringstream iss_paths(paths);
+            while (iss_paths >> paths)
+            {
+                config.addLocation(paths, location);
+            }
         }
         else
         {
@@ -123,7 +132,7 @@ int ServerCluster::parseServerBlock(std::istringstream& iss, ServerConfig& confi
                 std::string value;
                 std::getline(iss, value, ';'); // Read until semicolon
                 value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
-                std::cout << "Setting " << token << " to " << value << std::endl; // Debug
+                //std::cout << "Setting " << token << " to " << value << std::endl; // Debug
                 (config.*(it->second))(value);
             }
         }
@@ -131,10 +140,11 @@ int ServerCluster::parseServerBlock(std::istringstream& iss, ServerConfig& confi
     return (error("Unexpected end of server block", true), -1);
 }
 
-int ServerCluster::parseLocationBlock(std::istringstream& iss, Location& location)
+int ServerCluster::parseLocationBlock(std::istringstream& iss, Location* location)
 {
     std::string token;
     iss >> token;
+    std::cout << "LE token : " << token << std::endl;
     if (token != "{")
         return (error("Expected '{' after location", true), -1);
 
@@ -148,10 +158,9 @@ int ServerCluster::parseLocationBlock(std::istringstream& iss, Location& locatio
             if (it != locationSetters.end())
             {
                 std::string value;
-                iss >> value;
-                if (value[value.size() - 1] == ';')
-                    value.erase(value.size() - 1);
-                (location.*(it->second))(value);
+                std::getline(iss, value, ';'); // Read until semicolon
+                value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
+                (location->*(it->second))(value);
             }
         }
     }
@@ -165,7 +174,7 @@ int	ServerCluster::listenAll(void) const {
     // create epoll
 
 	for (it = this->_servers.begin(); it != this->_servers.end(); it++)
-		if ((*it).second.listen() == -1)
+		if (it->listen() == -1)
 			return (-1);
 	return (0);
 
