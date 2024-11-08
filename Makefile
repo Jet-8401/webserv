@@ -7,6 +7,7 @@ HDRS = $(addprefix ${HDIR}/, HttpRequest.hpp HttpResponse.hpp HttpServer.hpp Loc
 TPLS =
 ODIR = objs
 OBJS = $(SRCS:${SDIR}/%.cpp=${ODIR}/%.o)
+DEFINES = -DDEBUGGER
 
 all: ${NAME}
 
@@ -14,7 +15,7 @@ ${NAME}: ${OBJS}
 	c++ ${CXXFLAGS} $^ -o $@
 
 ${ODIR}/%.o: ${SDIR}/%.cpp ${HDRS} ${TPLS} | ${ODIR}
-	c++ ${CXXFLAGS} -I${HDIR} -c $< -o $@
+	c++ ${DEFINES} ${CXXFLAGS} -I${HDIR} -c $< -o $@
 
 ${ODIR}:
 	mkdir -p ${ODIR}

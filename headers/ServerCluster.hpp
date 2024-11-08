@@ -9,28 +9,27 @@ class ServerCluster {
 		ServerCluster(const ServerCluster& src);
 		ServerCluster&	operator=(const ServerCluster& rhs);
 
-		int							_epoll_fd;
-		// std::map<socket_fd*, server_instance>
+        static std::map<std::string, void (ServerConfig::*)(const std::string&)>	serverSetters;
+        static std::map<std::string, void (Location::*)(const std::string&)>		locationSetters;
+
+		// std::map<socket_fd, server_instance>
 		// easier to deal when a socket connection is detected
-		// socket_fd is a pointer to the socket_fd of a HttpServer instance
-		typedef std::map<int, HttpServer> servers_type_t;
+		typedef std::vector<HttpServer> servers_type_t;
 		servers_type_t	_servers;
+		int				_epoll_fd;
 
         int parseHttpBlock(std::istringstream& iss);
         int parseServerBlock(std::istringstream& iss, ServerConfig& config);
         int parseLocationBlock(std::istringstream& iss, Location& location);
-        static std::map<std::string, void (ServerConfig::*)(const std::string&)> serverSetters;
-        static std::map<std::string, void (Location::*)(const std::string&)> locationSetters;
-        static void initDirectives();
-
 
 	public:
 		ServerCluster(void);
 		virtual	~ServerCluster(void);
 
 		int	importConfig(const std::string& config_path);
-		int	listenAll(void) const;
-		const servers_type_t& getServers() const { return _servers; }
+		int	listenAll(void);
+
+		const servers_type_t&	getServers(void);
 };
 
 /*

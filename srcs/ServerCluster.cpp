@@ -1,19 +1,19 @@
 #include "../headers/ServerCluster.hpp"
+#include "../headers/WebServ.hpp"
 #include <cstdio>
+#include <stdexcept>
 #include <unistd.h>
 #include <sstream>
 #include <iostream>
-#include "../headers/WebServ.hpp"
+#include <sys/epoll.h>
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-std::map<std::string, void (ServerConfig::*)(const std::string&)> ServerCluster::serverSetters;
-std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::locationSetters;
-
-void ServerCluster::initDirectives()
+ServerCluster::ServerCluster(void):
+	_epoll_fd(-1)
 {
-    serverSetters["listen"] = &ServerConfig::setPort;
+	serverSetters["listen"] = &ServerConfig::setPort;
     serverSetters["host"] = &ServerConfig::setHost;
     serverSetters["server_name"] = &ServerConfig::setServerName;
     serverSetters["index"] = &ServerConfig::setIndex;
@@ -28,12 +28,11 @@ void ServerCluster::initDirectives()
     locationSetters["client_max_body_size"] = &Location::setClientMaxBodySize;
 }
 
-ServerCluster::ServerCluster(void) : _epoll_fd(-1)
+ServerCluster::~ServerCluster(void)
 {
-    initDirectives();
+	if (this->_epoll_fd != -1)
+		close(this->_epoll_fd);
 }
-
-ServerCluster::~ServerCluster(void) {}
 
 int ServerCluster::importConfig(const std::string& config_path)
 {
@@ -158,15 +157,24 @@ int ServerCluster::parseLocationBlock(std::istringstream& iss, Location& locatio
     return (error("Unexpected end of location block", true), -1);
 }
 
-int	ServerCluster::listenAll(void) const {
+// Make all virtual server listen on their sockets and check for conncetions with epoll.
+int	ServerCluster::listenAll(void)
+{
+	servers_type_t::const_iterator	it;
+	struct epoll_event				ep_event;
 
-	servers_type_t::const_iterator it;
-
-    // create epoll
+	this->_epoll_fd = ::epoll_create(this->_servers.size());
+	if (this->_epoll_fd == -1)
+		return (error(ERR_EPOLL_CREATION, false), -1);
 
 	for (it = this->_servers.begin(); it != this->_servers.end(); it++)
-		if ((*it).second.listen() == -1)
+	{
+		if ((*it).listen() == -1)
 			return (-1);
+		ep_event.events = EPOLLIN | EPOLLET;
+		ep_event.data.ptr = (void*) (&(*it));
+		if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, (*it).getSocketFD(), &ep_event) == -1)
+			return (error(ERR_EPOLL_ADD, true), -1);
+	}
 	return (0);
-
 }

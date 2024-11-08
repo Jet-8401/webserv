@@ -40,39 +40,17 @@ void displayServerInfo(const ServerConfig& config) {
 
 int main(int argc, char* argv[])
 {
-    if (argc != 2)
-    {
-        error(ERR_USAGE, false);
-        return 1;
-    }
+	(void) argc;
+	(void) argv;
 
-    ServerCluster cluster;
+	ServerConfig	configuration;
+	configuration.setHost("127.0.0.1");
+	configuration.setPort("5500");
+	configuration.setServerName("jullopez.42.fr");
 
-    std::cout << "\033[1;32m┌── Starting config import from: \033[0m" << argv[1] << std::endl;
+	HttpServer	server(configuration);
 
-    if (cluster.importConfig(argv[1]) == -1)
-    {
-        std::cout << "\033[1;31m└── Failed to import config\033[0m" << std::endl;
-        return 1;
-    }
-
-    std::cout << "\033[1;32m├── Config imported successfully\033[0m" << std::endl;
-    std::cout << "\033[1;32m└── Server Configuration Details:\033[0m" << std::endl;
-
-    // Access the private _servers member using a friend declaration or getter
-    const std::map<int, HttpServer>& servers = cluster.getServers(); // You might need to add a getter for this
-
-    if (servers.empty()) {
-        std::cout << "\033[1;31m    No servers configured!\033[0m" << std::endl;
-        return 1;
-    }
-
-    int count = 1;
-    for (std::map<int, HttpServer>::const_iterator it = servers.begin();
-         it != servers.end(); ++it, ++count) {
-        std::cout << "\033[1;33m┌── Server #" << count << "\033[0m" << std::endl;
-        displayServerInfo(it->second.getConfig()); // You might need to add a getter for _config
-    }
+	server.listen();
 
     return 0;
 }

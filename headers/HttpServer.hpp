@@ -1,5 +1,7 @@
 #ifndef HTTP_SERVER
 # define HTTP_SERVER
+
+# include <string>
 # include <sys/types.h>
 # include "HttpResponse.hpp"
 # include "HttpRequest.hpp"
@@ -7,13 +9,13 @@
 
 class HttpServer {
 	private:
-		ServerConfig	_config;
-		int				_socket_fd;
-		int				_epoll_fd;
-
-	public:
 		static const int	backlog;
 
+		ServerConfig	_config;
+		int				_socket_fd;
+		std::string		_address;
+
+	public:
 		typedef HttpResponse Response;
 		typedef HttpRequest Request;
 
@@ -25,7 +27,10 @@ class HttpServer {
 		HttpServer&	operator=(const HttpServer& src);
 
 		int	listen(void) const;
-		const ServerConfig& getConfig() const { return _config; }
+
+		const ServerConfig&	getConfig(void) const;
+		const std::string&	getAddress(void) const;
+		const int&			getSocketFD(void) const;
 };
 
 #endif

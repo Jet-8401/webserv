@@ -9,7 +9,6 @@ class Location {
 	protected:
 		std::set<std::string>	_methods;
 		std::string				_root;
-		std::string				_error_pages;
 		bool					_autoindex;
 		long					_client_max_body_size;
 

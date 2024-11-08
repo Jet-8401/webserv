@@ -2,6 +2,7 @@
 #include "../headers/WebServ.hpp"
 #include <cstring>
 #include <netinet/in.h>
+#include <sstream>
 #include <stdexcept>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -17,8 +18,7 @@ const int	HttpServer::backlog = 1024;
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpServer::HttpServer(void):
-	_config(),
-	_epoll_fd(-1)
+	_config()
 {
 	this->_socket_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (this->_socket_fd == -1)
@@ -26,9 +26,12 @@ HttpServer::HttpServer(void):
 }
 
 HttpServer::HttpServer(const ServerConfig& config):
-    _config(config),
-    _epoll_fd(-1)
+    _config(config)
 {
+	std::stringstream	ss;
+
+	ss << this->_config.getHost() << ':' << this->_config.getPort();
+	this->_address = ss.str();
     this->_socket_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (this->_socket_fd == -1)
         throw std::runtime_error(ERR_SOCKET_CREATION);
@@ -36,8 +39,7 @@ HttpServer::HttpServer(const ServerConfig& config):
 
 HttpServer::HttpServer(const HttpServer& src):
 	_config(src._config),
-	_socket_fd(src._socket_fd),
-	_epoll_fd(src._epoll_fd)
+	_socket_fd(src._socket_fd)
 {}
 
 HttpServer::~HttpServer(void)
@@ -51,9 +53,21 @@ HttpServer::~HttpServer(void)
 HttpServer&	HttpServer::operator=(const HttpServer& rhs)
 {
 	this->_config = rhs._config;
-	this->_epoll_fd = rhs._epoll_fd;
 	this->_socket_fd = rhs._socket_fd;
 	return (*this);
+}
+
+// Getters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const ServerConfig& HttpServer::getConfig(void) const
+{
+	return (this->_config);
+}
+
+const std::string&	HttpServer::getAddress(void) const
+{
+	return (this->_address);
 }
 
 // Function members
@@ -65,15 +79,17 @@ int	HttpServer::listen(void) const
 {
 	sockaddr_in	addr;
 
-	memset(&addr, 0, sizeof(addr));
+	::memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(this->_config.getPort());
-	addr.sin_addr.s_addr = inet_addr(this->_config.getHost().c_str());
+	addr.sin_port = ::htons(this->_config.getPort());
+	addr.sin_addr.s_addr = ::inet_addr(this->_config.getHost().c_str());
 
-	if (bind(this->_socket_fd, (sockaddr*) &addr, sizeof(addr)) == -1)
+	if (::bind(this->_socket_fd, (sockaddr*) &addr, sizeof(addr)) == -1)
 		return (error(ERR_BINDING_SOCKET, true), -1);
+	DEBUG("Binding socket for " << this->getAddress());
 
 	if (::listen(this->_socket_fd, HttpServer::backlog) == -1)
 		return (error(ERR_LISTENING, true), -1);
+	DEBUG("Listening on " << this->getAddress());
 	return (0);
 }

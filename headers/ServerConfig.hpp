@@ -12,7 +12,7 @@ class ServerConfig {
 		std::vector<std::string>			_server_names;
 		std::string							_host;
 		uint16_t							_port;
-		std::map<std::string, Location>	_locations;
+		std::map<std::string, Location*>	_locations;
 
 	public:
 		ServerConfig(void);
