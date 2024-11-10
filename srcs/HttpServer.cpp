@@ -12,7 +12,7 @@
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-const int	HttpServer::backlog = 1024;
+const int	HttpServer::_backlog = 1024;
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -70,6 +70,11 @@ const std::string&	HttpServer::getAddress(void) const
 	return (this->_address);
 }
 
+const int&	HttpServer::getSocketFD(void) const
+{
+	return (this->_socket_fd);
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -88,8 +93,17 @@ int	HttpServer::listen(void) const
 		return (error(ERR_BINDING_SOCKET, true), -1);
 	DEBUG("Binding socket for " << this->getAddress());
 
-	if (::listen(this->_socket_fd, HttpServer::backlog) == -1)
+	if (::listen(this->_socket_fd, HttpServer::_backlog) == -1)
 		return (error(ERR_LISTENING, true), -1);
 	DEBUG("Listening on " << this->getAddress());
 	return (0);
+}
+
+int	HttpServer::handleRequest(const int epoll_fd)
+{
+	int	client_socket;
+
+	client_socket = ::accept(this->_socket_fd, NULL, NULL);
+	if (client_socket == -1)
+		return (error(ERR_ACCEPT_REQUEST, true), -1);
 }

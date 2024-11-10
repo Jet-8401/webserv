@@ -14,6 +14,8 @@
 # define ERR_EPOLL_CREATION "Cannot create an epoll instance"
 # define ERR_EPOLL_NOT_SET "epoll instance not set"
 # define ERR_EPOLL_ADD "Cannot add a file descriptor to an epoll instance"
+# define ERR_EPOLL_WAIT "An error occured while epoll was waiting"
+# define ERR_ACCEPT_REQUEST "Could not accept the client request"
 
 # ifdef DEBUGGER
 

@@ -5,8 +5,7 @@
 		{
 			"port": 80,
 			"host": "192.168.1.1",
-			// server_name: "example.com"
-			"client_max_body_size": "5M", // default in octet
+			"client_max_body_size": "5M",
 			"error_pages": {
 				"4xx": {
 					"codes": [404, 405, 406],
@@ -26,5 +25,4 @@
 			}
 		}
 	]
-	}
 }

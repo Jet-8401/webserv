@@ -24,7 +24,7 @@ class ServerConfig {
 		const std::vector<std::string>&			getServerNames(void) const;
 		const std::string&						getHost(void) const;
 		const uint16_t&							getPort(void) const;
-		const std::map<std::string, Location>&	getLocations(void) const;
+		const std::map<std::string, Location*>&	getLocations(void) const;
 
 		void setPort(const std::string& value);
         void setHost(const std::string& value);
@@ -33,7 +33,7 @@ class ServerConfig {
         void setRoot(const std::string& value);
         void setClientMaxBodySize(const std::string& value);
         void setErrorPage(const std::string& value);
-        void addLocation(const std::string& path, const Location& location);
+        void addLocation(const std::string& path, Location* location);
 };
 
 #endif

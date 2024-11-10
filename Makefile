@@ -1,5 +1,5 @@
 NAME = webserv
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g
 SDIR = srcs
 HDIR = headers
 SRCS = $(addprefix ${SDIR}/, main.cpp HttpServer.cpp Location.cpp ServerCluster.cpp ServerConfig.cpp utils.cpp)

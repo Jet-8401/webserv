@@ -1,8 +1,10 @@
 #ifndef SERVER_CLUSTER_HPP
 # define SERVER_CLUSTER_HPP
 
-# include <map>
+# include <vector>
 # include "HttpServer.hpp"
+
+// TODO: add an underscore to all private members
 
 class ServerCluster {
 	private:
@@ -12,15 +14,14 @@ class ServerCluster {
         static std::map<std::string, void (ServerConfig::*)(const std::string&)>	serverSetters;
         static std::map<std::string, void (Location::*)(const std::string&)>		locationSetters;
 
-		// std::map<socket_fd, server_instance>
-		// easier to deal when a socket connection is detected
 		typedef std::vector<HttpServer> servers_type_t;
 		servers_type_t	_servers;
 		int				_epoll_fd;
+		bool			_should_exit;
 
         int parseHttpBlock(std::istringstream& iss);
         int parseServerBlock(std::istringstream& iss, ServerConfig& config);
-        int parseLocationBlock(std::istringstream& iss, Location& location);
+        int parseLocationBlock(std::istringstream& iss, Location* location);
 
 	public:
 		ServerCluster(void);
@@ -29,13 +30,11 @@ class ServerCluster {
 		int	importConfig(const std::string& config_path);
 		int	listenAll(void);
 
-		const servers_type_t&	getServers(void);
-};
+		// Setters
+		void	addServer(const HttpServer& server); // temp or change _servers scope to public
 
-/*
-GET / http/1.1
-	^---------------------------------------------------!
-epoll_ctl -> fd -> socket -> Server -> ServerConfig -> Location
-*/
+		// Getters
+		const servers_type_t&	getServers(void) const;
+};
 
 #endif

@@ -1,10 +1,12 @@
 #include "../headers/Location.hpp"
 #include <iostream>
+#include <sstream>
+#include <vector>
 
 Location::Location(void):
     _methods(),
-    _root(""),
-    _error_pages(""),
+    _root(),
+    _error_pages(),
     _autoindex(false),
     _client_max_body_size(0)
 {
@@ -13,12 +15,18 @@ Location::Location(void):
 
 void Location::setAutoindex(const std::string& value)
 {
+	std::cout <<"autoindex value :"<< value << std::endl;
     _autoindex = (value == "on" || value == "ON" || value == "true");
 }
 
 void Location::setMethods(const std::string& value)
 {
-    _methods.insert(value);
+	std::istringstream iss(value);
+	std::string method;
+	while (iss >> method)
+	{
+		_methods.insert(method);
+	}
 }
 
 void Location::setRoot(const std::string& value)
@@ -28,7 +36,22 @@ void Location::setRoot(const std::string& value)
 
 void Location::setErrorPage(const std::string& value)
 {
-    _error_pages = value;
+	std::istringstream iss(value);
+	std::vector<std::string> words;
+	std::string word;
+	while (iss >> word)
+	{
+		words.push_back(word);
+	}
+	if (words.size() < 2)
+    {
+		return; // or throw an exception if you prefer
+	}
+	std::string* valuePtr = new std::string(words[words.size() - 1]);
+	for (size_t i = 0; i < words.size() - 1; ++i)
+	{
+        _error_pages[words[i]] = valuePtr;
+    }
 }
 
 void Location::setClientMaxBodySize(const std::string& value)
@@ -61,7 +84,7 @@ const std::string& Location::getRoot(void) const
     return _root;
 }
 
-const std::string& Location::getErrorPages(void) const
+const std::map<std::string, std::string*>& Location::getErrorPages(void) const
 {
     return _error_pages;
 }
