@@ -4,6 +4,8 @@
 # include <vector>
 # include "HttpServer.hpp"
 
+# define MAX_EPOLL_EVENTS 1024
+
 // TODO: add an underscore to all private members
 
 class ServerCluster {
@@ -17,7 +19,7 @@ class ServerCluster {
 		typedef std::vector<HttpServer> servers_type_t;
 		servers_type_t	_servers;
 		int				_epoll_fd;
-		bool			_should_exit;
+		bool			_running;
 
         int parseHttpBlock(std::istringstream& iss);
         int parseServerBlock(std::istringstream& iss, ServerConfig& config);

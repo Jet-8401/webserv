@@ -23,7 +23,7 @@ std::map<std::string, void (Location::*)(const std::string&)>		ServerCluster::lo
 
 ServerCluster::ServerCluster(void):
 	_epoll_fd(-1),
-	_should_exit(0)
+	_running(1)
 {
 	serverSetters["listen"] = &ServerConfig::setPort;
     serverSetters["host"] = &ServerConfig::setHost;
@@ -197,6 +197,7 @@ int	ServerCluster::listenAll(void)
 {
 	servers_type_t::iterator	it;
 	struct epoll_event			ep_event;
+	struct epoll_event			incoming_events[MAX_EPOLL_EVENTS];
 
 	this->_epoll_fd = ::epoll_create(this->_servers.size());
 	if (this->_epoll_fd == -1)
@@ -213,11 +214,14 @@ int	ServerCluster::listenAll(void)
 	}
 
 	// wait for the events pool to trigger
-	while (this->_should_exit) {
-		::memset(&ep_event, 0, sizeof(ep_event));
-		if (::epoll_wait(this->_epoll_fd, &ep_event, 1024, -1) == -1)
+	while (this->_running) {
+		::memset(&incoming_events, 0, sizeof(incoming_events));
+		if (::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, -1) == -1)
 			return (error(ERR_EPOLL_WAIT, true), -1);
 		// handle queu of events
+		for (int i = 0; i < MAX_EPOLL_EVENTS; i++) {
+
+		}
 	}
 	return (0);
 }

@@ -1,24 +1,23 @@
 #ifndef HTTP_SERVER
 # define HTTP_SERVER
 
-#include <list>
+# include <list>
 # include <string>
 # include <sys/types.h>
 # include "HttpResponse.hpp"
 # include "HttpRequest.hpp"
 # include "ServerConfig.hpp"
+# include "Connection.hpp"
 
 class HttpServer {
 	private:
-		typedef std::list<std::pair<HttpRequest, HttpResponse> > HttpConnection;
-
 		static const int		_backlog;
 
-		ServerConfig		_config;
-		int					_socket_fd;
-		std::string			_address;
-		HttpConnection		_connections;
-		const unsigned int	_max_connections;
+		ServerConfig			_config;
+		int						_socket_fd;
+		std::string				_address;
+		std::list<Connection>	_connections;
+		const unsigned int		_max_connections;
 
 	public:
 		typedef HttpResponse Response;
