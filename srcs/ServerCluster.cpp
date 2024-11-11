@@ -193,11 +193,19 @@ int ServerCluster::parseLocationBlock(std::istringstream& iss, Location* locatio
 }
 
 // Make all virtual server listen on their sockets and check for conncetions with epoll.
+//
+// The data store by epoll_data_t is a pointer to a wrapper class that will be used to keep track
+// of the original data-type of the pointer as it can be an HttpServer instance for connections request and
+// for already setup connections it is a Connection instance, therefore casting it int the right type.
+// This method is one of the most efficient as we can directly access the instance associated to that file descriptor.
+// For every events returned we check the enum of the wrapper class for the casting, then onEvent() is called
+// on that instance.
 int	ServerCluster::listenAll(void)
 {
 	servers_type_t::iterator	it;
 	struct epoll_event			incoming_events[MAX_EPOLL_EVENTS];
 	event_wrapper_t*			event_wrapper;
+	int							events;
 
 	this->_epoll_fd = ::epoll_create(this->_servers.size());
 	if (this->_epoll_fd == -1)
@@ -209,6 +217,7 @@ int	ServerCluster::listenAll(void)
 
 		if (it->listen() == -1)
 			return (-1);
+		it->setEpollFD(this->_epoll_fd);
 		event_wrapper = this->_events_wrapper.create(REQUEST);
 		event_wrapper->casted_value = &(*it);
 		ep_event.events = EPOLLIN | EPOLLET;
@@ -220,15 +229,19 @@ int	ServerCluster::listenAll(void)
 	// wait for the events pool to trigger
 	while (this->_running) {
 		::memset(&incoming_events, 0, sizeof(incoming_events));
-		if (::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, -1) == -1)
+		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, -1);
+		if (events  == -1)
 			return (error(ERR_EPOLL_WAIT, true), -1);
-		for (int i = 0; i < MAX_EPOLL_EVENTS; i++) {
+		DEBUG("events received: " << events);
+		for (int i = 0; i < events; i++) {
 			event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
 			switch (event_wrapper->socket_type) {
 				case REQUEST:
+					DEBUG("event[" << i << "]: connection request");
 					static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
 					break ;
 				case CLIENT:
+					DEBUG("event[" << i << "]: client package");
 					static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
 					break ;
 				default:
