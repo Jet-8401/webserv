@@ -9,6 +9,8 @@
 # include "ServerConfig.hpp"
 # include "Connection.hpp"
 
+# define MAX_CONNECTIONS
+
 class HttpServer {
 	private:
 		static const int		_backlog;

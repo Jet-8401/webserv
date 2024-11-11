@@ -3,8 +3,9 @@
 
 # include <vector>
 # include "HttpServer.hpp"
+# include "EventWrapper.hpp"
 
-# define MAX_EPOLL_EVENTS 1024
+# define MAX_EPOLL_EVENTS 2048
 
 // TODO: add an underscore to all private members
 
@@ -20,6 +21,7 @@ class ServerCluster {
 		servers_type_t	_servers;
 		int				_epoll_fd;
 		bool			_running;
+		EventWrapper	_events_wrapper;
 
         int parseHttpBlock(std::istringstream& iss);
         int parseServerBlock(std::istringstream& iss, ServerConfig& config);

@@ -18,7 +18,8 @@ const int	HttpServer::_backlog = 1024;
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpServer::HttpServer(void):
-	_config()
+	_config(),
+	_max_connections(MAX_CONNECTIONS)
 {
 	this->_socket_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (this->_socket_fd == -1)
@@ -26,7 +27,8 @@ HttpServer::HttpServer(void):
 }
 
 HttpServer::HttpServer(const ServerConfig& config):
-    _config(config)
+    _config(config),
+    _max_connections(MAX_CONNECTIONS)
 {
 	std::stringstream	ss;
 
@@ -39,7 +41,8 @@ HttpServer::HttpServer(const ServerConfig& config):
 
 HttpServer::HttpServer(const HttpServer& src):
 	_config(src._config),
-	_socket_fd(src._socket_fd)
+	_socket_fd(src._socket_fd),
+	_max_connections(src._max_connections)
 {}
 
 HttpServer::~HttpServer(void)
@@ -97,13 +100,4 @@ int	HttpServer::listen(void) const
 		return (error(ERR_LISTENING, true), -1);
 	DEBUG("Listening on " << this->getAddress());
 	return (0);
-}
-
-int	HttpServer::handleRequest(const int epoll_fd)
-{
-	int	client_socket;
-
-	client_socket = ::accept(this->_socket_fd, NULL, NULL);
-	if (client_socket == -1)
-		return (error(ERR_ACCEPT_REQUEST, true), -1);
 }

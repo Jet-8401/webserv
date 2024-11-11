@@ -196,8 +196,8 @@ int ServerCluster::parseLocationBlock(std::istringstream& iss, Location* locatio
 int	ServerCluster::listenAll(void)
 {
 	servers_type_t::iterator	it;
-	struct epoll_event			ep_event;
 	struct epoll_event			incoming_events[MAX_EPOLL_EVENTS];
+	event_wrapper_t*			event_wrapper;
 
 	this->_epoll_fd = ::epoll_create(this->_servers.size());
 	if (this->_epoll_fd == -1)
@@ -205,10 +205,14 @@ int	ServerCluster::listenAll(void)
 
 	for (it = this->_servers.begin(); it != this->_servers.end(); it++)
 	{
+		struct epoll_event	ep_event;
+
 		if (it->listen() == -1)
 			return (-1);
+		event_wrapper = this->_events_wrapper.create(REQUEST);
+		event_wrapper->casted_value = &(*it);
 		ep_event.events = EPOLLIN | EPOLLET;
-		ep_event.data.ptr = static_cast<void*>( &(*it) );
+		ep_event.data.ptr = static_cast<void*>( event_wrapper );
 		if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, it->getSocketFD(), &ep_event) == -1)
 			return (error(ERR_EPOLL_ADD, true), -1);
 	}
@@ -218,9 +222,18 @@ int	ServerCluster::listenAll(void)
 		::memset(&incoming_events, 0, sizeof(incoming_events));
 		if (::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, -1) == -1)
 			return (error(ERR_EPOLL_WAIT, true), -1);
-		// handle queu of events
 		for (int i = 0; i < MAX_EPOLL_EVENTS; i++) {
-
+			event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
+			switch (event_wrapper->socket_type) {
+				case REQUEST:
+					static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+					break ;
+				case CLIENT:
+					static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+					break ;
+				default:
+					break;
+			}
 		}
 	}
 	return (0);
