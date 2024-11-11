@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <unistd.h>
 #include <sstream>
+#include <fstream>
 #include <iostream>
 #include "../headers/WebServ.hpp"
 
@@ -13,17 +14,17 @@ std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::loc
 
 void ServerCluster::initDirectives()
 {
-    serverSetters["listen"] = &ServerConfig::setPort;
-    serverSetters["host"] = &ServerConfig::setHost;
+    serverSetters["listen"] = &ServerConfig::setAdress;
     serverSetters["server_name"] = &ServerConfig::setServerName;
-    serverSetters["index"] = &ServerConfig::setIndex;
-    serverSetters["root"] = &ServerConfig::setRoot;
-    serverSetters["client_max_body_size"] = &ServerConfig::setClientMaxBodySize;
-    serverSetters["error_page"] = &ServerConfig::setErrorPage;
+    // serverSetters["index"] = &ServerConfig::setIndex;
+    // serverSetters["root"] = &ServerConfig::setRoot;
+    // serverSetters["error_page"] = &ServerConfig::setErrorPage;
+    // serverSetters["client_max_body_size"] = &ServerConfig::setClientMaxBodySize;
 
     locationSetters["autoindex"] = &Location::setAutoindex;
     locationSetters["methods"] = &Location::setMethods;
     locationSetters["root"] = &Location::setRoot;
+    locationSetters["cgi"] = &Location::setCgis;
     locationSetters["error_page"] = &Location::setErrorPage;
     locationSetters["client_max_body_size"] = &Location::setClientMaxBodySize;
 }
@@ -42,21 +43,15 @@ const ServerCluster::servers_type_t& ServerCluster::getServers() const
 
 int ServerCluster::importConfig(const std::string& config_path)
 {
-    FILE* file = fopen(config_path.c_str(), "r");
-    if (!file)
-        return (error(ERR_FILE_OPEN + config_path, true), -1);
+	std::ifstream file(config_path.c_str());
+	if (!file.is_open())
+    	return (error(ERR_FILE_OPEN + config_path, true), -1);
 
-    fseek(file, 0, SEEK_END);
-    long size = ftell(file);
-    rewind(file);
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	file.close();
 
-    char* buffer = new char[size + 1];
-    fread(buffer, 1, size, file);
-    buffer[size] = '\0';
-    fclose(file);
-
-    std::istringstream iss(buffer);
-    delete[] buffer;
+	std::istringstream iss(buffer.str());
 
     std::string token;
     while (iss >> token)
@@ -100,6 +95,7 @@ int ServerCluster::parseServerBlock(std::istringstream& iss, ServerConfig& confi
 
     std::cout << "Parsing server block..." << std::endl; // Debug
 
+    Location tmp;
     while (iss >> token)
     {
         std::cout << "Token: " << token << std::endl; // Debug
@@ -134,6 +130,14 @@ int ServerCluster::parseServerBlock(std::istringstream& iss, ServerConfig& confi
                 value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
                 //std::cout << "Setting " << token << " to " << value << std::endl; // Debug
                 (config.*(it->second))(value);
+            }
+            std::map<std::string, void (Location::*)(const std::string&)>::iterator it2 = locationSetters.find(token);
+            if (it2 != locationSetters.end())
+            {
+                std::string value;
+                std::getline(iss, value, ';'); // Read until semicolon
+                value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
+                (tmp->*(it2->second))(value);
             }
         }
     }

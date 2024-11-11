@@ -13,6 +13,7 @@ class Location {
 		std::map<std::string, std::string*>	_error_pages;
 		bool								_autoindex;
 		long								_client_max_body_size;
+		std::map<std::string, std::string>	_cgis;
 
 	public:
 		Location(void);
@@ -26,6 +27,7 @@ class Location {
         void setAutoindex(const std::string& value);
         void setMethods(const std::string& value);
         void setRoot(const std::string& value);
+        void setCgis(const std::string& value);
         void setErrorPage(const std::string& value);
         void setClientMaxBodySize(const std::string& value);
 };

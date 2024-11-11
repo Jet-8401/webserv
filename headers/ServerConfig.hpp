@@ -26,8 +26,7 @@ class ServerConfig {
 		const uint16_t&							getPort(void) const;
 		const std::map<std::string, Location*>&	getLocations(void) const;
 
-		void setPort(const std::string& value);
-        void setHost(const std::string& value);
+		void setAdress(const std::string& value);
         void setServerName(const std::string& value);
         void setIndex(const std::string& value);
         void setRoot(const std::string& value);

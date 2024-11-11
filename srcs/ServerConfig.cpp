@@ -1,5 +1,6 @@
 #include "../headers/ServerConfig.hpp"
 #include <sstream>
+#include <string>
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -54,14 +55,20 @@ const std::map<std::string, Location*>&	ServerConfig::getLocations(void) const
 	return (this->_locations);
 }
 
-void ServerConfig::setPort(const std::string& value)
+void ServerConfig::setAdress(const std::string& value)
 {
-    _port = static_cast<uint16_t>(atoi(value.c_str()));
-}
+	size_t colonPos = value.find(':');
 
-void ServerConfig::setHost(const std::string& value)
-{
-    _host = value;
+    if (colonPos != std::string::npos)
+    {
+        _host = value.substr(0, colonPos);
+        _port = static_cast<uint16_t>(atoi(value.c_str() + colonPos + 1));
+    }
+    else
+    {
+    	_host = "0.0.0.0";
+     	_port = static_cast<uint16_t>(atoi(value.c_str()));
+    }
 }
 
 void ServerConfig::setServerName(const std::string& value)
