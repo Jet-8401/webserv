@@ -40,7 +40,7 @@ int	HttpRequest::parse(const int socket_fd)
 		std::cout << buffer;
 	}
 
+	// change state of epoll to EPOLLOUT
 	this->_is_complete = true;
-
 	return (0);
 }
