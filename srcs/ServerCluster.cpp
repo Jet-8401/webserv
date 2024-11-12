@@ -77,37 +77,6 @@ int ServerCluster::importConfig(const std::string& config_path)
     return (0);
 }
 
-void ServerCluster::parseHttpBlockDefault(std::stringstream& original_ss, Location* http_location)
-{
-	std::stringstream ss(original_ss.str());
-	std::string token;
-
-	while (ss >> token)
-	{
-		if (token == "}")
-		{
-			return;
-		}
-		else if (token == "server")
-		{
-			int brace_count = 0;
-			while (ss >> token && (brace_count += (token == "{") - (token == "}")) != 0);
-		}
-		else
-		{
-			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _http_location_setters.find(token);
-			if (it != _http_location_setters.end())
-			{
-				std::cout << "#####################################################" << std::endl;
-				std::string value;
-				std::getline(ss, value, ';'); // Read until semicolon
-				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
-				(http_location->*(it->second))(value);
-			}
-		}
-	}
-}
-
 int ServerCluster::parseHttpBlock(std::stringstream& ss)
 {
     std::string token;
@@ -133,16 +102,51 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
     return (error("Unexpected end of http block", true), -1);
 }
 
-void ServerCluster::parseServerBlockDefault(std::stringstream& original_ss, Location* serv_location)
+int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_location)
 {
-	std::stringstream ss(original_ss.str());
+	std::streampos pos = ss.tellg();
+	std::string token;
+
+	while (ss >> token)
+	{
+		if (token == "}")
+		{
+			ss.clear();
+			ss.seekg(pos); // we reset the pos in the ss because we read in advance
+			return (0);
+		}
+		else if (token == "server")
+		{
+			int brace_count = 0;
+			while (ss >> token && (brace_count += (token == "{") - (token == "}")) != 0);
+		}
+		else
+		{
+			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _http_location_setters.find(token);
+			if (it != _http_location_setters.end())
+			{
+				std::cout << "#####################################################" << std::endl;
+				std::string value;
+				std::getline(ss, value, ';'); // Read until semicolon
+				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
+				(http_location->*(it->second))(value);
+			}
+		}
+	}
+	return (error("Unexpected end of http block", true), -1);
+}
+
+int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv_location)
+{
+	std::streampos pos = ss.tellg();
 	std::string token;
 	while (ss >> token)
 	{
-		std::cout << "LE TOKEN DU CUL: " << token << std::endl;
 		if (token == "}")
 		{
-			return;
+			ss.clear();
+			ss.seekg(pos); // we reset the pos in the ss because we read in advance
+			return (0);
 		}
 		else if (token == "location")
 		{
@@ -154,12 +158,13 @@ void ServerCluster::parseServerBlockDefault(std::stringstream& original_ss, Loca
 			if (it != _serv_location_setters.end())
 			{
 				std::string value;
-				std::getline(ss, value, ';'); // Read until semicolon
-				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
+				std::getline(ss, value, ';');
+				value = value.substr(value.find_first_not_of(" \t"));
 				(serv_location->*(it->second))(value);
 			}
 		}
 	}
+	return (error("Unexpected end of server block", true), -1);
 }
 
 int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location)
@@ -171,9 +176,9 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 
 	std::cout << "Parsing server block..." << std::endl; // Debug
 
-	std::cout << http_location->getRoot() << "OOOOOOO" << std::endl;
 	Location serv_location(*http_location);
 	parseServerBlockDefault(ss, &serv_location);
+	std::cout << serv_location.getRoot() << "OOOOOOO" << std::endl;
 	while (ss >> token)
 	{
 		std::cout << "Token: " << token << std::endl; // Debug
