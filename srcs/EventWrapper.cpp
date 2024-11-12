@@ -1,4 +1,5 @@
 #include "../headers/EventWrapper.hpp"
+#include <cstddef>
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --

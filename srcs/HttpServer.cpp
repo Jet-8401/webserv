@@ -1,6 +1,7 @@
 #include "../headers/HttpServer.hpp"
 #include "../headers/WebServ.hpp"
 #include "../headers/EventWrapper.hpp"
+#include "../headers/Connection.hpp"
 #include <cstring>
 #include <netinet/in.h>
 #include <stdexcept>
@@ -10,6 +11,7 @@
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <stdint.h>
+#include <fcntl.h>
 
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -21,8 +23,8 @@ const int	HttpServer::_backlog = 1024;
 
 HttpServer::HttpServer(void):
 	_config(),
-	_max_connections(MAX_CONNECTIONS),
-	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0))
+	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
+	_max_connections(MAX_CONNECTIONS)
 {
 	if (this->_socket_fd == -1)
 		throw std::runtime_error(ERR_SOCKET_CREATION);
@@ -30,8 +32,8 @@ HttpServer::HttpServer(void):
 
 HttpServer::HttpServer(const ServerConfig& config):
     _config(config),
-    _max_connections(MAX_CONNECTIONS),
-    _socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0))
+    _socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
+    _max_connections(MAX_CONNECTIONS)
 {
     if (this->_socket_fd == -1)
         throw std::runtime_error(ERR_SOCKET_CREATION);
@@ -40,9 +42,9 @@ HttpServer::HttpServer(const ServerConfig& config):
 HttpServer::HttpServer(const HttpServer& src):
 	_config(src._config),
 	_socket_fd(src._socket_fd),
+	_epoll_fd(src._epoll_fd),
 	_connections(src._connections),
-	_max_connections(src._max_connections),
-	_epoll_fd(src._epoll_fd)
+	_max_connections(src._max_connections)
 {}
 
 HttpServer::~HttpServer(void)
@@ -130,6 +132,10 @@ int	HttpServer::acceptConnection(void)
 	if (client_fd  == -1)
 		return (error(ERR_ACCEPT_REQUEST, true), -1);
 
+	// change client socket to non-blocking mode
+	int flags = ::fcntl(client_fd, F_GETFL, 0);
+	::fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+
 	// create connection
 	client_connection = new Connection(client_fd, *this);
 	this->_connections.push_back(client_connection);
@@ -142,7 +148,7 @@ int	HttpServer::acceptConnection(void)
 	::memset(&event, 0, sizeof(event));
 	event.events = EPOLLIN | EPOLLET;
 	event.data.ptr = event_wrapper;
-	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, this->_socket_fd, &event) == -1)
+	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &event) == -1)
 		return (error(ERR_EPOLL_ADD, true), -1);
 	return (0);
 }

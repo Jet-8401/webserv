@@ -2,8 +2,8 @@ NAME = webserv
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g
 SDIR = srcs
 HDIR = headers
-SRCS = $(addprefix ${SDIR}/, main.cpp HttpServer.cpp Location.cpp ServerCluster.cpp ServerConfig.cpp utils.cpp)
-HDRS = $(addprefix ${HDIR}/, HttpRequest.hpp HttpResponse.hpp HttpServer.hpp Location.hpp ServerCluster.hpp ServerConfig.hpp WebServ.hpp)
+SRCS = $(addprefix ${SDIR}/, main.cpp HttpServer.cpp Location.cpp ServerCluster.cpp ServerConfig.cpp EventWrapper.cpp Connection.cpp HttpRequest.cpp utils.cpp)
+HDRS = $(addprefix ${HDIR}/, HttpRequest.hpp HttpResponse.hpp HttpServer.hpp Location.hpp ServerCluster.hpp ServerConfig.hpp EventWrapper.hpp WebServ.hpp)
 TPLS =
 ODIR = objs
 OBJS = $(SRCS:${SDIR}/%.cpp=${ODIR}/%.o)

@@ -16,6 +16,7 @@
 # define ERR_EPOLL_ADD "Cannot add a file descriptor to an epoll instance"
 # define ERR_EPOLL_WAIT "An error occured while epoll was waiting"
 # define ERR_ACCEPT_REQUEST "Could not accept the client request"
+# define ERR_READING_REQUEST "Impossible to read the request"
 
 # ifdef DEBUGGER
 
