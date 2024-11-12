@@ -16,11 +16,16 @@ class ServerCluster {
 		typedef std::vector<HttpServer> servers_type_t;
 		servers_type_t	_servers;
 
-        int parseHttpBlock(std::istringstream& iss);
-        int parseServerBlock(std::istringstream& iss, ServerConfig& config);
-        int parseLocationBlock(std::istringstream& iss, Location* location);
-        static std::map<std::string, void (ServerConfig::*)(const std::string&)> serverSetters;
-        static std::map<std::string, void (Location::*)(const std::string&)> locationSetters;
+        int parseHttpBlock(std::stringstream& ss);
+        void parseHttpBlockDefault(std::stringstream& original_ss, Location* http_location);
+        int parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location);
+        void parseServerBlockDefault(std::stringstream& original_ss, Location* serv_location);
+        int parseLocationBlock(std::stringstream& ss, Location* location);
+        static std::map<std::string, void (ServerConfig::*)(const std::string&)> _server_setters;
+        static std::map<std::string, void (Location::*)(const std::string&)> _location_setters;
+        static std::map<std::string, void (Location::*)(const std::string&)> _http_location_setters;
+        static std::map<std::string, void (Location::*)(const std::string&)> _serv_location_setters;
+
         static void initDirectives();
 
 

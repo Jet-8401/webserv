@@ -80,43 +80,6 @@ void ServerConfig::setServerName(const std::string& value)
     }
 }
 
-void ServerConfig::setIndex(const std::string& value)
-{
-    // Implement based on your needs
-    (void)value;
-}
-
-void ServerConfig::setRoot(const std::string& value)
-{
-    // Implement based on your needs
-    (void)value;
-}
-
-void ServerConfig::setClientMaxBodySize(const std::string& value)
-{
-    // Parse size with unit (M, K, etc)
-    std::string size = value;
-    long multiplier = 1;
-    if (size[size.length() - 1] == 'M' || size[size.length() - 1] == 'm')
-    {
-        multiplier = 1024 * 1024;
-        size.erase(size.size() - 1);
-    }
-    else if (size[size.length() - 1] == 'K' || size[size.length() - 1] == 'k')
-    {
-        multiplier = 1024;
-        size.erase(size.size() - 1);
-    }
-    // Set the value in your class (you'll need to add this member)
-    // _client_max_body_size = atol(size.c_str()) * multiplier;
-}
-
-void ServerConfig::setErrorPage(const std::string& value)
-{
-    // Implement based on your needs
-    (void)value;
-}
-
 void ServerConfig::addLocation(const std::string& path, Location* location)
 {
     _locations[path] = location;

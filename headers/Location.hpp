@@ -5,6 +5,7 @@
 # include <cstdlib>
 # include <set>
 # include <map>
+#include <vector>
 
 class Location {
 	protected:
@@ -14,9 +15,16 @@ class Location {
 		bool								_autoindex;
 		long								_client_max_body_size;
 		std::map<std::string, std::string>	_cgis;
+		std::vector<std::string>			_index;
+		std::pair<std::string, std::string>	_return;
+		std::string							_alias;
+
+
 
 	public:
 		Location(void);
+		Location(const Location& src);
+		~Location(void);
 
 		const std::set<std::string>&				getMethods(void) const;
 		const std::string&							getRoot(void) const;
@@ -24,12 +32,15 @@ class Location {
 		const bool&									getAutoIndex(void) const;
 		const long&									getClientMaxBodySize(void) const;
 
-        void setAutoindex(const std::string& value);
         void setMethods(const std::string& value);
         void setRoot(const std::string& value);
-        void setCgis(const std::string& value);
+        void setAlias(const std::string& value);
         void setErrorPage(const std::string& value);
+        void setAutoindex(const std::string& value);
         void setClientMaxBodySize(const std::string& value);
+        void setCgis(const std::string& value);
+        void setIndex(const std::string& value);
+        void setReturn(const std::string& value);
 };
 
 #endif

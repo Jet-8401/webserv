@@ -28,10 +28,6 @@ class ServerConfig {
 
 		void setAdress(const std::string& value);
         void setServerName(const std::string& value);
-        void setIndex(const std::string& value);
-        void setRoot(const std::string& value);
-        void setClientMaxBodySize(const std::string& value);
-        void setErrorPage(const std::string& value);
         void addLocation(const std::string& path, Location* location);
 };
 

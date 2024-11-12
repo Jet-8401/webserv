@@ -13,6 +13,20 @@ Location::Location(void):
     std::cout << "Location constructor called" << std::endl;
 }
 
+Location::Location(const Location& src):
+	_methods(src._methods),
+	_root(src._root),
+	_error_pages(src._error_pages),
+	_autoindex(src._autoindex),
+	_client_max_body_size(src._client_max_body_size),
+	_cgis(src._cgis),
+	_index(src._index),
+	_return(src._return),
+	_alias(src._alias)
+{}
+
+Location::~Location(){}
+
 void Location::setAutoindex(const std::string& value)
 {
 	std::cout <<"autoindex value :"<< value << std::endl;
@@ -27,6 +41,34 @@ void Location::setMethods(const std::string& value)
 	{
 		_methods.insert(method);
 	}
+}
+
+void Location::setReturn(const std::string& value)
+{
+        std::istringstream iss(value);
+        std::string first, second;
+
+        iss >> first;
+        if (iss >> second)
+            _return = std::make_pair(first, second);
+        else
+            _return = std::make_pair("301", first);
+}
+
+void Location::setIndex(const std::string& value)
+{
+	std::istringstream iss(value);
+	std::string index;
+
+	while (iss >> index)
+	{
+	    _index.push_back(index);
+	}
+}
+
+void Location::setAlias(const std::string& value)
+{
+	_alias = value;
 }
 
 void Location::setRoot(const std::string& value)
