@@ -31,6 +31,10 @@ class Location {
 		const std::map<std::string, std::string*>&	getErrorPages(void) const;
 		const bool&									getAutoIndex(void) const;
 		const long&									getClientMaxBodySize(void) const;
+		const std::string&							getAlias() const;
+		const std::vector<std::string>&				getIndexes() const;
+		const std::map<std::string, std::string>&	getCGIs() const;
+		const std::pair<std::string, std::string>&	getRedirection() const;
 
         void setMethods(const std::string& value);
         void setRoot(const std::string& value);

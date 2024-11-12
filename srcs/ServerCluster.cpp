@@ -98,6 +98,7 @@ void ServerCluster::parseHttpBlockDefault(std::stringstream& original_ss, Locati
 			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _http_location_setters.find(token);
 			if (it != _http_location_setters.end())
 			{
+				std::cout << "#####################################################" << std::endl;
 				std::string value;
 				std::getline(ss, value, ';'); // Read until semicolon
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
@@ -114,6 +115,8 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
     if (token != "{")
         return (error("Expected '{' after http", true), -1);
 
+    Location http_location;
+    parseHttpBlockDefault(ss, &http_location);
 
     while (ss >> token)
     {
@@ -122,11 +125,11 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
         else if (token == "server")
         {
             ServerConfig config;
-            Location http_location;
             if (parseServerBlock(ss, config, &http_location) < 0)
                 return (-1);
         }
     }
+    std::cout << "FUCK"<< ss.eof() << std::endl;
     return (error("Unexpected end of http block", true), -1);
 }
 
@@ -136,6 +139,7 @@ void ServerCluster::parseServerBlockDefault(std::stringstream& original_ss, Loca
 	std::string token;
 	while (ss >> token)
 	{
+		std::cout << "LE TOKEN DU CUL: " << token << std::endl;
 		if (token == "}")
 		{
 			return;
@@ -167,6 +171,7 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 
 	std::cout << "Parsing server block..." << std::endl; // Debug
 
+	std::cout << http_location->getRoot() << "OOOOOOO" << std::endl;
 	Location serv_location(*http_location);
 	parseServerBlockDefault(ss, &serv_location);
 	while (ss >> token)
@@ -174,6 +179,8 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 		std::cout << "Token: " << token << std::endl; // Debug
 		if (token == "}")
 		{
+			if (config.getLocations().empty())
+				config.addLocation("/", new Location(serv_location));
 			HttpServer server(config);
 			_servers.push_back(server); // Use size as key instead of invalid socket fd
 			std::cout << "Added server with port: " << config.getPort() << std::endl; // Debug

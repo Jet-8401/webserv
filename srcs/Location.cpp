@@ -10,6 +10,7 @@ Location::Location(void):
     _autoindex(false),
     _client_max_body_size(0)
 {
+	_methods.insert("GET");
     std::cout << "Location constructor called" << std::endl;
 }
 
@@ -37,6 +38,7 @@ void Location::setMethods(const std::string& value)
 {
 	std::istringstream iss(value);
 	std::string method;
+	_methods.clear();
 	while (iss >> method)
 	{
 		_methods.insert(method);
@@ -60,6 +62,7 @@ void Location::setIndex(const std::string& value)
 	std::istringstream iss(value);
 	std::string index;
 
+	_index.clear();
 	while (iss >> index)
 	{
 	    _index.push_back(index);
@@ -151,4 +154,20 @@ const bool& Location::getAutoIndex(void) const
 const long& Location::getClientMaxBodySize(void) const
 {
     return _client_max_body_size;
+}
+
+const std::string& Location::getAlias() const {
+    return _alias;
+}
+
+const std::vector<std::string>& Location::getIndexes() const {
+    return _index;
+}
+
+const std::map<std::string, std::string>& Location::getCGIs() const {
+    return _cgis;
+}
+
+const std::pair<std::string, std::string>& Location::getRedirection() const {
+    return _return;
 }
