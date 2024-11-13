@@ -2,7 +2,6 @@
 # define HTTP_REQUEST_HPP
 
 # include <map>
-#include <sstream>
 # include <string>
 
 enum http_header_behavior_e {
