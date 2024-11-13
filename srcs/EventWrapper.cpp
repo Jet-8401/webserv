@@ -29,3 +29,9 @@ event_wrapper_t* EventWrapper::create(enum socket_type_e socket_type)
 	this->_events.push_back(wrapper);
 	return (wrapper);
 }
+
+void	EventWrapper::remove(event_wrapper_t* event)
+{
+	this->_events.remove(event);
+	delete event;
+}

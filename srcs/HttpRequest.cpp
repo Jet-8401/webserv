@@ -27,20 +27,31 @@ HttpRequest::HttpRequest(void)
 HttpRequest::~HttpRequest(void)
 {}
 
+// Getters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const bool&	HttpRequest::isComplete(void) const
+{
+	return (this->_is_complete);
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+// Step of parsing:
+// 1. Check for first request: METHOD LOCATTION PROTOCOL
+// 2. Import headers with security to headers injections
+// 3. Depending on headers waiting for the body to be cached into RAM or a file.
 int	HttpRequest::parse(const int socket_fd)
 {
 	char	buffer[100];
 	ssize_t	bytes;
 
-	while ((bytes = read(socket_fd, buffer, sizeof(buffer))) != 0) {
+	while ((bytes = read(socket_fd, buffer, sizeof(buffer))) > 0) {
 		buffer[bytes] = 0;
 		std::cout << buffer;
 	}
 
-	// change state of epoll to EPOLLOUT
 	this->_is_complete = true;
 	return (0);
 }

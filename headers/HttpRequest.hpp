@@ -19,11 +19,14 @@ class HttpRequest {
 
 		std::multimap<std::string, std::string>	_headers;
 		bool									_is_complete;
-		std::stringstream						_interal_buff;
 
 	public:
 		HttpRequest(void);
 		virtual ~HttpRequest(void);
+
+		// Getters
+		const bool&	isComplete(void) const;
+		const std::string&	getHeader(const std::string header_name);
 
 		int		parse(const int socket_fd);
 };

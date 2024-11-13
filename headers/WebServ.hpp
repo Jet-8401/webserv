@@ -17,6 +17,9 @@
 # define ERR_EPOLL_WAIT "An error occured while epoll was waiting"
 # define ERR_ACCEPT_REQUEST "Could not accept the client request"
 # define ERR_READING_REQUEST "Impossible to read the request"
+# define ERR_EPOLL_MOD "Impossible to change epoll instance"
+# define ERR_EPOLL_DEL "Impossible to delete an epoll event"
+# define ERR_FD_CLOSE "Cannot close a file descriptor"
 
 # ifdef DEBUGGER
 

@@ -45,11 +45,13 @@ class HttpServer {
 		const ServerConfig&	getConfig(void) const;
 		const std::string&	getAddress(void) const;
 		const int&			getSocketFD(void) const;
+		const int&			getEpollFD(void) const;
 
 		// Functions
 		int		listen(void) const;
 		void	onEvent(::uint32_t events);
 		int		acceptConnection(void);
+		int		deleteConnection(Connection* connection);
 };
 
 #endif

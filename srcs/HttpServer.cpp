@@ -97,6 +97,11 @@ const int&	HttpServer::getSocketFD(void) const
 	return (this->_socket_fd);
 }
 
+const int&	HttpServer::getEpollFD(void) const
+{
+	return (this->_epoll_fd);
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -125,7 +130,6 @@ int	HttpServer::acceptConnection(void)
 {
 	int					client_fd;
 	Connection*			client_connection;
-	struct epoll_event	event;
 	event_wrapper_t*	event_wrapper;
 
 	client_fd = ::accept(this->_socket_fd, NULL, NULL);
@@ -144,11 +148,10 @@ int	HttpServer::acceptConnection(void)
 	event_wrapper = this->_event_wrapper.create(CLIENT);
 	event_wrapper->casted_value = static_cast<void*>(client_connection);
 
-	// set the epoll instance
-	::memset(&event, 0, sizeof(event));
-	event.events = EPOLLIN | EPOLLET;
-	event.data.ptr = event_wrapper;
-	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &event) == -1)
+	// set the event of connection and add it to epoll
+	client_connection->event.events = EPOLLIN | EPOLLET;
+	client_connection->event.data.ptr = event_wrapper;
+	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &client_connection->event) == -1)
 		return (error(ERR_EPOLL_ADD, true), -1);
 	return (0);
 }
@@ -159,7 +162,7 @@ int	HttpServer::acceptConnection(void)
 void	HttpServer::onEvent(::uint32_t events)
 {
 	if (events & EPOLLHUP) {
-		//this->destroyConnection();
+		// handle socket hang-up
 		return ;
 	}
 
@@ -167,4 +170,19 @@ void	HttpServer::onEvent(::uint32_t events)
 		this->acceptConnection();
 		// handle client errors
 	}
+}
+
+int	HttpServer::deleteConnection(Connection* connection)
+{
+	if (!connection)
+		return (-1);
+	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_DEL, connection->getSocketFD(), &connection->event) == -1)
+		return (error(ERR_EPOLL_DEL, true), -1);
+	if (::close(connection->getSocketFD()) == -1)
+		error(ERR_FD_CLOSE, true);
+	this->_event_wrapper.remove(static_cast<event_wrapper_t*>(connection->event.data.ptr));
+	this->_connections.remove(connection);
+	delete connection;
+	connection = NULL;
+	return (0);
 }

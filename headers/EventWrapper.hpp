@@ -25,6 +25,7 @@ class EventWrapper {
 		virtual ~EventWrapper(void);
 
 		event_wrapper_t*	create(enum socket_type_e socket_type);
+		void				remove(event_wrapper_t* event);
 };
 
 #endif
