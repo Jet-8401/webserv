@@ -81,6 +81,8 @@ int	BytesBuffer::write(const uint8_t* data, const size_t size)
 {
 	if (this->_size + size > this->_max_bytes_size)
 		return (-1);
+	if (this->_size + size > this->_bytes_threshold)
+		this->_switchBufferingMode();
 	if (this->_buffered_as_file) {
 		if (::write(this->_file_buff_fd, this->_internal_buff, size) == -1)
 			return (error(ERR_WRITING_TMPFILE, true),  -1);

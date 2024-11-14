@@ -12,7 +12,7 @@ class Connection;
 class Connection {
 	private:
 		const int			_socket;
-		HttpServer&			_server_referrer;
+		HttpServer&			_server_referer;
 
 	public:
 		Connection(const int client_socket_fd, HttpServer& server_referrer);

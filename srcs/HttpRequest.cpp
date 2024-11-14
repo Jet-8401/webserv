@@ -50,15 +50,7 @@ const bool&	HttpRequest::isComplete(void) const
 // 3. Depending on headers waiting for the body to be cached into RAM or a file.
 int	HttpRequest::parse(const int socket_fd)
 {
-	char	buffer[100];
-	ssize_t	bytes;
-
-	while ((bytes = read(socket_fd, buffer, sizeof(buffer))) > 0) {
-		buffer[bytes] = 0;
-		std::cout << buffer;
-	}
-
-	this->_is_complete = true;
+	(void) socket_fd;
 	return (0);
 }
 
@@ -85,6 +77,7 @@ int	HttpRequest::bufferIncomingData(const int socket_fd)
 			continue ;
 		this->_end_header_addr = addr;
 		this->_headers_received = true;
+		this->_is_complete = true;
 	}
 	std::cout << reinterpret_cast<const char*>(this->_request_buffer.read());
 	return (0);
