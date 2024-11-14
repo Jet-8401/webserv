@@ -37,15 +37,13 @@ void	Connection::onEvent(::uint32_t events)
 	}
 
 	if (events & EPOLLIN) {
-		/*if (!this->request.isComplete()) {
-			this->request.bufferIncomingData();
+		if (!this->request.isComplete()) {
+			this->request.bufferIncomingData(this->_socket);
 			return ;
-		}*/
+		}
 
 		if (this->request.parse(this->_socket) == -1)
 			error(ERR_READING_REQUEST, true);
-		if (!this->request.isComplete())
-			return;
 		// Changing events on that connection, so epoll will monitor the writable status
 		this->event.events = EPOLLOUT;
 		if (epoll_ctl(this->_server_referrer.getEpollFD(), EPOLL_CTL_MOD, this->_socket, &this->event) == -1)

@@ -6,9 +6,9 @@
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-headers_behavior_t&	init_headers_behavior()
+HttpRequest::headers_behavior_t&	init_headers_behavior()
 {
-	static headers_behavior_t	headers;
+	static HttpRequest::headers_behavior_t	headers;
 
 	headers["Host"] = UNIQUE;
 	headers["Content-Length"] = UNIQUE;
@@ -16,12 +16,13 @@ headers_behavior_t&	init_headers_behavior()
 	return headers;
 }
 
-headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_behavior();
+HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_behavior();
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpRequest::HttpRequest(void)
+HttpRequest::HttpRequest(void):
+	_headers_buff()
 {}
 
 HttpRequest::~HttpRequest(void)
@@ -41,7 +42,7 @@ const bool&	HttpRequest::isComplete(void) const
 // Step of parsing:
 // 1. Check for first request: METHOD LOCATTION PROTOCOL
 // 2. Import headers with security to headers injections
-// 3. Depending on headers waiting for the body to be cached into RAM or a file.
+// 3. Depending on headers waiting for the body to be cached into RAM or a file to be complete.
 int	HttpRequest::parse(const int socket_fd)
 {
 	char	buffer[100];
@@ -54,4 +55,9 @@ int	HttpRequest::parse(const int socket_fd)
 
 	this->_is_complete = true;
 	return (0);
+}
+
+int	HttpRequest::bufferIncomingData(const int socket_fd)
+{
+
 }
