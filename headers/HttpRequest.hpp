@@ -1,7 +1,7 @@
 #ifndef HTTP_REQUEST_HPP
 # define HTTP_REQUEST_HPP
 
-#include "BytesBuffer.hpp"
+# include "BytesBuffer.hpp"
 # include <map>
 # include <string>
 # include <stdint.h>
@@ -18,12 +18,13 @@ class HttpRequest {
 
 	private:
 		static headers_behavior_t&				_headers_handeled;
+		static uint8_t							_end_header_sequence[4];
 
 		std::multimap<std::string, std::string>	_headers;
 		bool									_headers_received;
 		bool									_is_complete;
-		BytesBuffer								_headers_buff;
-		BytesBuffer*							_content_buff;
+		BytesBuffer								_request_buffer;
+		const uint8_t*							_end_header_addr;
 
 		// note: set the _content_buff max to client_max_body_size;
 

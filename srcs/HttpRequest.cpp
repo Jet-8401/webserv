@@ -1,4 +1,7 @@
 #include "../headers/HttpRequest.hpp"
+#include <algorithm>
+#include <cerrno>
+#include <cstddef>
 #include <iostream>
 #include <sys/types.h>
 #include <unistd.h>
@@ -16,14 +19,15 @@ HttpRequest::headers_behavior_t&	init_headers_behavior()
 	return headers;
 }
 
+uint8_t	HttpRequest::_end_header_sequence[] = {13, 10, 13, 10};
 HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_behavior();
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpRequest::HttpRequest(void):
-	_is_complete(0),
-	_headers_received(0)
+	_headers_received(0),
+	_is_complete(0)
 {}
 
 HttpRequest::~HttpRequest(void)
@@ -60,10 +64,28 @@ int	HttpRequest::parse(const int socket_fd)
 
 int	HttpRequest::bufferIncomingData(const int socket_fd)
 {
-	char	packet[1024];
-	ssize_t	bytes;
+	uint8_t			packet[10];
+	const uint8_t*	buffer;
+	size_t			starting_point;
+	ssize_t			bytes;
+	const uint8_t*	addr;
 
-	while ((bytes = read(socket_fd, packet, sizeof(packet)) > 0)) {
-
+	while ((bytes = read(socket_fd, packet, sizeof(packet))) > 0) {
+		starting_point = std::max(static_cast<size_t>(0), this->_request_buffer.getSize() - 3);
+		if (this->_request_buffer.write(packet, bytes) == -1)
+			return (-1);
+		buffer = this->_request_buffer.read();
+		addr = std::search(
+			buffer + starting_point,
+			buffer + this->_request_buffer.getSize(),
+			HttpRequest::_end_header_sequence,
+			HttpRequest::_end_header_sequence + 4
+		);
+		if (addr == buffer + this->_request_buffer.getSize())
+			continue ;
+		this->_end_header_addr = addr;
+		this->_headers_received = true;
 	}
+	std::cout << reinterpret_cast<const char*>(this->_request_buffer.read());
+	return (0);
 }

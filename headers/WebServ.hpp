@@ -20,6 +20,8 @@
 # define ERR_EPOLL_MOD "Impossible to change epoll instance"
 # define ERR_EPOLL_DEL "Impossible to delete an epoll event"
 # define ERR_FD_CLOSE "Cannot close a file descriptor"
+# define ERR_TMPFILE_CREATION "Cannot create a temp file"
+# define ERR_WRITING_TMPFILE "Cannot write to temp file"
 
 # ifdef DEBUGGER
 
