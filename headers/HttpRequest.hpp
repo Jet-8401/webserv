@@ -1,10 +1,9 @@
 #ifndef HTTP_REQUEST_HPP
 # define HTTP_REQUEST_HPP
 
-# include "BytesBuffer.hpp"
+#include "BytesBuffer.hpp"
 # include <map>
 # include <string>
-# include <vector>
 # include <stdint.h>
 
 enum http_header_behavior_e {
@@ -21,9 +20,10 @@ class HttpRequest {
 		static headers_behavior_t&				_headers_handeled;
 
 		std::multimap<std::string, std::string>	_headers;
-		bool									_is_complete;		// only check headers for now
-		std::vector<uint8_t>					_headers_buff;
-		std::vector<uint8_t>					_content_buff;
+		bool									_headers_received;
+		bool									_is_complete;
+		BytesBuffer								_headers_buff;
+		BytesBuffer*							_content_buff;
 
 		// note: set the _content_buff max to client_max_body_size;
 

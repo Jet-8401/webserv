@@ -22,7 +22,8 @@ HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_b
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpRequest::HttpRequest(void):
-	_headers_buff()
+	_is_complete(0),
+	_headers_received(0)
 {}
 
 HttpRequest::~HttpRequest(void)
@@ -42,7 +43,7 @@ const bool&	HttpRequest::isComplete(void) const
 // Step of parsing:
 // 1. Check for first request: METHOD LOCATTION PROTOCOL
 // 2. Import headers with security to headers injections
-// 3. Depending on headers waiting for the body to be cached into RAM or a file to be complete.
+// 3. Depending on headers waiting for the body to be cached into RAM or a file.
 int	HttpRequest::parse(const int socket_fd)
 {
 	char	buffer[100];
@@ -59,5 +60,10 @@ int	HttpRequest::parse(const int socket_fd)
 
 int	HttpRequest::bufferIncomingData(const int socket_fd)
 {
+	char	packet[1024];
+	ssize_t	bytes;
 
+	while ((bytes = read(socket_fd, packet, sizeof(packet)) > 0)) {
+
+	}
 }
