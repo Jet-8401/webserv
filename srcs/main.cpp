@@ -1,5 +1,5 @@
-#include "../headers/WebServ.hpp"
 #include "../headers/ServerCluster.hpp"
+#include "../headers/WebServ.hpp"
 #include <iostream>
 #include <iomanip>
 
@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    ServerCluster cluster;
+    ServerCluster	cluster;
 
     std::cout << "\033[1;32m┌── Starting config import from: \033[0m" << argv[1] << std::endl;
 
@@ -123,6 +123,8 @@ int main(int argc, char* argv[]) {
         std::cout << "\033[1;33m┌── Server #" << count << "\033[0m" << std::endl;
         displayServerInfo(it->getConfig());
     }
+
+    cluster.listenAll();
 
     return 0;
 }

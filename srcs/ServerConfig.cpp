@@ -6,7 +6,7 @@
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 ServerConfig::ServerConfig(void):
-	_host(""),
+	_host(),
 	_port(0)
 {}
 

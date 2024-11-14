@@ -1,0 +1,2 @@
+- handle max_connections
+- handle proper buffering for requests

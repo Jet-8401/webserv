@@ -1,10 +1,23 @@
 #include "../headers/ServerCluster.hpp"
+#include "../headers/WebServ.hpp"
 #include <cstdio>
+#include <cstring>
+#include <netinet/in.h>
+#include <string>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <sstream>
 #include <fstream>
 #include <iostream>
-#include "../headers/WebServ.hpp"
+#include <sys/epoll.h>
+#include <fcntl.h>
+
+// Static variables
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+std::map<std::string, void (ServerConfig::*)(const std::string&)>	ServerCluster::serverSetters;
+std::map<std::string, void (Location::*)(const std::string&)>		ServerCluster::locationSetters;
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -43,17 +56,29 @@ void ServerCluster::initDirectives()
     _location_setters["error_page"] = &Location::setErrorPage;
 }
 
-ServerCluster::ServerCluster(void) : _epoll_fd(-1)
+ServerCluster::ServerCluster(void):
+	_epoll_fd(-1),
+	_running(1)
 {
-    initDirectives();
+	this->initDirectives();
 }
 
-ServerCluster::~ServerCluster(void) {}
-
-const ServerCluster::servers_type_t& ServerCluster::getServers() const
+ServerCluster::~ServerCluster(void)
 {
-	return _servers;
+	if (this->_epoll_fd != -1)
+		close(this->_epoll_fd);
 }
+
+// Getters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const ServerCluster::servers_type_t& ServerCluster::getServers(void) const
+{
+	return (this->_servers);
+}
+
+// Function members
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 int ServerCluster::importConfig(const std::string& config_path)
 {
@@ -248,15 +273,103 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 	return (error("Unexpected end of location block", true), -1);
 }
 
-int	ServerCluster::listenAll(void) const {
+// Make all virtual server listen on their sockets and check for conncetions with epoll.
+//
+// The data store by epoll_data_t is a pointer to a wrapper class that will be used to keep track
+// of the original data-type of the pointer as it can be an HttpServer instance for connections request and
+// for already setup connections it is a Connection instance, therefore casting it int the right type.
+// This method is one of the most efficient as we can directly access the instance associated to that file descriptor.
+// For every events returned we check the enum of the wrapper class for the casting, then onEvent() is called
+// on that instance.
+int	ServerCluster::listenAll(void)
+{
+	servers_type_t::iterator	it;
+	struct epoll_event			incoming_events[MAX_EPOLL_EVENTS];
+	event_wrapper_t*			event_wrapper;
+	int							events;
 
-	servers_type_t::const_iterator it;
-
-    // create epoll
+	this->_epoll_fd = ::epoll_create(this->_servers.size());
+	if (this->_epoll_fd == -1)
+		return (error(ERR_EPOLL_CREATION, false), -1);
 
 	for (it = this->_servers.begin(); it != this->_servers.end(); it++)
+	{
+		struct epoll_event	ep_event;
+
 		if (it->listen() == -1)
 			return (-1);
-	return (0);
+		it->setEpollFD(this->_epoll_fd);
+		event_wrapper = this->_events_wrapper.create(REQUEST);
+		event_wrapper->casted_value = &(*it);
+		ep_event.events = EPOLLIN | EPOLLET;
+		ep_event.data.ptr = static_cast<void*>( event_wrapper );
+		if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, it->getSocketFD(), &ep_event) == -1)
+			return (error(ERR_EPOLL_ADD, true), -1);
+	}
 
+	// wait for the events pool to trigger
+	while (this->_running) {
+		::memset(&incoming_events, 0, sizeof(incoming_events));
+		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, -1);
+		if (events  == -1)
+			return (error(ERR_EPOLL_WAIT, true), -1);
+		DEBUG("events received: " << events);
+		for (int i = 0; i < events; i++) {
+			event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
+			switch (event_wrapper->socket_type) {
+				case REQUEST:
+					DEBUG("event[" << i << "]: connection request");
+					static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+					break ;
+				case CLIENT:
+					DEBUG("event[" << i << "]: client package");
+					static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+					break ;
+				default:
+					break;
+			}
+		}
+	}
+	return (0);
 }
+
+/*
+	// Set client socket to non-blocking
+            int flags = fcntl(client_fd, F_GETFL, 0);
+            fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+
+           	HttpServer&	server = *((HttpServer*) incoming_event.data.ptr);
+	int	client_fd = ::accept(server.getSocketFD(), NULL, NULL);
+
+	int flags = fcntl(client_fd, F_GETFL, 0);
+	fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+
+	ssize_t	bytes;
+	char	buffer[1000];
+	std::string request;
+	while ((bytes = read(client_fd, buffer, sizeof(buffer))) > 0)
+	{
+		buffer[bytes] = 0;
+		std::cout << buffer;
+		request += buffer;
+		if (bytes == 0)
+			break ;
+		//if (request.find("\r\n\r\n") != std::string::npos)
+		//	break;
+	}
+
+	DEBUG("Sending response");
+	std::stringstream	message;
+
+	message << "HTTP/1.1 200 OK\r\n";
+	message << "Content-Type: text/html\r\n";
+	message << "Connection: close\r\n";
+	message << "\r\n";
+	message << "Hello, World!";
+	if (write(client_fd, message.str().c_str(), message.str().size()) == -1)
+		return (error("Error writing response", true), -1);
+	close(client_fd);
+
+	DEBUG("End of sending response");
+	return (0);
+*/
