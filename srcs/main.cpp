@@ -59,6 +59,8 @@ void displayServerInfo(const ServerConfig& config) {
     }
     std::cout << std::endl;
 
+    std::cout << "\033[1;34m│   Max Connections:\033[0m " << config.getMaxConnections() << std::endl;
+
     std::cout << "\033[1;34m│   Locations:\033[0m" << std::endl;
     const std::map<std::string, Location*>& locations = config.getLocations();
     for (std::map<std::string, Location*>::const_iterator it = locations.begin();

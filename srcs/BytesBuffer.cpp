@@ -67,7 +67,7 @@ int	BytesBuffer::_switchBufferingMode(void)
 		return (error(ERR_WRITING_TMPFILE, true), -1);
 	this->_buffered_as_file = true;
 	delete this->_internal_buff;
-	this->_internal_buff = NULL;
+	this->_internal_buff = 0;
 	return (0);
 }
 

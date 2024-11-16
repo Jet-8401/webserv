@@ -13,30 +13,26 @@ class HttpServer;
 # include "Connection.hpp"
 # include "EventWrapper.hpp"
 
-# define MAX_CONNECTIONS
+# define MAX_CONNECTIONS 1
 
 class HttpServer {
 	private:
 		static const int		_backlog;
 
-		ServerConfig			_config;
+		const ServerConfig		_config;
 		const int				_socket_fd;
 		int						_epoll_fd;
-		std::string				_address;
+		const std::string		_address;
 		std::list<Connection*>	_connections;
-		unsigned int			_max_connections;
 		EventWrapper			_event_wrapper;
 
 	public:
 		typedef HttpResponse Response;
 		typedef HttpRequest Request;
 
-		HttpServer(void);
 		HttpServer(const ServerConfig& config);
 		HttpServer(const HttpServer& src);
 		virtual ~HttpServer(void);
-
-		HttpServer&	operator=(const HttpServer& src);
 
 		// Setters
 		void	setEpollFD(const int epoll_fd);

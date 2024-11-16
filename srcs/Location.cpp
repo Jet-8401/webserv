@@ -1,6 +1,9 @@
 #include "../headers/Location.hpp"
 #include <iostream>
+#include <set>
 #include <sstream>
+#include <string>
+#include <utility>
 #include <vector>
 
 Location::Location(void):
@@ -17,16 +20,36 @@ Location::Location(void):
 Location::Location(const Location& src):
 	_methods(src._methods),
 	_root(src._root),
-	_error_pages(src._error_pages),
 	_autoindex(src._autoindex),
 	_client_max_body_size(src._client_max_body_size),
 	_cgis(src._cgis),
 	_index(src._index),
 	_return(src._return),
 	_alias(src._alias)
-{}
+{
+	// do deep copy
+	std::string*										copy;
+	std::map<std::string, std::string*>::const_iterator	it;
 
-Location::~Location(){}
+	for (it = src._error_pages.begin(); it != src._error_pages.end(); it++) {
+		copy = new std::string(*(it->second));
+		this->_error_pages[it->first] = copy;
+	}
+}
+
+Location::~Location()
+{
+	std::map<std::string, std::string*>::iterator	it;
+	std::set<std::string*>							pointers;
+	std::set<std::string*>::iterator				pointer_it;
+
+	for (it = this->_error_pages.begin(); it != this->_error_pages.end(); it++) {
+		pointers.insert(it->second);
+	}
+
+	for (pointer_it = pointers.begin(); pointer_it != pointers.end(); pointer_it++)
+		delete *pointer_it;
+}
 
 void Location::setAutoindex(const std::string& value)
 {

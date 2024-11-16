@@ -13,6 +13,7 @@ class ServerConfig {
 		std::string							_host;
 		uint16_t							_port;
 		std::map<std::string, Location*>	_locations;
+		unsigned int						_max_connections;
 
 	public:
 		ServerConfig(void);
@@ -21,16 +22,18 @@ class ServerConfig {
 
 		ServerConfig&	operator=(const ServerConfig& rhs);
 
+		// Getters
 		const std::vector<std::string>&			getServerNames(void) const;
 		const std::string&						getHost(void) const;
 		const uint16_t&							getPort(void) const;
 		const std::map<std::string, Location*>&	getLocations(void) const;
+		const unsigned int&						getMaxConnections(void) const;
 
-		void setAdress(const std::string& value);
-        void setServerName(const std::string& value);
-        void addLocation(const std::string& path, Location* location);
+		// Setters
+		void	setAdress(const std::string& value);
+        void	setServerName(const std::string& value);
+        void	addLocation(const std::string& path, Location* location);
+        void	setMaxConnections(const std::string& value);
 };
 
 #endif
-
-// print "GET / HTTP/1.1\r\n 10.11.2.6" | nc 10.11.2.6 4243

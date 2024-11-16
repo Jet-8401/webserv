@@ -1,5 +1,4 @@
 #include "../headers/EventWrapper.hpp"
-#include <cstddef>
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -13,7 +12,7 @@ EventWrapper::~EventWrapper(void)
 
 	for (it = this->_events.begin(); it != this->_events.end(); it++) {
 		delete *it;
-		*it = NULL;
+		*it = 0;
 	}
 }
 

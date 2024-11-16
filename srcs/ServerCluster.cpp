@@ -36,24 +36,25 @@ void ServerCluster::initDirectives()
 	_http_location_setters["index"] = &Location::setIndex;
 	_http_location_setters["autoindex"] = &Location::setAutoindex;
 	// serv
-    _server_setters["listen"] = &ServerConfig::setAdress;
-    _server_setters["server_name"] = &ServerConfig::setServerName;
-   	_serv_location_setters["return"] = &Location::setReturn;
+	_server_setters["listen"] = &ServerConfig::setAdress;
+	_server_setters["server_name"] = &ServerConfig::setServerName;
+	_server_setters["max_connections"] = &ServerConfig::setMaxConnections;
+	_serv_location_setters["return"] = &Location::setReturn;
 	_serv_location_setters["root"] = &Location::setRoot;
 	_serv_location_setters["autoindex"] = &Location::setAutoindex;
 	_serv_location_setters["index"] = &Location::setIndex;
 	_serv_location_setters["client_max_body_size"] = &Location::setClientMaxBodySize;
 	_serv_location_setters["error_page"] = &Location::setErrorPage;
-    // location
-    _location_setters["return"] = &Location::setReturn;
-    _location_setters["cgi"] = &Location::setCgis;
-    _location_setters["methods"] = &Location::setMethods;
-    _location_setters["root"] = &Location::setRoot;
-    _location_setters["alias"] = &Location::setAlias;
-    _location_setters["autoindex"] = &Location::setAutoindex;
-    _location_setters["index"] = &Location::setIndex;
-    _location_setters["client_max_body_size"] = &Location::setClientMaxBodySize;
-    _location_setters["error_page"] = &Location::setErrorPage;
+	// location
+	_location_setters["return"] = &Location::setReturn;
+	_location_setters["cgi"] = &Location::setCgis;
+	_location_setters["methods"] = &Location::setMethods;
+	_location_setters["root"] = &Location::setRoot;
+	_location_setters["alias"] = &Location::setAlias;
+	_location_setters["autoindex"] = &Location::setAutoindex;
+	_location_setters["index"] = &Location::setIndex;
+	_location_setters["client_max_body_size"] = &Location::setClientMaxBodySize;
+	_location_setters["error_page"] = &Location::setErrorPage;
 }
 
 ServerCluster::ServerCluster(void):
@@ -339,7 +340,7 @@ int	ServerCluster::listenAll(void)
             fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
 
            	HttpServer&	server = *((HttpServer*) incoming_event.data.ptr);
-	int	client_fd = ::accept(server.getSocketFD(), NULL, NULL);
+	int	client_fd = ::accept(server.getSocketFD(), 0, 0);
 
 	int flags = fcntl(client_fd, F_GETFL, 0);
 	fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);

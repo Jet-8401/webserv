@@ -85,7 +85,7 @@ int	main(void)
 std::string	input;
 
 		std::cout << "Pending data" << std::endl;
-		datafd = accept(socket_fd, NULL, NULL);
+		datafd = accept(socket_fd, 0, 0);
 		if (datafd < 0)
 			return (close(socket_fd), error(ERR_SOCKET_REQUEST), 0);
 

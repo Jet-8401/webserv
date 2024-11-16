@@ -22,6 +22,7 @@
 # define ERR_FD_CLOSE "Cannot close a file descriptor"
 # define ERR_TMPFILE_CREATION "Cannot create a temp file"
 # define ERR_WRITING_TMPFILE "Cannot write to temp file"
+# define ERR_ADDR_VALUE "Error not a valid address"
 
 # ifdef DEBUGGER
 
@@ -41,9 +42,7 @@
 # endif
 
 // utils.cpp
-void	error(const std::string message, bool perror);
-
-// debugger.cpp
-void	debug(const std::string debug_message);
+void		error(const std::string message, bool perror);
+std::string	unsafe_itoa(const int n);
 
 #endif

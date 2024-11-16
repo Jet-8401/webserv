@@ -5,6 +5,7 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <stdexcept>
+#include <string>
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -12,6 +13,7 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <fcntl.h>
+#include <cstdlib>
 
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -21,19 +23,10 @@ const int	HttpServer::_backlog = 1024;
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpServer::HttpServer(void):
-	_config(),
-	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
-	_max_connections(MAX_CONNECTIONS)
-{
-	if (this->_socket_fd == -1)
-		throw std::runtime_error(ERR_SOCKET_CREATION);
-}
-
 HttpServer::HttpServer(const ServerConfig& config):
     _config(config),
     _socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
-    _max_connections(MAX_CONNECTIONS)
+    _address(_config.getHost() + ':' + unsafe_itoa(_config.getPort()))
 {
     if (this->_socket_fd == -1)
         throw std::runtime_error(ERR_SOCKET_CREATION);
@@ -41,11 +34,14 @@ HttpServer::HttpServer(const ServerConfig& config):
 
 HttpServer::HttpServer(const HttpServer& src):
 	_config(src._config),
-	_socket_fd(src._socket_fd),
+	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
 	_epoll_fd(src._epoll_fd),
-	_connections(src._connections),
-	_max_connections(src._max_connections)
-{}
+	_address(src._address),
+	_connections(src._connections)
+{
+	if (this->_socket_fd == -1)
+		throw std::runtime_error(ERR_SOCKET_CREATION);
+}
 
 HttpServer::~HttpServer(void)
 {
@@ -53,22 +49,10 @@ HttpServer::~HttpServer(void)
 
 	for (it = this->_connections.begin(); it != this->_connections.end(); it++) {
 		delete *it;
-		*it = NULL;
+		*it = 0;
 	}
 
 	close(this->_socket_fd);
-}
-
-// Operator overload
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-HttpServer&	HttpServer::operator=(const HttpServer& rhs)
-{
-	this->_config = rhs._config;
-	this->_connections = rhs._connections;
-	this->_max_connections = rhs._max_connections;
-	this->_epoll_fd = rhs._epoll_fd;
-	return (*this);
 }
 
 // Setters
@@ -114,7 +98,8 @@ int	HttpServer::listen(void) const
 	::memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = ::htons(this->_config.getPort());
-	addr.sin_addr.s_addr = ::inet_addr(this->_config.getHost().c_str());
+	if (::inet_pton(AF_INET, this->_config.getHost().c_str(), &addr.sin_addr) != 1)
+		return (error(ERR_ADDR_VALUE, true), -1);
 
 	if (::bind(this->_socket_fd, (sockaddr*) &addr, sizeof(addr)) == -1)
 		return (error(ERR_BINDING_SOCKET, true), -1);
@@ -132,7 +117,7 @@ int	HttpServer::acceptConnection(void)
 	Connection*			client_connection;
 	event_wrapper_t*	event_wrapper;
 
-	client_fd = ::accept(this->_socket_fd, NULL, NULL);
+	client_fd = ::accept(this->_socket_fd, 0, 0);
 	if (client_fd  == -1)
 		return (error(ERR_ACCEPT_REQUEST, true), -1);
 
@@ -183,6 +168,6 @@ int	HttpServer::deleteConnection(Connection* connection)
 	this->_event_wrapper.remove(static_cast<event_wrapper_t*>(connection->event.data.ptr));
 	this->_connections.remove(connection);
 	delete connection;
-	connection = NULL;
+	connection = 0;
 	return (0);
 }

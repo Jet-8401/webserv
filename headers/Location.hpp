@@ -19,8 +19,6 @@ class Location {
 		std::pair<std::string, std::string>	_return;
 		std::string							_alias;
 
-
-
 	public:
 		Location(void);
 		Location(const Location& src);
