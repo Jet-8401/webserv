@@ -1,3 +1,4 @@
+#include "../headers/WebServ.hpp"
 #include "../headers/HttpRequest.hpp"
 #include <algorithm>
 #include <cctype>
@@ -14,6 +15,7 @@
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+/*
 HttpRequest::headers_behavior_t&	init_headers_behavior()
 {
 	static HttpRequest::headers_behavior_t	headers;
@@ -23,9 +25,15 @@ HttpRequest::headers_behavior_t&	init_headers_behavior()
 	headers["Set-Cookie"] = SEPARABLE;
 	return headers;
 }
+*/
 
+//HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_behavior();
 uint8_t	HttpRequest::_end_header_sequence[] = {13, 10, 13, 10};
-HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_behavior();
+
+std::string	HttpRequest::_uniques_headers[UNIQUES_HEADERS_N] = {
+	"Host",
+	"Content-Length"
+};
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -77,23 +85,59 @@ void	HttpRequest::_fail(const int status_code)
 	this->_failed = true;
 }
 
-// Step of parsing:
-// 1. Check for first request: METHOD LOCATTION PROTOCOL
-// 2. Import headers with security to headers injections
-// 3. Depending on headers waiting for the body to be cached into RAM or a file.
+void	string_trim(std::string& str)
+{
+	size_t	i;
+
+	i = str.find_first_not_of(" \t");
+	if (i != std::string::npos)
+		str.erase(0, i);
+	i = str.find_last_not_of(" \t");
+	if (i != std::string::npos)
+		str.erase(i + 1);
+	return ;
+}
+
+int	HttpRequest::_checkHeaderSyntax(const std::string& key, const std::string& value)
+{
+	(void) key;
+	(void) value;
+	return (0);
+}
+
 int	HttpRequest::parse(void)
 {
 	std::string			str;
 	std::stringstream	parser;
 
-	parser.write(reinterpret_cast<const char*>(this->_request_buffer.read()), this->_end_header_index + 4);
+	parser.write(reinterpret_cast<const char*>(this->_request_buffer.read()), this->_end_header_index);
 
 	parser >> this->_method;
 	parser >> this->_location;
-
 	parser >> str;
 	if (str != "HTTP/1.1") {
 		return (this->_fail(505), -1);
+	}
+
+	std::string	key, value;
+	parser.ignore();
+	while (std::getline(parser, str)) {
+		if (str.empty())
+			continue ;
+		// if there is data on that line but the colons are not found, then throw a 400 error (Bad request)
+		size_t	colon_pos = str.find(':');
+		if (colon_pos == std::string::npos)
+			return (this->_fail(400), -1);
+
+		// separate the key and value, then triming them
+		key = str.substr(0, colon_pos);
+		string_trim(key);
+		value = str.substr(colon_pos + 1);
+		string_trim(value);
+
+		if (this->_checkHeaderSyntax(key, value) == -1)
+			return (-1);
+		this->_headers.insert(std::pair<std::string, std::string>(key, value));
 	}
 	return (0);
 }

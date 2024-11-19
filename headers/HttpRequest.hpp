@@ -6,6 +6,8 @@
 # include <string>
 # include <stdint.h>
 
+# define UNIQUES_HEADERS_N 2
+
 enum http_header_behavior_e {
 	UNIQUE,			// one instance only
 	SEPARABLE,		// multiple instances, must stay separate
@@ -17,7 +19,7 @@ class HttpRequest {
 		HttpRequest(void);
 		virtual ~HttpRequest(void);
 
-		typedef std::map<std::string, enum http_header_behavior_e> headers_behavior_t;
+		// typedef std::map<std::string, enum http_header_behavior_e> headers_behavior_t;
 
 		// Getters
 		const bool& 		headersReceived(void) const;
@@ -32,10 +34,12 @@ class HttpRequest {
 		int	bufferIncomingData(const int socket_fd);
 
 	private:
-		static headers_behavior_t&	_headers_handeled;
-		static uint8_t				_end_header_sequence[4];
+		// static headers_behavior_t&	_headers_handeled;
+		static std::string	_uniques_headers[UNIQUES_HEADERS_N];
+		static uint8_t		_end_header_sequence[4];
 
 		void	_fail(const int status_code);
+		int		_checkHeaderSyntax(const std::string& key, const std::string& value);
 
 		std::multimap<std::string, std::string>	_headers;
 		bool									_headers_received;
