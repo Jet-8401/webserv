@@ -26,7 +26,7 @@ class BytesBuffer {
 		virtual ~BytesBuffer(void);
 
 		// Getters
-		const size_t&	getSize(void) const;
+		const size_t&	size(void) const;
 
 		int	write(const uint8_t* data, const size_t size);
 		const uint8_t*	read(void) const;

@@ -14,30 +14,39 @@ enum http_header_behavior_e {
 
 class HttpRequest {
 	public:
-		typedef std::map<std::string, enum http_header_behavior_e> headers_behavior_t;
-
-	private:
-		static headers_behavior_t&				_headers_handeled;
-		static uint8_t							_end_header_sequence[4];
-
-		std::multimap<std::string, std::string>	_headers;
-		bool									_headers_received;
-		bool									_is_complete;
-		BytesBuffer								_request_buffer;
-		const uint8_t*							_end_header_addr;
-
-		// note: set the _content_buff max to client_max_body_size;
-
-	public:
 		HttpRequest(void);
 		virtual ~HttpRequest(void);
 
-		// Getters
-		const bool&	isComplete(void) const;
-		const std::string&	getHeader(const std::string header_name);
+		typedef std::map<std::string, enum http_header_behavior_e> headers_behavior_t;
 
-		int	parse(const int socket_fd);
+		// Getters
+		const bool& 		headersReceived(void) const;
+		const bool&			isPending(void) const;
+		const std::string&	getHeader(const std::string header_name);
+		const bool&			haveFailed(void) const;
+		const std::string&	getErrorCode(void) const;
+		const std::string&	getLocation(void) const;
+		const std::string&	getMethod(void) const;
+
+		int	parse(void);
 		int	bufferIncomingData(const int socket_fd);
+
+	private:
+		static headers_behavior_t&	_headers_handeled;
+		static uint8_t				_end_header_sequence[4];
+
+		void	_fail(const int status_code);
+
+		std::multimap<std::string, std::string>	_headers;
+		bool									_headers_received;
+		std::string								_method;
+		std::string								_location;
+		bool									_is_pending;
+		BytesBuffer								_request_buffer;
+		size_t									_end_header_index;
+		bool									_failed;
+
+		// note: set the _content_buff max to client_max_body_size;
 };
 
 #endif
