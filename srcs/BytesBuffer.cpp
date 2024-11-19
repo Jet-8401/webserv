@@ -2,6 +2,7 @@
 #include "../headers/BytesBuffer.hpp"
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <stdint.h>
 
@@ -19,6 +20,7 @@ BytesBuffer::BytesBuffer(void):
 	_bytes_threshold(MEGA_BYTES_4)
 {
 	this->_internal_buff = new uint8_t[this->_max_bytes_size];
+	::memset(this->_internal_buff, 0, this->_max_bytes_size);
 }
 
 BytesBuffer::BytesBuffer(const size_t max_bytes_size):
@@ -29,6 +31,7 @@ BytesBuffer::BytesBuffer(const size_t max_bytes_size):
 	_bytes_threshold(MEGA_BYTES_4)
 {
 	this->_internal_buff = new uint8_t[this->_max_bytes_size];
+	::memset(this->_internal_buff, 0, this->_max_bytes_size);
 }
 
 BytesBuffer::BytesBuffer(const size_t max_bytes_size, const size_t bytes_threshold):
@@ -39,6 +42,7 @@ BytesBuffer::BytesBuffer(const size_t max_bytes_size, const size_t bytes_thresho
 	_bytes_threshold(bytes_threshold)
 {
 	this->_internal_buff = new uint8_t[this->_max_bytes_size];
+	::memset(this->_internal_buff, 0, this->_max_bytes_size);
 }
 
 BytesBuffer::~BytesBuffer(void)
@@ -71,7 +75,7 @@ int	BytesBuffer::_switchBufferingMode(void)
 	return (0);
 }
 
-const size_t&	BytesBuffer::getSize(void) const
+const size_t&	BytesBuffer::size(void) const
 {
 	return (this->_size);
 }

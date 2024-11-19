@@ -11,7 +11,7 @@ class StreamBuffer {
 		size_t		_size;
 		size_t		_head;
 		size_t		_tail;
-		uint8_t*	_intern_buffer;	// Work as a circular buffer
+		uint8_t*	_intern_buffer;
 
 	public:
 		StreamBuffer(void); // default size at 16Kb
@@ -23,10 +23,7 @@ class StreamBuffer {
 
 		// I/O opearations
 		ssize_t	write(void* data, const size_t size);
-		void*	consume(const size_t chunk_size);
-		// Consume until the requested value is found.
-		// `value` can be a character and/or a sequence delimted by length.
-		void*	consume_until(void* value, const size_t length);
+		ssize_t	consume(void* dest, size_t chunk_size);
 };
 
 #endif
