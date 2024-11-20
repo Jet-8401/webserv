@@ -2,6 +2,7 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/EventWrapper.hpp"
 #include "../headers/Connection.hpp"
+#include <asm-generic/socket.h>
 #include <cstring>
 #include <netinet/in.h>
 #include <stdexcept>
@@ -28,8 +29,11 @@ HttpServer::HttpServer(const ServerConfig& config):
     _socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
     _address(_config.getHost() + ':' + unsafe_itoa(_config.getPort()))
 {
-    if (this->_socket_fd == -1)
-        throw std::runtime_error(ERR_SOCKET_CREATION);
+	int	opt = 1;
+
+	if (this->_socket_fd == -1)
+		throw std::runtime_error(ERR_SOCKET_CREATION);
+	setsockopt(this->_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 }
 
 HttpServer::HttpServer(const HttpServer& src):
@@ -39,8 +43,11 @@ HttpServer::HttpServer(const HttpServer& src):
 	_address(src._address),
 	_connections(src._connections)
 {
+	int	opt = 1;
+
 	if (this->_socket_fd == -1)
 		throw std::runtime_error(ERR_SOCKET_CREATION);
+    setsockopt(this->_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 }
 
 HttpServer::~HttpServer(void)
