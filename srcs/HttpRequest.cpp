@@ -1,4 +1,3 @@
-#include "../headers/WebServ.hpp"
 #include "../headers/HttpRequest.hpp"
 #include <algorithm>
 #include <cctype>
@@ -6,6 +5,7 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unistd.h>
 
@@ -15,34 +15,29 @@
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-/*
-HttpRequest::headers_behavior_t&	init_headers_behavior()
+HttpRequest::headers_behavior_t&	init_headers_behavior(void)
 {
 	static HttpRequest::headers_behavior_t	headers;
 
-	headers["Host"] = UNIQUE;
-	headers["Content-Length"] = UNIQUE;
+	headers["Host"] = UNIQUE & MANDATORY;
+	headers["Content-Length"] = UNIQUE & MANDATORY_POST;
+	headers["Content-Type"] = UNIQUE & MANDATORY_POST;
 	headers["Set-Cookie"] = SEPARABLE;
 	return headers;
 }
-*/
 
-//HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_behavior();
+HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_behavior();
 uint8_t	HttpRequest::_end_header_sequence[] = {13, 10, 13, 10};
-
-std::string	HttpRequest::_uniques_headers[UNIQUES_HEADERS_N] = {
-	"Host",
-	"Content-Length"
-};
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpRequest::HttpRequest(void):
 	_headers_received(false),
-	_is_pending(false),
-	_end_header_index(false),
-	_failed(false)
+	_media_pending(false),
+	_failed(false),
+	_end_header_index(0),
+	_status_code(200)
 {}
 
 HttpRequest::~HttpRequest(void)
@@ -51,9 +46,9 @@ HttpRequest::~HttpRequest(void)
 // Getters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-const bool&	HttpRequest::isPending(void) const
+const bool&	HttpRequest::isMediaPending(void) const
 {
-	return (this->_is_pending);
+	return (this->_media_pending);
 }
 
 const bool& HttpRequest::headersReceived(void) const
@@ -81,7 +76,7 @@ const std::string&	HttpRequest::getMethod(void) const
 
 void	HttpRequest::_fail(const int status_code)
 {
-	(void) status_code;
+	this->_status_code = status_code;
 	this->_failed = true;
 }
 
@@ -98,11 +93,37 @@ void	string_trim(std::string& str)
 	return ;
 }
 
+// check the syntax of the headers, like if their are two unique headers etc...
 int	HttpRequest::_checkHeaderSyntax(const std::string& key, const std::string& value)
 {
-	(void) key;
-	(void) value;
+	headers_behavior_t::const_iterator	it = this->_headers_handeled.find(key);
+
+	if (it == this->_headers_handeled.end())
+		return (0);
+	switch (it->second) {
+		case UNIQUE:
+			if (this->_headers.find(key) != this->_headers.end())
+				return (-1);
+			// fallthrough
+		case SEPARABLE:
+			if (value.find(',') != std::string::npos)
+				return (-1);
+			break;
+		default:
+			break;
+	}
 	return (0);
+}
+
+// Return the value of header_name if exist, if not the function throw.
+const std::string&	HttpRequest::getHeader(const std::string header_name) const
+{
+	std::map<std::string, std::string>::const_iterator	it;
+
+	it = this->_headers.find(header_name);
+	if (it == this->_headers.end())
+		throw std::runtime_error("Heder does not exist");
+	return (it->second);
 }
 
 int	HttpRequest::parse(void)
@@ -151,6 +172,12 @@ int	HttpRequest::bufferIncomingData(const int socket_fd)
 	ssize_t			bytes;
 
 	while ((bytes = read(socket_fd, packet, sizeof(packet))) > 0) {
+		if (this->_media_pending) {
+			if (this->_media_buffer.write(packet, bytes) == -1)
+				return (this->_fail(431), -1);
+			std::cout << reinterpret_cast<const char*>(this->_media_buffer.read());
+			continue;
+		}
 		starting_point = std::max(static_cast<size_t>(0), this->_request_buffer.size() - 3);
 		if (this->_request_buffer.write(packet, bytes) == -1)
 			return (this->_fail(431), -1);
@@ -164,7 +191,10 @@ int	HttpRequest::bufferIncomingData(const int socket_fd)
 			continue ;
 		this->_end_header_index = static_cast<size_t>(addr - buffer);
 		this->_headers_received = true;
-		return (this->parse());
+		if (this->parse() == -1)
+			return (-1);
+		if (this->_method == "POST")
+			this->_media_pending = true;
 	}
 	return (0);
 }

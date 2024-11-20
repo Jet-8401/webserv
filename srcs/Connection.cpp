@@ -57,7 +57,7 @@ void	Connection::onEvent(::uint32_t events)
 		if (this->request.headersReceived() && !this->_writable)
 			this->makeWritable();
 
-		if (!this->request.isPending())
+		if (!this->request.isMediaPending())
 			return ;
 	}
 
