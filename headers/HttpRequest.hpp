@@ -30,7 +30,7 @@ class HttpRequest {
 		const bool&			isMediaPending(void) const;
 		const bool&			haveFailed(void) const;
 		const std::string&	getHeader(const std::string header_name) const;
-		const std::string&	getErrorCode(void) const;
+		std::string	getErrorCode(void) const;
 		const std::string&	getLocation(void) const;
 		const std::string&	getMethod(void) const;
 
@@ -54,6 +54,7 @@ class HttpRequest {
 		bool									_failed;
 		size_t									_end_header_index;
 		int										_status_code;
+		std::string								_error_code;
 
 		// note: set the _content_buff max to client_max_body_size;
 };

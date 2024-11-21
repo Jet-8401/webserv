@@ -1,4 +1,5 @@
 #include "../headers/HttpRequest.hpp"
+#include "../headers/WebServ.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
@@ -161,6 +162,11 @@ int	HttpRequest::parse(void)
 		this->_headers.insert(std::pair<std::string, std::string>(key, value));
 	}
 	return (0);
+}
+
+std::string HttpRequest::getErrorCode(void) const
+{
+    return unsafe_itoa(this->_status_code);  // Convert status code to string
 }
 
 int	HttpRequest::bufferIncomingData(const int socket_fd)
