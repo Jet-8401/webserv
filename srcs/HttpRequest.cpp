@@ -193,8 +193,14 @@ int	HttpRequest::bufferIncomingData(const int socket_fd)
 		this->_headers_received = true;
 		if (this->parse() == -1)
 			return (-1);
-		if (this->_method == "POST")
+		if (this->_method == "POST") {
 			this->_media_pending = true;
+			// writing buffered data of the body that is into the packet to the media buffer
+		}
 	}
 	return (0);
 }
+
+/*
+curl -X POST -H "Content-Type: application/json" -d '{"name":"John","age":30}' http://localhost:8083
+*/
