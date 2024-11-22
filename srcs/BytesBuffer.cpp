@@ -100,7 +100,7 @@ int	BytesBuffer::write(const uint8_t* data, const size_t size)
 	return (0);
 }
 
-const uint8_t*	BytesBuffer::read(void) const
+uint8_t*	BytesBuffer::read(void) const
 {
 	return (this->_internal_buff);
 }

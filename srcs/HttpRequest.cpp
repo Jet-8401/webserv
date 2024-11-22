@@ -2,18 +2,19 @@
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unistd.h>
 
-# define PACKETS_SIZE 1024
-# define OFFSET 0x3
-
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+static uint8_t	_end_header_sequence[4] = {13, 10, 13, 10};
 
 HttpRequest::headers_behavior_t&	init_headers_behavior(void)
 {
@@ -27,17 +28,17 @@ HttpRequest::headers_behavior_t&	init_headers_behavior(void)
 }
 
 HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_behavior();
-uint8_t	HttpRequest::_end_header_sequence[] = {13, 10, 13, 10};
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpRequest::HttpRequest(void):
 	_headers_received(false),
-	_media_pending(false),
+	_body_pending(false),
 	_failed(false),
 	_end_header_index(0),
-	_status_code(200)
+	_status_code(200),
+	_content_length(0)
 {}
 
 HttpRequest::~HttpRequest(void)
@@ -46,9 +47,9 @@ HttpRequest::~HttpRequest(void)
 // Getters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-const bool&	HttpRequest::isMediaPending(void) const
+const bool&	HttpRequest::isBodyPending(void) const
 {
-	return (this->_media_pending);
+	return (this->_body_pending);
 }
 
 const bool& HttpRequest::headersReceived(void) const
@@ -103,11 +104,11 @@ int	HttpRequest::_checkHeaderSyntax(const std::string& key, const std::string& v
 	switch (it->second) {
 		case UNIQUE:
 			if (this->_headers.find(key) != this->_headers.end())
-				return (-1);
+				return (this->_fail(400), -1);
 			// fallthrough
 		case SEPARABLE:
 			if (value.find(',') != std::string::npos)
-				return (-1);
+				return (this->_fail(400), -1);
 			break;
 		default:
 			break;
@@ -157,46 +158,82 @@ int	HttpRequest::parse(void)
 		string_trim(value);
 
 		if (this->_checkHeaderSyntax(key, value) == -1)
-			return (-1);
+			return (this->_fail(400), -1);
 		this->_headers.insert(std::pair<std::string, std::string>(key, value));
+	}
+	return (0);
+}
+
+// Buffer all the incoming data with setting based on the header provided.
+int	HttpRequest::_bufferIncomingBody(uint8_t* packet, ssize_t bytes)
+{
+
+	std::cout << "writing packet of " << bytes << " bytes" << std::endl;
+	this->_buffer_body.write(packet, bytes);
+	this->_body_pending = false;
+	return (0);
+}
+
+// Setup the values for buffering the body later, like content_type, body_buffering_method, etc...
+int	HttpRequest::_bodyBufferingInit(void)
+{
+	return (0);
+}
+
+int	HttpRequest::_bufferIncomingHeaders(uint8_t *packet, ssize_t bytes)
+{
+	const uint8_t*	buffer = this->_request_buffer.read();
+	const uint8_t*	addr;
+	size_t			starting_point;
+
+	starting_point = std::max(static_cast<size_t>(0), this->_request_buffer.size() - 3);
+	if (this->_request_buffer.write(packet, bytes) == -1)
+		return (this->_fail(431), -1);
+
+	addr = std::search(
+		buffer + starting_point,
+		buffer + this->_request_buffer.size(),
+		_end_header_sequence,
+		_end_header_sequence + 4
+	);
+
+	// if the end sequence has not been found
+	if (addr == buffer + this->_request_buffer.size())
+		return (0);
+
+	// else parse it
+	this->_end_header_index = static_cast<size_t>(addr - buffer);
+	this->_headers_received = true;
+	if (this->parse() == -1)
+		return (-1);
+
+	std::multimap<std::string, std::string>::const_iterator	it;
+	for (it = this->_headers.begin(); it != this->_headers.end(); it++) {
+		std::cout << it->first << ": " << it->second << std::endl;
+	}
+
+	if (this->_method == "POST") {
+		this->_body_pending = true;
+		if (this->_bodyBufferingInit() == -1)
+			return (-1);
+		this->_bufferIncomingBody(
+			this->_request_buffer.read() + this->_end_header_index + 4,
+			this->_request_buffer.size() - (this->_end_header_index + 4)
+		);
 	}
 	return (0);
 }
 
 int	HttpRequest::bufferIncomingData(const int socket_fd)
 {
-	uint8_t			packet[1024];
-	const uint8_t*	buffer = this->_request_buffer.read();
-	const uint8_t*	addr;
-	size_t			starting_point;
+	uint8_t			packet[PACKETS_SIZE];
 	ssize_t			bytes;
 
 	while ((bytes = read(socket_fd, packet, sizeof(packet))) > 0) {
-		if (this->_media_pending) {
-			if (this->_media_buffer.write(packet, bytes) == -1)
-				return (this->_fail(431), -1);
-			std::cout << reinterpret_cast<const char*>(this->_media_buffer.read());
-			continue;
-		}
-		starting_point = std::max(static_cast<size_t>(0), this->_request_buffer.size() - 3);
-		if (this->_request_buffer.write(packet, bytes) == -1)
-			return (this->_fail(431), -1);
-		addr = std::search(
-			buffer + starting_point,
-			buffer + this->_request_buffer.size(),
-			HttpRequest::_end_header_sequence,
-			HttpRequest::_end_header_sequence + 4
-		);
-		if (addr == buffer + this->_request_buffer.size())
-			continue ;
-		this->_end_header_index = static_cast<size_t>(addr - buffer);
-		this->_headers_received = true;
-		if (this->parse() == -1)
+		if (this->_body_pending && this->_bufferIncomingBody(packet, bytes) == -1)
 			return (-1);
-		if (this->_method == "POST") {
-			this->_media_pending = true;
-			// writing buffered data of the body that is into the packet to the media buffer
-		}
+		else if (this->_bufferIncomingHeaders(packet, bytes) == -1)
+			return (-1);
 	}
 	return (0);
 }
@@ -204,3 +241,11 @@ int	HttpRequest::bufferIncomingData(const int socket_fd)
 /*
 curl -X POST -H "Content-Type: application/json" -d '{"name":"John","age":30}' http://localhost:8083
 */
+
+void	HttpRequest::printStream(void)
+{
+	char	buffer[this->_buffer_body.size()];
+
+	this->_buffer_body.consume(buffer, this->_request_buffer.size());
+	std::cout << "<< BODY >>\n" << buffer << "\n<< END BODY >>" << std::endl;
+}

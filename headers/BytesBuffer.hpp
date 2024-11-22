@@ -29,7 +29,7 @@ class BytesBuffer {
 		const size_t&	size(void) const;
 
 		int	write(const uint8_t* data, const size_t size);
-		const uint8_t*	read(void) const;
+		uint8_t*	read(void) const;
 };
 
 // Note: see mmap for convenience and performance

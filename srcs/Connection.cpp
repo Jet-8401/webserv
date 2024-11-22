@@ -37,7 +37,7 @@ const bool&	Connection::isWritable(void) const
 
 int	Connection::makeWritable(void)
 {
-	this->event.events = EPOLLOUT & (EPOLLIN | EPOLLET);
+	this->event.events = EPOLLOUT | EPOLLIN | EPOLLET;
 	if (::epoll_ctl(this->_server_referer.getEpollFD(), EPOLL_CTL_MOD, this->_socket, &this->event) == -1)
 		return (error(ERR_EPOLL_MOD, true), -1);
 	this->_writable = true;
@@ -51,18 +51,20 @@ void	Connection::onEvent(::uint32_t events)
 	}
 
 	if (events & EPOLLIN) {
+		if (this->request.haveFailed()) {
+			this->makeWritable();
+			return ;
+		}
+
 		this->request.bufferIncomingData(this->_socket);
 
 		// Changing events on that connection, so epoll will monitor the writable status
 		if (this->request.headersReceived() && !this->_writable)
 			this->makeWritable();
-
-		/*if (!this->request.isMediaPending())
-			return ;*/
 	}
 
-	if (events & EPOLLOUT) {
-		DEBUG("There is an EPOLLOUT event i don't know what to do...");
+	if (events & EPOLLOUT && !this->request.isBodyPending()) {
+		this->request.printStream();
 		this->response.send(this->_socket);
 		this->_server_referer.deleteConnection(this);
 	}
