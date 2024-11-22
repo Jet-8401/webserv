@@ -210,8 +210,7 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 		std::cout << "Token: " << token << std::endl; // Debug
 		if (token == "}")
 		{
-			if (config.getLocations().empty())
-				config.addLocation("/", new Location(serv_location));
+			config.addLocation("/", new Location(serv_location));
 			HttpServer server(config);
 			_servers.push_back(server); // Use size as key instead of invalid socket fd
 			std::cout << "Added server with port: " << config.getPort() << std::endl; // Debug
@@ -228,6 +227,8 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 			std::stringstream ss_paths(paths);
 			while (ss_paths >> paths)
 			{
+				if (paths == "/")
+					config.getLocations().erase(paths);
 				config.addLocation(paths, location);
 			}
 		}

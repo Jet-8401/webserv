@@ -37,7 +37,7 @@ const bool&	Connection::isWritable(void) const
 
 int Connection::makeWritable(void)
 {
-    this->event.events = EPOLLOUT | EPOLLET;  // Changed from & to |
+    this->event.events = EPOLLOUT | EPOLLIN | EPOLLET;  // Changed from & to |
     if (::epoll_ctl(this->_server_referer.getEpollFD(), EPOLL_CTL_MOD, this->_socket, &this->event) == -1)
         return (error(ERR_EPOLL_MOD, true), -1);
     this->_writable = true;
@@ -69,6 +69,7 @@ void Connection::onEvent(::uint32_t events)
     }
 
     if (events & EPOLLOUT) {
+    	this->response.handleRequest(this->_server_referer.getConfig(), this->request);
         if (this->response.send(this->_socket) == -1) {
             DEBUG("Error sending response");
         }

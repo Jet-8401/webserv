@@ -1,7 +1,9 @@
 #ifndef HTTP_RESPONSE_HPP
 # define HTTP_RESPONSE_HPP
 
-#include "BytesBuffer.hpp"
+#include "../headers/BytesBuffer.hpp"
+#include "../headers/HttpRequest.hpp"
+#include "../headers/ServerConfig.hpp"
 #include <string>
 #include <map>
 
@@ -11,8 +13,8 @@ class HttpResponse {
         BytesBuffer                                _content;
         bool                                       _is_sent;
 
-        void    _buildHeaders(std::stringstream& response) const;
-        bool    _sendAll(const int socket_fd, const std::string& data) const;
+        void    	_buildHeaders(std::stringstream& response) const;
+        bool   		_sendAll(const int socket_fd, const std::string& data) const;
 
     public:
         HttpResponse(void);
@@ -21,6 +23,7 @@ class HttpResponse {
         void    setHeader(const std::string& key, const std::string& value);
         int     send(const int socket_fd);
         bool    isSent(void) const;
+        bool	handleRequest(const ServerConfig& conf, const HttpRequest& request);
 };
 
 #endif

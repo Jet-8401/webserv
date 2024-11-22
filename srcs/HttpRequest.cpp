@@ -36,7 +36,6 @@ uint8_t	HttpRequest::_end_header_sequence[] = {13, 10, 13, 10};
 HttpRequest::HttpRequest(void):
 	_headers_received(false),
 	_media_pending(false),
-	_failed(false),
 	_end_header_index(0),
 	_status_code(200)
 {}
@@ -57,11 +56,6 @@ const bool& HttpRequest::headersReceived(void) const
 	return (this->_headers_received);
 }
 
-const bool& HttpRequest::haveFailed(void) const
-{
-	return (this->_failed);
-}
-
 const std::string&	HttpRequest::getLocation(void) const
 {
 	return (this->_location);
@@ -72,13 +66,17 @@ const std::string&	HttpRequest::getMethod(void) const
 	return (this->_method);
 }
 
+const int&	HttpRequest::getStatusCode(void) const
+{
+	return (this->_status_code);
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 void	HttpRequest::_fail(const int status_code)
 {
 	this->_status_code = status_code;
-	this->_failed = true;
 }
 
 void	string_trim(std::string& str)
@@ -162,11 +160,6 @@ int	HttpRequest::parse(void)
 		this->_headers.insert(std::pair<std::string, std::string>(key, value));
 	}
 	return (0);
-}
-
-std::string HttpRequest::getErrorCode(void) const
-{
-    return unsafe_itoa(this->_status_code);  // Convert status code to string
 }
 
 int	HttpRequest::bufferIncomingData(const int socket_fd)

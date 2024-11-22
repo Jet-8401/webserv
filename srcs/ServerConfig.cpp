@@ -71,7 +71,7 @@ const uint16_t&	ServerConfig::getPort(void) const
 	return (this->_port);
 }
 
-const std::map<std::string, Location*>&	ServerConfig::getLocations(void) const
+std::map<std::string, Location*>&	ServerConfig::getLocations(void)
 {
 	return (this->_locations);
 }

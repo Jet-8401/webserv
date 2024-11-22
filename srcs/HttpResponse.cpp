@@ -1,5 +1,7 @@
 #include "../headers/HttpResponse.hpp"
 #include "../headers/WebServ.hpp"
+#include "../headers/HttpRequest.hpp"
+#include "../headers/ServerConfig.hpp"
 #include <unistd.h>
 #include <sstream>
 
@@ -14,6 +16,46 @@ HttpResponse::HttpResponse(void):
 
 HttpResponse::~HttpResponse(void)
 {}
+
+// std::string HttpResponse::_resolvePath(const std::string& uri, const ServerConfig& config) const
+// {
+//     const std::map<std::string, Location*>& locations = config.getLocations();
+//     std::string longest_match = "";
+//     Location* matching_location = NULL;
+
+//     // Find matching location block
+//     for (std::map<std::string, Location*>::const_iterator it = locations.begin();
+//          it != locations.end(); ++it) {
+//         if (uri.find(it->first) == 0 && it->first.length() > longest_match.length()) {
+//             longest_match = it->first;
+//             matching_location = it->second;
+//         }
+//     }
+
+//     if (!matching_location)
+//         return "";
+
+//     // Apply root/alias rules
+//     std::string path;
+//     if (!matching_location->getAlias().empty())
+//         path = matching_location->getAlias() + uri.substr(longest_match.length());
+//     else
+//         path = matching_location->getRoot() + uri.substr(longest_match.length());
+
+//     return path;
+// }
+
+bool	HttpResponse::handleRequest(const ServerConfig& conf, const HttpRequest& request)
+{
+	(void) conf;
+	(void) request;
+	// find the location
+	// const std::map<std::string, Location*>& locations = conf.getLocations();
+	// std::string longest_match = "";
+ //    Location* matching_location = NULL;
+	// if (request.getStatusCode() > 400)
+	return true;
+}
 
 void HttpResponse::setHeader(const std::string& key, const std::string& value)
 {

@@ -2,6 +2,7 @@
 # define HTTP_REQUEST_HPP
 
 # include "BytesBuffer.hpp"
+# include "ServerConfig.hpp"
 # include "StreamBuffer.hpp"
 
 # include <map>
@@ -28,9 +29,8 @@ class HttpRequest {
 		// Getters
 		const bool& 		headersReceived(void) const;
 		const bool&			isMediaPending(void) const;
-		const bool&			haveFailed(void) const;
 		const std::string&	getHeader(const std::string header_name) const;
-		std::string	getErrorCode(void) const;
+		const int&			getStatusCode(void) const;
 		const std::string&	getLocation(void) const;
 		const std::string&	getMethod(void) const;
 
@@ -51,10 +51,8 @@ class HttpRequest {
 		BytesBuffer								_media_buffer;
 		bool									_headers_received;
 		bool									_media_pending;
-		bool									_failed;
 		size_t									_end_header_index;
 		int										_status_code;
-		std::string								_error_code;
 
 		// note: set the _content_buff max to client_max_body_size;
 };
