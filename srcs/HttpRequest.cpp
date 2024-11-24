@@ -7,7 +7,6 @@
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <unistd.h>
 
@@ -35,7 +34,6 @@ HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_b
 HttpRequest::HttpRequest(void):
 	_headers_received(false),
 	_body_pending(false),
-	_failed(false),
 	_end_header_index(0),
 	_status_code(200),
 	_content_length(0)
@@ -57,9 +55,9 @@ const bool& HttpRequest::headersReceived(void) const
 	return (this->_headers_received);
 }
 
-const bool& HttpRequest::haveFailed(void) const
+const unsigned int&	HttpRequest::getStatusCode(void) const
 {
-	return (this->_failed);
+	return (this->_status_code);
 }
 
 const std::string&	HttpRequest::getLocation(void) const
@@ -74,12 +72,6 @@ const std::string&	HttpRequest::getMethod(void) const
 
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-void	HttpRequest::_fail(const int status_code)
-{
-	this->_status_code = status_code;
-	this->_failed = true;
-}
 
 void	string_trim(std::string& str)
 {
@@ -104,27 +96,16 @@ int	HttpRequest::_checkHeaderSyntax(const std::string& key, const std::string& v
 	switch (it->second) {
 		case UNIQUE:
 			if (this->_headers.find(key) != this->_headers.end())
-				return (this->_fail(400), -1);
+				return (this->_status_code = 400, -1);
 			// fallthrough
 		case SEPARABLE:
 			if (value.find(',') != std::string::npos)
-				return (this->_fail(400), -1);
+				return (this->_status_code = 400, -1);
 			break;
 		default:
 			break;
 	}
 	return (0);
-}
-
-// Return the value of header_name if exist, if not the function throw.
-const std::string&	HttpRequest::getHeader(const std::string header_name) const
-{
-	std::map<std::string, std::string>::const_iterator	it;
-
-	it = this->_headers.find(header_name);
-	if (it == this->_headers.end())
-		throw std::runtime_error("Heder does not exist");
-	return (it->second);
 }
 
 int	HttpRequest::parse(void)
@@ -138,7 +119,7 @@ int	HttpRequest::parse(void)
 	parser >> this->_location;
 	parser >> str;
 	if (str != "HTTP/1.1") {
-		return (this->_fail(505), -1);
+		return (this->_status_code = 505, -1);
 	}
 
 	std::string	key, value;
@@ -149,7 +130,7 @@ int	HttpRequest::parse(void)
 		// if there is data on that line but the colons are not found, then throw a 400 error (Bad request)
 		size_t	colon_pos = str.find(':');
 		if (colon_pos == std::string::npos)
-			return (this->_fail(400), -1);
+			return (this->_status_code = 400, -1);
 
 		// separate the key and value, then triming them
 		key = str.substr(0, colon_pos);
@@ -158,7 +139,7 @@ int	HttpRequest::parse(void)
 		string_trim(value);
 
 		if (this->_checkHeaderSyntax(key, value) == -1)
-			return (this->_fail(400), -1);
+			return (this->_status_code = 400, -1);
 		this->_headers.insert(std::pair<std::string, std::string>(key, value));
 	}
 	return (0);
@@ -167,16 +148,34 @@ int	HttpRequest::parse(void)
 // Buffer all the incoming data with setting based on the header provided.
 int	HttpRequest::_bufferIncomingBody(uint8_t* packet, ssize_t bytes)
 {
+	if (this->_body_buffering_method == MULTIPART || this->_body_buffering_method == CHUNKED)
+		return (this->_body_pending = false, 0);
 
-	std::cout << "writing packet of " << bytes << " bytes" << std::endl;
 	this->_buffer_body.write(packet, bytes);
-	this->_body_pending = false;
+	std::cout << this->_buffer_body.size() << " -> " << this->_content_length << std::endl;
+	if (this->_buffer_body.size() >= this->_content_length)
+		this->_body_pending = false;
 	return (0);
 }
 
 // Setup the values for buffering the body later, like content_type, body_buffering_method, etc...
 int	HttpRequest::_bodyBufferingInit(void)
 {
+	HttpRequest::headers_t::const_iterator	it;
+	std::string								str;
+
+	it = this->_headers.find("Content-Length");
+	if (it != this->_headers.end()) {
+		this->_content_length = std::atoi(it->second.c_str());
+	}
+
+	it = this->_headers.find("Content-Type");
+	if (it != this->_headers.end() && it->second.find("multipart/form-data;")) {
+		this->_multipart_key = it->second.c_str() + it->second.find("boundary=");
+		this->_body_buffering_method = MULTIPART;
+	} else if ((it = this->_headers.find("Transfer-Encoding")) != this->_headers.end() && it->second == "chunked") {
+		this->_body_buffering_method = CHUNKED;
+	}
 	return (0);
 }
 
@@ -188,7 +187,7 @@ int	HttpRequest::_bufferIncomingHeaders(uint8_t *packet, ssize_t bytes)
 
 	starting_point = std::max(static_cast<size_t>(0), this->_request_buffer.size() - 3);
 	if (this->_request_buffer.write(packet, bytes) == -1)
-		return (this->_fail(431), -1);
+		return (this->_status_code = 431, -1);
 
 	addr = std::search(
 		buffer + starting_point,
@@ -206,11 +205,6 @@ int	HttpRequest::_bufferIncomingHeaders(uint8_t *packet, ssize_t bytes)
 	this->_headers_received = true;
 	if (this->parse() == -1)
 		return (-1);
-
-	std::multimap<std::string, std::string>::const_iterator	it;
-	for (it = this->_headers.begin(); it != this->_headers.end(); it++) {
-		std::cout << it->first << ": " << it->second << std::endl;
-	}
 
 	if (this->_method == "POST") {
 		this->_body_pending = true;

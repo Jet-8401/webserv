@@ -27,7 +27,8 @@ const int	HttpServer::_backlog = 1024;
 HttpServer::HttpServer(const ServerConfig& config):
     _config(config),
     _socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
-    _address(_config.getHost() + ':' + unsafe_itoa(_config.getPort()))
+    _address(_config.getHost() + ':' + unsafe_itoa(_config.getPort())),
+    _max_connections(1024)
 {
 	int	opt = 1;
 
@@ -41,7 +42,8 @@ HttpServer::HttpServer(const HttpServer& src):
 	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
 	_epoll_fd(src._epoll_fd),
 	_address(src._address),
-	_connections(src._connections)
+	_connections(src._connections),
+	_max_connections(src._max_connections)
 {
 	int	opt = 1;
 

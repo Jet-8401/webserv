@@ -40,7 +40,7 @@ class ServerCluster {
 		virtual	~ServerCluster(void);
 
 		int	importConfig(const std::string& config_path);
-		int	listenAll(void);
+		int	run(void);
 
 		// Getters
 		const servers_type_t&	getServers(void) const;

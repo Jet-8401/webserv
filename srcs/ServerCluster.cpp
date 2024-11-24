@@ -282,7 +282,7 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 // This method is one of the most efficient as we can directly access the instance associated to that file descriptor.
 // For every events returned we check the enum of the wrapper class for the casting, then onEvent() is called
 // on that instance.
-int	ServerCluster::listenAll(void)
+int	ServerCluster::run(void)
 {
 	servers_type_t::iterator	it;
 	struct epoll_event			incoming_events[MAX_EPOLL_EVENTS];
@@ -314,8 +314,9 @@ int	ServerCluster::listenAll(void)
 		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, -1);
 		if (events  == -1)
 			return (error(ERR_EPOLL_WAIT, true), -1);
-		DEBUG("events received: " << events);
+		DEBUG(events << " events received");
 		for (int i = 0; i < events; i++) {
+			DEBUG((incoming_events[i].events & EPOLLIN ? "EPOLLIN" : "EPOLLOUT / EPOLLHUP") << " event received");
 			event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
 			switch (event_wrapper->socket_type) {
 				case REQUEST:
@@ -333,44 +334,3 @@ int	ServerCluster::listenAll(void)
 	}
 	return (0);
 }
-
-/*
-	// Set client socket to non-blocking
-            int flags = fcntl(client_fd, F_GETFL, 0);
-            fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
-
-           	HttpServer&	server = *((HttpServer*) incoming_event.data.ptr);
-	int	client_fd = ::accept(server.getSocketFD(), 0, 0);
-
-	int flags = fcntl(client_fd, F_GETFL, 0);
-	fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
-
-	ssize_t	bytes;
-	char	buffer[1000];
-	std::string request;
-	while ((bytes = read(client_fd, buffer, sizeof(buffer))) > 0)
-	{
-		buffer[bytes] = 0;
-		std::cout << buffer;
-		request += buffer;
-		if (bytes == 0)
-			break ;
-		//if (request.find("\r\n\r\n") != std::string::npos)
-		//	break;
-	}
-
-	DEBUG("Sending response");
-	std::stringstream	message;
-
-	message << "HTTP/1.1 200 OK\r\n";
-	message << "Content-Type: text/html\r\n";
-	message << "Connection: close\r\n";
-	message << "\r\n";
-	message << "Hello, World!";
-	if (write(client_fd, message.str().c_str(), message.str().size()) == -1)
-		return (error("Error writing response", true), -1);
-	close(client_fd);
-
-	DEBUG("End of sending response");
-	return (0);
-*/
