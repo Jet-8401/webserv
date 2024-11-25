@@ -185,7 +185,7 @@ int	HttpRequest::_bufferIncomingHeaders(uint8_t *packet, ssize_t bytes)
 	const uint8_t*	addr;
 	size_t			starting_point;
 
-	starting_point = std::max(static_cast<size_t>(0), this->_request_buffer.size() - 3);
+	starting_point = std::max(static_cast<ssize_t>(0), static_cast<ssize_t>(this->_request_buffer.size()) - 3);
 	if (this->_request_buffer.write(packet, bytes) == -1)
 		return (this->_status_code = 431, -1);
 
@@ -210,10 +210,6 @@ int	HttpRequest::_bufferIncomingHeaders(uint8_t *packet, ssize_t bytes)
 		this->_body_pending = true;
 		if (this->_bodyBufferingInit() == -1)
 			return (-1);
-		this->_bufferIncomingBody(
-			this->_request_buffer.read() + this->_end_header_index + 4,
-			this->_request_buffer.size() - (this->_end_header_index + 4)
-		);
 	}
 	return (0);
 }

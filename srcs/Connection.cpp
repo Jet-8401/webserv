@@ -66,5 +66,9 @@ void	Connection::onEvent(::uint32_t events)
 
 	if (events & EPOLLOUT && this->request.headersReceived()) {
 		this->response.handleRequest(this->_server_referer.getConfig(), this->request);
+		if (this->response.isReady()) {
+			this->response.send(this->_socket);
+			this->_server_referer.deleteConnection(this);
+		}
 	}
 }

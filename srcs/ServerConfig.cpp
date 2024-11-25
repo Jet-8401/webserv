@@ -18,12 +18,17 @@ ServerConfig::ServerConfig(const ServerConfig& src):
 	_max_connections(src._max_connections)
 {
 	// deep copy of locations
-	Location*											copy;
-	std::map<std::string, Location*>::const_iterator	it;
+	std::map<Location*, Location*>	ptr_copy;
+	locations_t::const_iterator		it;
 
 	for (it = src._locations.begin(); it != src._locations.end(); it++) {
-		copy = new Location(*(it->second));
-		this->_locations[it->first] = copy;
+		if (ptr_copy.find(it->second) != ptr_copy.end())
+			continue ;
+		ptr_copy[it->second] = new Location(*(it->second));
+	}
+
+	for (it = src._locations.begin(); it != src._locations.end(); it++) {
+		this->_locations[it->first] = ptr_copy[it->second];
 	}
 }
 

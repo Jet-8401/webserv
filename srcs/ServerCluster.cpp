@@ -314,23 +314,31 @@ int	ServerCluster::run(void)
 		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, -1);
 		if (events  == -1)
 			return (error(ERR_EPOLL_WAIT, true), -1);
-		DEBUG(events << " events received");
-		for (int i = 0; i < events; i++) {
-			DEBUG((incoming_events[i].events & EPOLLIN ? "EPOLLIN" : "EPOLLOUT / EPOLLHUP") << " event received");
-			event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
-			switch (event_wrapper->socket_type) {
-				case REQUEST:
-					DEBUG("event[" << i << "]: connection request");
-					static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-					break ;
-				case CLIENT:
-					DEBUG("event[" << i << "]: client package");
-					static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-					break ;
-				default:
-					break;
-			}
-		}
+		this->_resolveEvents(incoming_events, events);
 	}
 	return (0);
+}
+
+void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_EVENTS], int events)
+{
+	event_wrapper_t*			event_wrapper;
+
+	DEBUG(events << " events received");
+	for (int i = 0; i < events; i++) {
+		DEBUG((incoming_events[i].events & EPOLLIN ? "EPOLLIN" : "EPOLLOUT / EPOLLHUP") << " event received");
+		event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
+		switch (event_wrapper->socket_type)
+		{
+		case REQUEST:
+			DEBUG("event[" << i << "]: connection request");
+			static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+			break ;
+		case CLIENT:
+			DEBUG("event[" << i << "]: client package");
+			static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+			break ;
+		default:
+			break;
+		}
+	}
 }

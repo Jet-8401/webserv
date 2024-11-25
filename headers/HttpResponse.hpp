@@ -2,12 +2,18 @@
 # define HTTP_RESPONSE_HPP
 
 # include "HttpRequest.hpp"
-#include "ServerConfig.hpp"
+# include "ServerConfig.hpp"
 
 class HttpResponse {
+	private:
+		bool	_is_ready;
+
 	public:
 		HttpResponse(void);
 		virtual ~HttpResponse(void);
+
+		// Getters
+		const bool&	isReady(void) const;
 
 		unsigned short	status_code;
 

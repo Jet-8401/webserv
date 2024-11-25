@@ -50,7 +50,7 @@ BytesBuffer::~BytesBuffer(void)
 	if (this->_file_buff_fd != -1)
 		close(this->_file_buff_fd);
 	if (this->_internal_buff)
-		delete this->_internal_buff;
+		delete [] this->_internal_buff;
 }
 
 // Function member

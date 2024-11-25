@@ -35,6 +35,8 @@ class ServerCluster {
 
         static void initDirectives();
 
+        void	_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_EVENTS], int events);
+
 	public:
 		ServerCluster(void);
 		virtual	~ServerCluster(void);
