@@ -8,7 +8,7 @@
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpResponse::HttpResponse(void):
-	status_code(0)
+	status_code(200)
 {}
 
 HttpResponse::~HttpResponse(void)
@@ -25,14 +25,13 @@ const bool&	HttpResponse::isReady(void) const
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& request)
+ServerConfig::locations_t::const_iterator	HttpResponse::_matchLocation(
+	const ServerConfig::locations_t& server_locations,
+	const std::string& request_location
+) const
 {
-	// first found if any location is found
-	const ServerConfig::locations_t&			server_locations = config.getLocations();
-	const std::string&							request_location = request.getLocation();
 	ServerConfig::locations_t::const_iterator	it;
 	ServerConfig::locations_t::const_iterator	matching = server_locations.end();
-	Location*									location = 0;
 
 	for (it = server_locations.begin(); it != server_locations.end(); it++) {
 		if (request_location.find(it->first) == std::string::npos)
@@ -40,21 +39,19 @@ int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& r
 		if (matching == server_locations.end() || it->first.length() >= matching->first.length())
 			matching = it;
 	}
+	return (matching);
+}
 
-	this->_is_ready = true;
-	location = matching->second;
-	if (location->getMethods().find(request.getMethod()) == location->getMethods().end()) {
-		this->status_code = 405;
-		return (-1);
-	}
-	std::cout << matching->second->getClientMaxBodySize() << std::endl;
+int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& request)
+{
+
 
 	return (0);
 }
 
 int	HttpResponse::send(const int socket_fd)
 {
-	DEBUG("Sending response for " << socket_fd);
+	DEBUG("Sending response !" << " (" << this->status_code << ')');
 
 	std::stringstream	message;
 	message << "HTTP/1.1 " << this->status_code << "\r\n";
@@ -71,7 +68,7 @@ int	HttpResponse::send(const int socket_fd)
 	}
 	if (write(socket_fd, message.str().c_str(), message.str().size()) == -1)
 		return (error("Error writing response", true), -1);
-	DEBUG("End of sending response for " << socket_fd);
+	DEBUG("Response sent !");
 	return (0);
 }
 

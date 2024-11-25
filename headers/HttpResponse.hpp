@@ -8,6 +8,11 @@ class HttpResponse {
 	private:
 		bool	_is_ready;
 
+		ServerConfig::locations_t::const_iterator	_matchLocation(
+			const ServerConfig::locations_t& server_locations,
+			const std::string& request_location
+		) const;
+
 	public:
 		HttpResponse(void);
 		virtual ~HttpResponse(void);
