@@ -2,16 +2,17 @@
 # define HTTP_RESPONSE_HPP
 
 # include "HttpRequest.hpp"
+# include "Location.hpp"
 # include "ServerConfig.hpp"
+# include "StreamBuffer.hpp"
+# include <string>
 
 class HttpResponse {
 	private:
-		bool	_is_ready;
+		std::string	_resolvePath(const Location& location, const HttpRequest& request);
 
-		ServerConfig::locations_t::const_iterator	_matchLocation(
-			const ServerConfig::locations_t& server_locations,
-			const std::string& request_location
-		) const;
+		bool			_is_ready;
+		StreamBuffer	_buffer_body;
 
 	public:
 		HttpResponse(void);

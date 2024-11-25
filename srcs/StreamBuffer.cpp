@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 
-# define DEFAULT_CHUNK_BYTES_SIZE 16384
+# define DEFAULT_CHUNK_BYTES_SIZE 16000
 
 // Constructors / Desctrucors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --

@@ -20,8 +20,8 @@ class BytesBuffer {
 		int	_switchBufferingMode(void);
 
 	public:
-		BytesBuffer(void); // set max_bytes_size at 32Kb
-		BytesBuffer(const size_t max_bytes_size); // set threshold by default at 4Mb
+		BytesBuffer(void); // set max_bytes_size at 32KB
+		BytesBuffer(const size_t max_bytes_size); // set threshold by default at 4MB
 		BytesBuffer(const size_t max_bytes_size, const size_t bytes_threshold);
 		virtual ~BytesBuffer(void);
 

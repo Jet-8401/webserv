@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <stdint.h>
 
-# define KILO_BYTES_32 32768
-# define MEGA_BYTES_4 4194304
+# define KILO_BYTES_32 32000
+# define MEGA_BYTES_4 4000000
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
