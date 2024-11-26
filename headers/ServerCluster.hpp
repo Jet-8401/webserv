@@ -6,6 +6,7 @@
 # include "EventWrapper.hpp"
 
 # define MAX_EPOLL_EVENTS 2048
+# define MS_TIMEOUT_ROUTINE 5000
 
 // TODO: add an underscore to all private members
 

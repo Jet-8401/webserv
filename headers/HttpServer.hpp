@@ -49,6 +49,7 @@ class HttpServer {
 		void	onEvent(::uint32_t events);
 		int		acceptConnection(void);
 		int		deleteConnection(Connection* connection);
+		void	checkTimedoutConnections(void);
 };
 
 #endif

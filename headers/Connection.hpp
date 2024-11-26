@@ -15,7 +15,9 @@ class Connection {
 		const int			_socket;
 		HttpServer&			_server_referer;
 		bool				_writable;
+		bool				_timed_out;
 		time_t				_created_at;
+		time_t				_ms_timeout_value;
 
 	public:
 		Connection(const int client_socket_fd, HttpServer& server_referrer);

@@ -67,7 +67,9 @@ void	Connection::onEvent(::uint32_t events)
 	if (events & EPOLLOUT && this->request.headersReceived()) {
 		if (this->response.isReady()) {
 			this->response.send(this->_socket);
-			this->_server_referer.deleteConnection(this); // Todo: do an other way to delete connection
+			this->_server_referer.deleteConnection(this);
+			// Todo: do an other way to delete connection as send will be transform as sendPacket
+			// to allow sending of files simultaneously and not blocking
 		} else {
 			this->response.handleRequest(this->_server_referer.getConfig(), this->request);
 		}

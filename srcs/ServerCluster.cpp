@@ -2,6 +2,7 @@
 #include "../headers/WebServ.hpp"
 #include <cstdio>
 #include <cstring>
+#include <list>
 #include <netinet/in.h>
 #include <string>
 #include <sys/socket.h>
@@ -311,7 +312,7 @@ int	ServerCluster::run(void)
 	// wait for the events pool to trigger
 	while (this->_running) {
 		::memset(&incoming_events, 0, sizeof(incoming_events));
-		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, -1);
+		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, MS_TIMEOUT_ROUTINE);
 		if (events  == -1)
 			return (error(ERR_EPOLL_WAIT, true), -1);
 		this->_resolveEvents(incoming_events, events);
