@@ -14,6 +14,7 @@ HttpResponse::HttpResponse(void):
     this->setHeader("Connection", "close");
 }
 
+
 HttpResponse::~HttpResponse(void)
 {}
 

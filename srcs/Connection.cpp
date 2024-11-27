@@ -1,6 +1,8 @@
 #include "../headers/Connection.hpp"
 #include "../headers/WebServ.hpp"
+#include "../headers/ServerCluster.hpp"
 #include <cstring>
+#include <ctime>
 #include <stdint.h>
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -11,7 +13,10 @@
 Connection::Connection(const int client_socket_fd, HttpServer& server_referrer):
 	_socket(client_socket_fd),
 	_server_referer(server_referrer),
-	_writable(false)
+	_writable(false),
+	_timed_out(false),
+	_created_at(getTimeMs()),
+	_ms_timeout_value(MS_TIMEOUT_ROUTINE)
 {
 	::memset(&this->event, 0, sizeof(this->event));
 }
@@ -35,44 +40,77 @@ const bool&	Connection::isWritable(void) const
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-int Connection::makeWritable(void)
+int	Connection::changeEvents(::uint32_t events)
 {
-    this->event.events = EPOLLOUT | EPOLLIN | EPOLLET;  // Changed from & to |
-    if (::epoll_ctl(this->_server_referer.getEpollFD(), EPOLL_CTL_MOD, this->_socket, &this->event) == -1)
-        return (error(ERR_EPOLL_MOD, true), -1);
-    this->_writable = true;
-    return (0);
+	DEBUG("changing connection event to: "
+		<< (events & EPOLLIN ? "[EPOLLIN] " : "")
+		<< (events & EPOLLOUT ? "[EPOLLOUT] ": "")
+		<< (events & EPOLLHUP ? "[EPOLLHUP] ": "")
+	);
+	this->event.events = events;
+	if (::epoll_ctl(this->_server_referer.getEpollFD(), EPOLL_CTL_MOD, this->_socket, &this->event) == -1)
+		return (error(ERR_EPOLL_MOD, true), -1);
+	if (events & EPOLLIN)
+		this->_writable = true;
+	return (0);
 }
 
-void Connection::onEvent(::uint32_t events)
+bool	Connection::_checkTimeout(void)
 {
-    if (events & EPOLLHUP) {
-        DEBUG("EPOLLHUP event detected");
-        this->_server_referer.deleteConnection(this);
-        return;
-    }
+	if (this->_timed_out)
+		return (this->_timed_out);
+	std::cout << "Timeout diff: " << static_cast<time_t>(getTimeMs() - this->_created_at) << std::endl;
+	if (getTimeMs() - this->_created_at >= this->_ms_timeout_value)
+		this->_timed_out = true;
+	return (this->_timed_out);
+}
 
-    if (events & EPOLLIN) {
-        if (this->request.bufferIncomingData(this->_socket) == -1) {
-            DEBUG("Error buffering incoming data");
-            return;
-        }
+void	Connection::onInEvent(void)
+{
+	if (this->request.getStatusCode() >= 400) {
+		this->changeEvents(EPOLLOUT);
+		return ;
+	}
 
-        if (this->request.headersReceived() && !this->_writable) {
-            DEBUG("Headers received - Method: " << this->request.getMethod()
-                  << " Location: " << this->request.getLocation());
+	this->request.bufferIncomingData(this->_socket);
 
-            // Just set a simple response for now
-            this->response.setHeader("Content-Type", "text/plain");
-            this->makeWritable();
-        }
-    }
+	// Changing events on that connection, so epoll will monitor the writable status.
+	// And set the timeout value.
+	if (this->request.headersReceived() && !this->_writable) {
+		this->changeEvents(EPOLLIN | EPOLLOUT);
+		if (this->request.getMethod() == "POST")
+			this->_ms_timeout_value = 120000;
+	}
+}
 
-    if (events & EPOLLOUT) {
-    	this->response.handleRequest(this->_server_referer.getConfig(), this->request);
-        if (this->response.send(this->_socket) == -1) {
-            DEBUG("Error sending response");
-        }
-        this->_server_referer.deleteConnection(this);
-    }
+void	Connection::onOutEvent(void)
+{
+	if (!this->request.headersReceived() && this->request.getStatusCode() < 400)
+		return;
+
+	if (this->request.getStatusCode() < 400 && !this->response.areHeadersParsed()) {
+		this->response.handleRequest(this->_server_referer.getConfig(), this->request);
+		this->response.sendHeaders(this->_socket);
+	}
+
+	if (this->response.isSendingFile())
+		this->response.sendBodyPacket(this->_socket);
+
+	if (this->response.isComplete())
+		this->_server_referer.deleteConnection(this);
+}
+
+void	Connection::onEvent(::uint32_t events)
+{
+	if (events & EPOLLHUP) {
+		// handle hang-up connections
+	}
+
+	if (events & EPOLLIN) {
+		this->onInEvent();
+	}
+
+	if (events & EPOLLOUT) {
+		this->onOutEvent();
+	}
 }

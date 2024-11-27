@@ -1,7 +1,6 @@
 - handle max_connections in config file ✓
 - handle maximum connections in HttpServer::acceptConnection
-- changing BytesBuffer to a StreamBuffer
-- adding a StreamBuffer to HttpRequest for the request body
+- adding a StreamBuffer to HttpRequest for the request body ✓
 - add proper address support for HttpServer ✓
 - handle SIG operations for clean exit
 - add proper logs to the server

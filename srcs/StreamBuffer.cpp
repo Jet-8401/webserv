@@ -5,13 +5,13 @@
 #include <cstdlib>
 #include <cstring>
 
-# define DEFAULT_CHUNK_BYTES_SIZE 16384
+# define DEFAULT_CHUNK_BYTES_SIZE 16000
 
 // Constructors / Desctrucors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 StreamBuffer::StreamBuffer(void):
-	_allocated_size(DEFAULT_CHUNK_BYTES_SIZE),
+	_allocated_size(0),
 	_size(0),
 	_head(0),
 	_tail(0)
@@ -31,7 +31,7 @@ StreamBuffer::StreamBuffer(const size_t buffer_size):
 StreamBuffer::~StreamBuffer(void)
 {
 	if (this->_intern_buffer)
-		delete this->_intern_buffer;
+		delete [] this->_intern_buffer;
 }
 
 // Getter

@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
         displayServerInfo(it->getConfig());
     }
 
-    cluster.listenAll();
+    cluster.run();
 
     return 0;
 }

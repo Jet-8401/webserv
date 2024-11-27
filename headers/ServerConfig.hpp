@@ -8,13 +8,6 @@
 # include <vector>
 
 class ServerConfig {
-	protected:
-		std::vector<std::string>			_server_names;
-		std::string							_host;
-		uint16_t							_port;
-		std::map<std::string, Location*>	_locations;
-		unsigned int						_max_connections;
-
 	public:
 		ServerConfig(void);
 		ServerConfig(const ServerConfig& src);
@@ -22,12 +15,14 @@ class ServerConfig {
 
 		ServerConfig&	operator=(const ServerConfig& rhs);
 
+		typedef std::map<std::string, Location*> locations_t;
+
 		// Getters
-		const std::vector<std::string>&			getServerNames(void) const;
-		const std::string&						getHost(void) const;
-		const uint16_t&							getPort(void) const;
-		const std::map<std::string, Location*>&	getLocations(void) const;
-		const unsigned int&						getMaxConnections(void) const;
+		const std::vector<std::string>&	getServerNames(void) const;
+		const std::string&				getHost(void) const;
+		const uint16_t&					getPort(void) const;
+		const locations_t&				getLocations(void) const;
+		const unsigned int&				getMaxConnections(void) const;
 
 		// Setters
 		void	setAdress(const std::string& value);
@@ -37,6 +32,12 @@ class ServerConfig {
 
         // Utils
 		bool hasLocation(const std::string& path) const;
+	protected:
+		std::vector<std::string>	_server_names;
+		std::string					_host;
+		uint16_t					_port;
+		locations_t					_locations;
+		unsigned int				_max_connections;
 };
 
 #endif

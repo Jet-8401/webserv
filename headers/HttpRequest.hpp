@@ -2,14 +2,12 @@
 # define HTTP_REQUEST_HPP
 
 # include "BytesBuffer.hpp"
-# include "ServerConfig.hpp"
 # include "StreamBuffer.hpp"
-
 # include <map>
 # include <string>
 # include <stdint.h>
 
-# define UNIQUES_HEADERS_N 2
+# define PACKETS_SIZE 4
 
 enum http_header_behavior_e {
 	COMBINABLE		= 0b00000001,		// multiple instances, can be combined
@@ -19,40 +17,54 @@ enum http_header_behavior_e {
 	MANDATORY_POST	= 0b00010000		// Mandatory for post requests
 };
 
+enum http_body_buffering_method_e {
+	RAW_CONTINUOUS,
+	MULTIPART,
+	CHUNKED
+};
+
 class HttpRequest {
 	public:
 		HttpRequest(void);
 		virtual ~HttpRequest(void);
 
 		typedef std::map<std::string, uint8_t> headers_behavior_t;
+		typedef std::multimap<const std::string, const std::string> headers_t;
 
 		// Getters
 		const bool& 		headersReceived(void) const;
-		const bool&			isMediaPending(void) const;
-		const std::string&	getHeader(const std::string header_name) const;
-		const int&			getStatusCode(void) const;
+		const bool&			isBodyPending(void) const;
+		const unsigned int&	getStatusCode(void) const;
 		const std::string&	getLocation(void) const;
 		const std::string&	getMethod(void) const;
+		const headers_t&	getHeaders(void) const;
 
-		int	parse(void);
+		int	parse(void);	// Might switch it to private
 		int	bufferIncomingData(const int socket_fd);
+
+		void	printStream(void); // to remove after
 
 	private:
 		static headers_behavior_t&	_headers_handeled;
-		static uint8_t				_end_header_sequence[4];
 
-		void	_fail(const int status_code);
 		int		_checkHeaderSyntax(const std::string& key, const std::string& value);
+		int		_bufferIncomingHeaders(uint8_t* packet, ssize_t bytes);
+		int		_bufferIncomingBody(uint8_t* packet, ssize_t bytes);
+		int		_bodyBufferingInit(void);
 
-		std::multimap<std::string, std::string>	_headers;
-		std::string								_method;
-		std::string								_location;
-		BytesBuffer								_request_buffer;
-		BytesBuffer								_media_buffer;
-		bool									_headers_received;
-		bool									_media_pending;
-		size_t									_end_header_index;
-		int										_status_code;
+
+		headers_t						_headers;
+		std::string						_method;
+		std::string						_location;
+		BytesBuffer						_request_buffer;
+		StreamBuffer					_buffer_body;
+		bool							_headers_received;
+		bool							_body_pending;
+		size_t							_end_header_index;
+		unsigned int					_status_code;
+		http_body_buffering_method_e	_body_buffering_method;
+		size_t							_content_length;
+		std::string						_multipart_key;
 
 		// note: set the _content_buff max to client_max_body_size;
 };

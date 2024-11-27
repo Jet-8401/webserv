@@ -25,6 +25,7 @@ class HttpServer {
 		const std::string		_address;
 		std::list<Connection*>	_connections;
 		EventWrapper			_event_wrapper;
+		unsigned int			_max_connections;
 
 	public:
 		typedef HttpResponse Response;
@@ -48,6 +49,7 @@ class HttpServer {
 		void	onEvent(::uint32_t events);
 		int		acceptConnection(void);
 		int		deleteConnection(Connection* connection);
+		void	checkTimedoutConnections(void);
 };
 
 #endif

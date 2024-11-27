@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <stdint.h>
 
-# define KILO_BYTES_32 32768
-# define MEGA_BYTES_4 4194304
+# define KILO_BYTES_32 32000
+# define MEGA_BYTES_4 4000000
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -50,7 +50,7 @@ BytesBuffer::~BytesBuffer(void)
 	if (this->_file_buff_fd != -1)
 		close(this->_file_buff_fd);
 	if (this->_internal_buff)
-		delete this->_internal_buff;
+		delete [] this->_internal_buff;
 }
 
 // Function member
@@ -100,7 +100,7 @@ int	BytesBuffer::write(const uint8_t* data, const size_t size)
 	return (0);
 }
 
-const uint8_t*	BytesBuffer::read(void) const
+uint8_t*	BytesBuffer::read(void) const
 {
 	return (this->_internal_buff);
 }
