@@ -17,6 +17,23 @@ HttpResponse::HttpResponse(void):
 HttpResponse::~HttpResponse(void)
 {}
 
+Location* HttpResponse::findMatchingLocation(const std::string& path, const std::map<std::string, Location*>& locations)
+{
+    std::map<std::string, Location*>::const_iterator root = locations.find("/");
+    Location* match = (root != locations.end()) ? root->second : NULL;
+    std::string longest = "";
+
+    std::map<std::string, Location*>::const_iterator it;
+    for (it = locations.begin(); it != locations.end(); ++it)
+    {
+        if (path.find(it->first) == 0 && it->first.length() > longest.length())
+        {
+            longest = it->first;
+            match = it->second;
+        }
+    }
+    return match;
+}
 // std::string HttpResponse::_resolvePath(const std::string& uri, const ServerConfig& config) const
 // {
 //     const std::map<std::string, Location*>& locations = config.getLocations();
@@ -49,11 +66,9 @@ bool	HttpResponse::handleRequest(const ServerConfig& conf, const HttpRequest& re
 {
 	(void) conf;
 	(void) request;
-	// find the location
-	// const std::map<std::string, Location*>& locations = conf.getLocations();
-	// std::string longest_match = "";
- //    Location* matching_location = NULL;
+	// this->_current_location = findMatchingLocation(request.getLocation(), conf.getLocations());
 	// if (request.getStatusCode() > 400)
+
 	return true;
 }
 

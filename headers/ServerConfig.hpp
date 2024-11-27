@@ -26,7 +26,7 @@ class ServerConfig {
 		const std::vector<std::string>&			getServerNames(void) const;
 		const std::string&						getHost(void) const;
 		const uint16_t&							getPort(void) const;
-		std::map<std::string, Location*>&		getLocations(void);
+		const std::map<std::string, Location*>&	getLocations(void) const;
 		const unsigned int&						getMaxConnections(void) const;
 
 		// Setters
@@ -34,6 +34,9 @@ class ServerConfig {
         void	setServerName(const std::string& value);
         void	addLocation(const std::string& path, Location* location);
         void	setMaxConnections(const std::string& value);
+
+        // Utils
+		bool hasLocation(const std::string& path) const;
 };
 
 #endif

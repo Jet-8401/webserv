@@ -71,7 +71,7 @@ const uint16_t&	ServerConfig::getPort(void) const
 	return (this->_port);
 }
 
-std::map<std::string, Location*>&	ServerConfig::getLocations(void)
+const std::map<std::string, Location*>&	ServerConfig::getLocations(void) const
 {
 	return (this->_locations);
 }
@@ -112,6 +112,11 @@ void	ServerConfig::setServerName(const std::string& value)
 void	ServerConfig::addLocation(const std::string& path, Location* location)
 {
 	_locations[path] = location;
+}
+
+bool ServerConfig::hasLocation(const std::string& path) const
+{
+    return _locations.find(path) != _locations.end();
 }
 
 void	ServerConfig::setMaxConnections(const std::string& value)
