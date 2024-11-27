@@ -16,8 +16,10 @@ class Connection {
 		HttpServer&			_server_referer;
 		bool				_writable;
 		bool				_timed_out;
-		time_t				_created_at;
-		time_t				_ms_timeout_value;
+		const ::uint64_t	_created_at;
+		::uint64_t			_ms_timeout_value;
+
+		bool				_checkTimeout(void);
 
 	public:
 		Connection(const int client_socket_fd, HttpServer& server_referrer);
@@ -26,10 +28,12 @@ class Connection {
 		// Getters
 		const int&		getSocketFD(void) const;
 		const bool&		isWritable(void) const;
-		const time_t&	createdAt(void) const;
+		const ::uint64_t&	createdAt(void) const;
 
-		int		makeWritable(void);
+		int		changeEvents(::uint32_t events);
 		void	onEvent(::uint32_t events);
+		void	onInEvent(void);
+		void	onOutEvent(void);
 
 		HttpRequest			request;
 		HttpResponse 		response;

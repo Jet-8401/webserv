@@ -2,7 +2,6 @@
 #include "../headers/WebServ.hpp"
 #include <cstdio>
 #include <cstring>
-#include <list>
 #include <netinet/in.h>
 #include <string>
 #include <sys/socket.h>
@@ -303,7 +302,7 @@ int	ServerCluster::run(void)
 		it->setEpollFD(this->_epoll_fd);
 		event_wrapper = this->_events_wrapper.create(REQUEST);
 		event_wrapper->casted_value = &(*it);
-		ep_event.events = EPOLLIN | EPOLLET;
+		ep_event.events = EPOLLIN;
 		ep_event.data.ptr = static_cast<void*>( event_wrapper );
 		if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, it->getSocketFD(), &ep_event) == -1)
 			return (error(ERR_EPOLL_ADD, true), -1);
@@ -324,7 +323,8 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 {
 	event_wrapper_t*			event_wrapper;
 
-	DEBUG(events << " events received");
+	if (events != 0)
+		DEBUG(events << " events received");
 	for (int i = 0; i < events; i++) {
 		DEBUG((incoming_events[i].events & EPOLLIN ? "EPOLLIN" : "EPOLLOUT / EPOLLHUP") << " event received");
 		event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);

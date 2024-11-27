@@ -8,7 +8,7 @@
 # include <string>
 # include <stdint.h>
 
-# define PACKETS_SIZE 4
+# define PACKETS_SIZE 2048
 
 enum http_header_behavior_e {
 	COMBINABLE		= 0b00000001,		// multiple instances, can be combined

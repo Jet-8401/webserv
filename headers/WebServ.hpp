@@ -4,6 +4,7 @@
 # include <string>
 # include <iostream>
 # include <iomanip>
+# include <stdint.h>
 
 # define PROG_NAME "webserv"
 # define ERR_USAGE "usage: ./webserv <configFile>"
@@ -23,6 +24,8 @@
 # define ERR_TMPFILE_CREATION "Cannot create a temp file"
 # define ERR_WRITING_TMPFILE "Cannot write to temp file"
 # define ERR_ADDR_VALUE "Error not a valid address"
+# define ERR_READING_FILE "An error occured while reading a file"
+# define ERR_WRITING_FILE "An error occured while writing a file"
 
 # ifdef DEBUGGER
 
@@ -44,5 +47,6 @@
 // utils.cpp
 void		error(const std::string message, bool perror);
 std::string	unsafe_itoa(const int n);
+::uint64_t	getTimeMs(void);
 
 #endif

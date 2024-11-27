@@ -1,6 +1,8 @@
 #include "../headers/Connection.hpp"
 #include "../headers/WebServ.hpp"
+#include "../headers/ServerCluster.hpp"
 #include <cstring>
+#include <ctime>
 #include <stdint.h>
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -11,7 +13,10 @@
 Connection::Connection(const int client_socket_fd, HttpServer& server_referrer):
 	_socket(client_socket_fd),
 	_server_referer(server_referrer),
-	_writable(false)
+	_writable(false),
+	_timed_out(false),
+	_created_at(getTimeMs()),
+	_ms_timeout_value(MS_TIMEOUT_ROUTINE)
 {
 	::memset(&this->event, 0, sizeof(this->event));
 }
@@ -35,14 +40,64 @@ const bool&	Connection::isWritable(void) const
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-int	Connection::makeWritable(void)
+int	Connection::changeEvents(::uint32_t events)
 {
-	DEBUG("connection is now writable");
-	this->event.events = EPOLLOUT | EPOLLIN | EPOLLET;
+	DEBUG("changing connection event to: "
+		<< (events & EPOLLIN ? "[EPOLLIN] " : "")
+		<< (events & EPOLLOUT ? "[EPOLLOUT] ": "")
+		<< (events & EPOLLHUP ? "[EPOLLHUP] ": "")
+	);
+	this->event.events = events;
 	if (::epoll_ctl(this->_server_referer.getEpollFD(), EPOLL_CTL_MOD, this->_socket, &this->event) == -1)
 		return (error(ERR_EPOLL_MOD, true), -1);
-	this->_writable = true;
+	if (events & EPOLLIN)
+		this->_writable = true;
 	return (0);
+}
+
+bool	Connection::_checkTimeout(void)
+{
+	if (this->_timed_out)
+		return (this->_timed_out);
+	std::cout << "Timeout diff: " << static_cast<time_t>(getTimeMs() - this->_created_at) << std::endl;
+	if (getTimeMs() - this->_created_at >= this->_ms_timeout_value)
+		this->_timed_out = true;
+	return (this->_timed_out);
+}
+
+void	Connection::onInEvent(void)
+{
+	if (this->request.getStatusCode() >= 400) {
+		this->changeEvents(EPOLLOUT);
+		return ;
+	}
+
+	this->request.bufferIncomingData(this->_socket);
+
+	// Changing events on that connection, so epoll will monitor the writable status.
+	// And set the timeout value.
+	if (this->request.headersReceived() && !this->_writable) {
+		this->changeEvents(EPOLLIN | EPOLLOUT);
+		if (this->request.getMethod() == "POST")
+			this->_ms_timeout_value = 120000;
+	}
+}
+
+void	Connection::onOutEvent(void)
+{
+	if (!this->request.headersReceived() && this->request.getStatusCode() < 400)
+		return;
+
+	if (this->request.getStatusCode() < 400 && !this->response.areHeadersParsed()) {
+		this->response.handleRequest(this->_server_referer.getConfig(), this->request);
+		this->response.sendHeaders(this->_socket);
+	}
+
+	if (this->response.isSendingFile())
+		this->response.sendBodyPacket(this->_socket);
+
+	if (this->response.isComplete())
+		this->_server_referer.deleteConnection(this);
 }
 
 void	Connection::onEvent(::uint32_t events)
@@ -52,26 +107,10 @@ void	Connection::onEvent(::uint32_t events)
 	}
 
 	if (events & EPOLLIN) {
-		if (this->request.getStatusCode() >= 400) {
-			this->makeWritable();
-			return ;
-		}
-
-		this->request.bufferIncomingData(this->_socket);
-
-		// Changing events on that connection, so epoll will monitor the writable status
-		if (this->request.headersReceived() && !this->_writable)
-			this->makeWritable();
+		this->onInEvent();
 	}
 
-	if (events & EPOLLOUT && this->request.headersReceived()) {
-		if (this->response.isReady()) {
-			this->response.send(this->_socket);
-			this->_server_referer.deleteConnection(this);
-			// Todo: do an other way to delete connection as send will be transform as sendPacket
-			// to allow sending of files simultaneously and not blocking
-		} else {
-			this->response.handleRequest(this->_server_referer.getConfig(), this->request);
-		}
+	if (events & EPOLLOUT) {
+		this->onOutEvent();
 	}
 }

@@ -3,7 +3,6 @@
 - adding a StreamBuffer to HttpRequest for the request body ✓
 - add proper address support for HttpServer ✓
 - handle SIG operations for clean exit
-- add proper logs to the server
 - add checks for unset properties in ServerConfig
 - delete allocated Location in ServerConfig destructors ✓
 - do deep copy of Locations in ServerConfig ✓
