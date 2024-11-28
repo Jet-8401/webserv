@@ -1,7 +1,6 @@
 #include "../headers/Connection.hpp"
 #include "../headers/WebServ.hpp"
 #include "../headers/ServerCluster.hpp"
-#include <cstdint>
 #include <cstring>
 #include <ctime>
 #include <stdint.h>

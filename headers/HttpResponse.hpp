@@ -4,8 +4,7 @@
 # include "HttpRequest.hpp"
 # include "Location.hpp"
 # include "ServerConfig.hpp"
-#include <cstdint>
-#include <fcntl.h>
+# include <fcntl.h>
 # include <string>
 # include <stdint.h>
 # include <dirent.h>
@@ -59,7 +58,7 @@ class HttpResponse {
 		int			_file_fd;
 		DIR*		_dir;
 		Location*	_location;
-		int			_buffer_fd_in;	// -1 if empty
+		//int			_buffer_fd_in;	// -1 if empty
 };
 
 #endif
