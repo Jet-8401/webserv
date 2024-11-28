@@ -1,6 +1,7 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/HttpResponse.hpp"
 #include <cerrno>
+#include <cstring>
 #include <fcntl.h>
 #include <sstream>
 #include <string>
@@ -13,11 +14,11 @@
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpResponse::HttpResponse(void):
+	status_code(200),
 	_headers_parsed(false),
-	_is_sending_file(false),
+	_action(NONE),
 	_is_complete(false),
-	_file_fd(-1),
-	status_code(200)
+	_file_fd(-1)
 {
 	this->setHeader("Server", "webserv/1.0");
 	this->setHeader("Connection", "close");
@@ -37,52 +38,74 @@ const bool&	HttpResponse::areHeadersParsed(void) const
 	return (this->_headers_parsed);
 }
 
+bool	HttpResponse::isSendingMedia(void) const
+{
+	return (this->_action & SENDING_MEDIA);
+}
+
 const bool& HttpResponse::isComplete(void) const
 {
 	return (this->_is_complete);
 }
 
+const ::uint8_t&	HttpResponse::getActionBits(void) const
+{
+	return (this->_action);
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-// Return an empty string if can't be resolved.
-std::string	HttpResponse::_resolvePath(const Location& location, const HttpRequest& request)
+// Resolve the path with alias, root, index, etc...
+int	HttpResponse::_resolveLocation(std::string& path, struct stat& file_stats, const std::string& request_location)
 {
-	// Getting the full path
-	std::string	filePath = location.getRoot() + request.getLocation();
-	std::cout << "Full path: [" << filePath << ']' << std::endl;
+	const std::string&			alias = this->_location->getAlias();
+	std::vector<std::string>	indexes = this->_location->getIndexes();
 
-	struct stat buffer;
-	if (stat(filePath.c_str(), &buffer) == -1) {
-		if (errno == ENOENT)
-			std::cout << filePath << " cannot be resolved" << std::endl;
-		return (this->status_code = 404, "");
+	if (!alias.empty())
+		path = joinPath(this->_location->getRoot(), alias);
+	else
+		path = joinPath(this->_location->getRoot(), request_location);
+
+	// know test for multiples index if there is
+	std::string	full_path;
+	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++) {
+		full_path = joinPath(path, *it);
+		std::cout << full_path << std::endl;
+		if (stat(full_path.c_str(), &file_stats) == -1) {
+			::memset(&file_stats, 0, sizeof(file_stats));
+			continue;
+		} else {
+			path = full_path;
+			return (0);
+		}
 	}
 
-	std::cout << filePath;
-	if (buffer.st_mode & S_IFDIR)
-		std::cout << " is a directory" << std::endl;
-	else {
-		this->_response_type = FILE;
-		this->_file_fd = open(filePath.c_str(), O_RDWR);
-		if (this->_file_fd == -1)
-			return (this->status_code = 500, "");
-		this->setHeader("Content-Type", "text/html");
-		this->setHeader("Content-Length", unsafe_itoa(buffer.st_size));
-	}
-	return (filePath);
+	// else take the path as final try
+	if (stat(path.c_str(), &file_stats) == -1)
+		return (this->status_code = 404, -1);
+	return (0);
 }
 
-int	HttpResponse::_handleLocation(const Location& location, const HttpRequest& request)
+// Check if the request can be resolved with a matching location.
+// Will open directory or file automatically if found.
+int	HttpResponse::_resolveRequest(const HttpRequest& request)
 {
-	// Checking the method
-	if (location.getMethods().find(request.getMethod()) == location.getMethods().end())
-		return (this->status_code = 405, -1);
+	struct stat	file_stats;
+	std::string	complete_path;
+	::memset(&file_stats, 0, sizeof(file_stats));
+	if (this->_resolveLocation(complete_path, file_stats, request.getLocation()) == -1)
+		return (-1);
 
-	// Resolve the path with alias, root, index, etc...
-
-	// Check for client_max_body_size for static files and sending a 413 if not possible
-
+	// Check for autoindex.
+	if (S_ISDIR(file_stats.st_mode)) {
+		this->_dir = opendir(complete_path.c_str());
+		if (!this->_dir)
+			return (error(ERR_DIR_OPENING, true), this->status_code = 500, -1);
+		if (this->_location->getAutoIndex())
+			this->_action |= DIRECTORY_LISTING;
+	} else if ((this->_file_fd = open(complete_path.c_str(), O_RDWR)) == -1)
+		return (error(ERR_FILE_OPEN, true), this->status_code = 500, -1);
 	return (0);
 }
 
@@ -93,7 +116,32 @@ void HttpResponse::_buildHeaders(std::stringstream& response) const
         response << it->first << ": " << it->second << "\r\n";
     response << "\r\n";
 }
+// Location* HttpResponse::findMatchingLocation(const std::string& path, const std::map<std::string, Location*>& locations)
+// {
+//     std::map<std::string, Location*>::const_iterator root = locations.find("/");
+//     Location* match = (root != locations.end()) ? root->second : NULL;
+//     std::string longest = "";
 
+//     std::map<std::string, Location*>::const_iterator it;
+//     for (it = locations.begin(); it != locations.end(); ++it)
+//     {
+//         if (path.find(it->first) == 0 && it->first.length() > longest.length())
+//         {
+//             longest = it->first;
+//             match = it->second;
+//         }
+//     }
+//     return match;
+// }
+
+// Envoyer un fichier -> SENDING_MEDIA
+// - Envoyer un fichier static
+// - Exécuter un cgi -> file extension
+// - Lister un répertoire -> DIRECTORY_LISTING
+// Recevoir un fichier -> POST -> ACCEPT_MEDIA
+// Supprimer un fichier -> DELETE -> DELETE_MEDIA
+
+// Entry point for solving an http request.
 int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& request)
 {
 	const std::string&							request_location = request.getLocation();
@@ -105,20 +153,34 @@ int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& r
 	this->_headers_parsed = true;
 	// Take the matching location/route
 	for (it = server_locations.begin(); it != server_locations.end(); it++) {
-		if (request_location.find(it->first) == std::string::npos)
-			continue;
-		if (matching == server_locations.end() || it->first.length() >= matching->first.length())
+		if (request_location.find(it->first) == 0 &&
+			(matching == server_locations.end() || it->first.length() >= matching->first.length()))
 			matching = it;
 	}
 
 	if (!matching->second)
 		return (this->status_code = 500, -1);
-	Location&	location = *matching->second;
+	this->_location = matching->second;
 
-	// Check base setting for response
-	if (this->_handleLocation(location, request) == -1)
+	// Handle request error here
+	if (request.getStatusCode() >= 400) {
+		this->_action = SENDING_MEDIA;
+		this->status_code = request.getStatusCode();
 		return (-1);
-	return (0);
+	}
+
+	// Checking the method
+	const std::string&	method = request.getMethod();
+	if (this->_location->getMethods().find(request.getMethod()) == this->_location->getMethods().end())
+		return (this->status_code = 405, -1);
+	if (method == "POST")
+		this->_action = ACCEPTING_MEDIA;
+	else if (method == "GET")
+		this->_action = SENDING_MEDIA;
+	else
+		this->_action = DELETING_MEDIA;
+
+	return (this->_resolveRequest(request));
 }
 
 void	HttpResponse::setHeader(const std::string key, const std::string value)
@@ -133,8 +195,6 @@ int	HttpResponse::sendHeaders(const int socket_fd)
 	this->_buildHeaders(headers);
 	if (write(socket_fd, headers.str().c_str(), headers.str().size()) == -1)
 		return (error("Error writing response", true), -1);
-	if (!this->_is_sending_file)
-		this->_is_complete = true;
 	return (0);
 }
 

@@ -1,6 +1,7 @@
 #include "../headers/Connection.hpp"
 #include "../headers/WebServ.hpp"
 #include "../headers/ServerCluster.hpp"
+#include <cstdint>
 #include <cstring>
 #include <ctime>
 #include <stdint.h>
@@ -88,16 +89,18 @@ void	Connection::onOutEvent(void)
 	if (!this->request.headersReceived() && this->request.getStatusCode() < 400)
 		return;
 
-	if (this->request.getStatusCode() < 400 && !this->response.areHeadersParsed()) {
+	if (!this->response.areHeadersParsed()) {
 		this->response.handleRequest(this->_server_referer.getConfig(), this->request);
-		this->response.sendHeaders(this->_socket);
 	}
 
-	if (this->response.isSendingFile())
-		this->response.sendBodyPacket(this->_socket);
+	const ::uint8_t	bits = this->response.getActionBits();
+	if (bits & HttpResponse::SENDING_MEDIA) {
 
-	if (this->response.isComplete())
-		this->_server_referer.deleteConnection(this);
+	} else if (bits & HttpResponse::ACCEPTING_MEDIA) {
+
+	} else if (bits & HttpResponse::DELETING_MEDIA) {
+
+	}
 }
 
 void	Connection::onEvent(::uint32_t events)
@@ -114,3 +117,42 @@ void	Connection::onEvent(::uint32_t events)
 		this->onOutEvent();
 	}
 }
+
+/*
+Server: webserv
+Connection: close
+\r\n\r\n
+
+
+Debut
+
+[Token: server_name
+Token: root
+Token: /home/jullopez/Documents/webserv;
+Token: index
+Token: index.ph]p
+Token: index.html;
+Token: client_max_body_size
+Token: 2M;
+Token: max_connections
+Token: location
+Parsing location:  /|
+LE token : {
+Token: }
+Added server with port: 5500
+├── Config imported successfully
+└── Server Configuration Details:
+┌── Server #1
+│   Port: 5500
+│   Host: 0.0.0.0
+│   Server Names: mde-prin.42.fr
+│   Max Connections: 2048
+│   Locations:
+│   ├─ Path: /
+│   │  Root: /home/jullopez/Documents/webserv
+│   │  Alias:
+│   │  Autoindex: off
+│   │  Max Body Size:    1048576
+
+fin
+*/

@@ -115,6 +115,7 @@ int	HttpRequest::parse(void)
 
 	parser.write(reinterpret_cast<const char*>(this->_request_buffer.read()), this->_end_header_index);
 
+	// do stronger parsing of protocol location etc... to have better status code precision
 	parser >> this->_method;
 	parser >> this->_location;
 	parser >> str;
@@ -126,7 +127,7 @@ int	HttpRequest::parse(void)
 	parser.ignore();
 	while (std::getline(parser, str)) {
 		if (str.empty())
-			continue ;
+			continue;
 		// if there is data on that line but the colons are not found, then throw a 400 error (Bad request)
 		size_t	colon_pos = str.find(':');
 		if (colon_pos == std::string::npos)
@@ -151,9 +152,9 @@ int	HttpRequest::_bufferIncomingBody(uint8_t* packet, ssize_t bytes)
 	if (this->_body_buffering_method == MULTIPART || this->_body_buffering_method == CHUNKED)
 		return (this->_body_pending = false, 0);
 
-	this->_buffer_body.write(packet, bytes);
-	std::cout << this->_buffer_body.size() << " -> " << this->_content_length << std::endl;
-	if (this->_buffer_body.size() >= this->_content_length)
+	this->_client_body_size += write(this->_buffer_fd_out, packet, bytes);
+	std::cout << this->_client_body_size << " -> " << this->_content_length << std::endl;
+	if (this->_client_body_size >= this->_content_length)
 		this->_body_pending = false;
 	return (0);
 }
@@ -231,11 +232,3 @@ int	HttpRequest::bufferIncomingData(const int socket_fd)
 /*
 curl -X POST -H "Content-Type: application/json" -d '{"name":"John","age":30}' http://localhost:8083
 */
-
-void	HttpRequest::printStream(void)
-{
-	char	buffer[this->_buffer_body.size()];
-
-	this->_buffer_body.consume(buffer, this->_request_buffer.size());
-	std::cout << "<< BODY >>\n" << buffer << "\n<< END BODY >>" << std::endl;
-}

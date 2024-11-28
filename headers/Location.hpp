@@ -5,7 +5,7 @@
 # include <cstdlib>
 # include <set>
 # include <map>
-#include <vector>
+# include <vector>
 
 class Location {
 	protected:

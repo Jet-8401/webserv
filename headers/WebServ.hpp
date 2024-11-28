@@ -26,6 +26,7 @@
 # define ERR_ADDR_VALUE "Error not a valid address"
 # define ERR_READING_FILE "An error occured while reading a file"
 # define ERR_WRITING_FILE "An error occured while writing a file"
+# define ERR_DIR_OPENING "An error occured while opening a directory"
 
 # ifdef DEBUGGER
 
@@ -48,5 +49,6 @@
 void		error(const std::string message, bool perror);
 std::string	unsafe_itoa(const int n);
 ::uint64_t	getTimeMs(void);
+std::string	joinPath(const std::string& path1, const std::string& path2);
 
 #endif

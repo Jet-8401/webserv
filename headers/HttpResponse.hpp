@@ -4,19 +4,21 @@
 # include "HttpRequest.hpp"
 # include "Location.hpp"
 # include "ServerConfig.hpp"
+#include <cstdint>
+#include <fcntl.h>
 # include <string>
+# include <stdint.h>
+# include <dirent.h>
 
 // Three options:
 // 1. Directory listing
 // 2. Sending a body/media/file
 // 3. Don't send anything more than headers
 //
-// First thing to do is to check if the location exist
-// If not exist throw a 404, else continue.
-// Check if the method is allowed.
-// Then check for the final location with alias, root, index, etc...
-// If nothing is found, throw a 404, else continue.
-// Then check what to do with the method.
+// Check order:
+// - Method
+// - Resolve the path based on root, alias, etc...
+// - Check for client_max_size_body for static files
 
 class HttpResponse {
 	public:
@@ -24,11 +26,19 @@ class HttpResponse {
 		virtual ~HttpResponse(void);
 
 		typedef HttpRequest::headers_t headers_t;
+		typedef enum response_action_e {
+			NONE				= 0b00000000,
+			ACCEPTING_MEDIA		= 0b00000001,
+			SENDING_MEDIA		= 0b00000010,
+			DELETING_MEDIA		= 0b00000100,
+			DIRECTORY_LISTING	= 0b00001000
+		}	response_action_t;
 
 		// Gettrs
-		const bool&	areHeadersParsed(void) const;
-		const bool	isSendingBody(void) const;
-		const bool& isComplete(void) const;
+		const bool&			areHeadersParsed(void) const;
+		bool				isSendingMedia(void) const;
+		const bool& 		isComplete(void) const;
+		const ::uint8_t&	getActionBits(void) const;
 
 		unsigned short	status_code;
 
@@ -38,21 +48,18 @@ class HttpResponse {
 		int		sendBodyPacket(const int socket_fd);
 
 	private:
-		typedef enum response_action_e {
-			READING_FILE,
-			SENDING_FILE,
-			DIRECTORY_LISTING
-		}	response_action_t;
+		void	_buildHeaders(std::stringstream& response) const;
+		int		_resolveRequest(const HttpRequest& request);
+		int		_resolveLocation(std::string& path, struct stat& file_stats, const std::string& request_location);
 
-		std::string		_resolvePath(const Location& location, const HttpRequest& request);
-		void			_buildHeaders(std::stringstream& response) const;
-		int				_handleLocation(const Location& location, const HttpRequest& request);
-
-		bool				_headers_parsed;
-		headers_t			_headers;
-		response_action_t	_response_action;
-		bool				_is_complete;
-		int					_file_fd;
+		bool		_headers_parsed;
+		headers_t	_headers;
+		::uint8_t	_action;
+		bool		_is_complete;
+		int			_file_fd;
+		DIR*		_dir;
+		Location*	_location;
+		int			_buffer_fd_in;	// -1 if empty
 };
 
 #endif

@@ -2,7 +2,6 @@
 # define HTTP_REQUEST_HPP
 
 # include "BytesBuffer.hpp"
-# include "StreamBuffer.hpp"
 # include <cstddef>
 # include <map>
 # include <string>
@@ -57,7 +56,8 @@ class HttpRequest {
 		std::string						_method;
 		std::string						_location;
 		BytesBuffer						_request_buffer;
-		StreamBuffer					_buffer_body;
+		int								_buffer_fd_out;
+		size_t							_client_body_size;
 		bool							_headers_received;
 		bool							_body_pending;
 		size_t							_end_header_index;
