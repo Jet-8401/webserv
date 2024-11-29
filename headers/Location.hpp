@@ -11,7 +11,7 @@ class Location {
 	protected:
 		std::set<std::string>				_methods;
 		std::string							_root;
-		std::map<std::string, std::string*>	_error_pages;
+		std::map<int, std::string*>			_error_pages;
 		bool								_autoindex;
 		long								_client_max_body_size;
 		std::map<std::string, std::string>	_cgis;
@@ -26,7 +26,7 @@ class Location {
 
 		const std::set<std::string>&				getMethods(void) const;
 		const std::string&							getRoot(void) const;
-		const std::map<std::string, std::string*>&	getErrorPages(void) const;
+		const std::map<int, std::string*>&			getErrorPages(void) const;
 		const bool&									getAutoIndex(void) const;
 		const long&									getClientMaxBodySize(void) const;
 		const std::string&							getAlias() const;

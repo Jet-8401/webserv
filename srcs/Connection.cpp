@@ -93,13 +93,20 @@ void	Connection::onOutEvent(void)
 	}
 
 	const ::uint8_t	bits = this->response.getActionBits();
+	std::cout << "BITS : " << (int)bits << std::endl;
 	if (bits & HttpResponse::SENDING_MEDIA) {
-
+		if (bits & HttpResponse::DIRECTORY_LISTING) {
+			std::cout << "hello" << std::endl;
+            this->response._generateAutoIndex(this->_socket, this->request.getLocation());
+        }
 	} else if (bits & HttpResponse::ACCEPTING_MEDIA) {
 
 	} else if (bits & HttpResponse::DELETING_MEDIA) {
 
 	}
+
+	if (this->response.isComplete())
+		this->_server_referer.deleteConnection(this);
 }
 
 void	Connection::onEvent(::uint32_t events)

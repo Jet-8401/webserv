@@ -45,6 +45,7 @@ class HttpResponse {
 		void	setHeader(const std::string key, const std::string value);
 		int		sendHeaders(const int socket_fd);
 		int		sendBodyPacket(const int socket_fd);
+		int		_generateAutoIndex(const int socket_fd, const std::string& uri);
 
 	private:
 		void	_buildHeaders(std::stringstream& response) const;

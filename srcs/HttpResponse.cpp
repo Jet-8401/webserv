@@ -223,3 +223,64 @@ int	HttpResponse::sendBodyPacket(const int socket_fd)
 
 	return (0);
 }
+
+int HttpResponse::_generateAutoIndex(const int socket_fd, const std::string& uri)
+{
+    if (!this->_dir || !this->_location)
+        return (-1);
+
+    std::stringstream html;
+    struct dirent* entry;
+    struct stat st;
+    std::string path;
+    html << "<!doctype html>";
+    html << "<html>\r\n<head>\r\n<title>Index of " << uri << "</title>\r\n";
+    html << "<style>\r\n";
+    html << "body { font-family: monospace; }\r\n";
+    html << "td { padding: 0 10px; }\r\n";
+    html << "</style>\r\n</head>\r\n<body>\r\n";
+    html << "<h1>Index of " << uri << "</h1><hr>\r\n";
+    html << "<table>\r\n";
+    html << "<tr><th>Name</th><th>Last Modified</th><th>Size</th></tr>\r\n";
+
+    html << "<tr><td><a href=\"../\">../</a></td><td>-</td><td>-</td></tr>\r\n";
+
+    rewinddir(this->_dir);
+    while ((entry = readdir(this->_dir))) {
+        if (std::string(entry->d_name) == ".")
+            continue;
+
+        path = this->_location->getRoot() + uri + "/" + entry->d_name;
+        if (stat(path.c_str(), &st) == -1)
+            continue;
+
+        html << "<tr><td><a href=\"" << entry->d_name;
+        if (S_ISDIR(st.st_mode))
+            html << "/";
+        html << "\">" << entry->d_name;
+        if (S_ISDIR(st.st_mode))
+            html << "/";
+        html << "</a></td>";
+
+        char timeStr[100];
+        strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));
+        html << "<td>" << timeStr << "</td>";
+
+        if (S_ISDIR(st.st_mode))
+            html << "<td>-</td>";
+        else
+            html << "<td>" << st.st_size << "B</td>";
+        html << "</tr>\r\n";
+    }
+
+    html << "</table>\r\n<hr>\r\n</body>\r\n</html>\r\n";
+
+    std::string index = html.str();
+    this->setHeader("Content-Type", "text/html");
+    this->sendHeaders(socket_fd);
+    if (write(socket_fd, index.c_str(), index.length()) == -1)
+        return (-1);
+    this->_is_complete = true;
+    std::cout << "HERE: " << this->_is_complete << std::endl;
+    return (0);
+}
