@@ -97,24 +97,23 @@ int	HttpResponse::_resolveLocation(std::string& path, struct stat& file_stats, c
 // Will open directory or file automatically if found.
 int	HttpResponse::_resolveRequest(const HttpRequest& request)
 {
-	std::string	complete_path;
-	if (this->_resolveLocation(complete_path, this->_media_stat, request.getLocation()) == -1)
+	if (this->_resolveLocation(this->_complete_path, this->_media_stat, request.getLocation()) == -1)
 		return (-1);
 
 	// Check for autoindex.
 	if (S_ISDIR(this->_media_stat.st_mode)) {
-		this->_dir = ::opendir(complete_path.c_str());
+		this->_dir = ::opendir(this->_complete_path.c_str());
 		if (!this->_dir)
 			return (error(ERR_DIR_OPENING, true), this->status_code = 500, -1);
 		if (this->_location->getAutoIndex())
 			this->_action |= DIRECTORY_LISTING;
 	} else {
 		if (this->_action & ACCEPTING_MEDIA) {
-			this->_file_fd = ::open(complete_path.c_str(), O_RDWR | O_CREAT);
-			DEBUG("File create at: " << complete_path);
+			this->_file_fd = ::open(this->_complete_path.c_str(), O_RDWR | O_CREAT);
+			DEBUG("File create at: " << this->_complete_path);
 		} else {
 			this->_action |= STATIC_FILE;
-			this->_file_fd = ::open(complete_path.c_str(), O_RDWR);
+			this->_file_fd = ::open(this->_complete_path.c_str(), O_RDWR);
 		}
 		if (this->_file_fd == -1)
 			return (error(ERR_FILE_OPEN, true), this->status_code = 500, -1);
@@ -292,14 +291,12 @@ int HttpResponse::_generateAutoIndex(const int socket_fd, const std::string& uri
     html << "<table>\r\n";
     html << "<tr><th>Name</th><th>Last Modified</th><th>Size</th></tr>\r\n";
 
-    html << "<tr><td><a href=\"../\">../</a></td><td>-</td><td>-</td></tr>\r\n";
-
     rewinddir(this->_dir);
     while ((entry = readdir(this->_dir))) {
         if (std::string(entry->d_name) == ".")
             continue;
 
-        path = this->_location->getRoot() + uri + "/" + entry->d_name;
+        path = this->_complete_path + "/" + entry->d_name;
         if (stat(path.c_str(), &st) == -1)
             continue;
 
