@@ -9,16 +9,6 @@
 # include <stdint.h>
 # include <dirent.h>
 
-// Three options:
-// 1. Directory listing
-// 2. Sending a body/media/file
-// 3. Don't send anything more than headers
-//
-// Check order:
-// - Method
-// - Resolve the path based on root, alias, etc...
-// - Check for client_max_size_body for static files
-
 class HttpResponse {
 	public:
 		HttpResponse(void);
@@ -30,34 +20,42 @@ class HttpResponse {
 			ACCEPTING_MEDIA		= 0b00000001,
 			SENDING_MEDIA		= 0b00000010,
 			DELETING_MEDIA		= 0b00000100,
-			DIRECTORY_LISTING	= 0b00001000
+			DIRECTORY_LISTING	= 0b00001000,
+			EXECUTE_CGI			= 0b00010000,
+			STATIC_FILE			= 0b00100000
 		}	response_action_t;
 
 		// Gettrs
 		const bool&			areHeadersParsed(void) const;
-		bool				isSendingMedia(void) const;
-		const bool& 		isComplete(void) const;
+		const bool&			areHeadersSent(void) const;
+		const bool& 		isDone(void) const;
 		const ::uint8_t&	getActionBits(void) const;
-
-		unsigned short	status_code;
+		bool				isSendingMedia(void) const;
 
 		int		handleRequest(const ServerConfig& config, const HttpRequest& request);
 		void	setHeader(const std::string key, const std::string value);
 		int		sendHeaders(const int socket_fd);
-		int		sendBodyPacket(const int socket_fd);
+		int		sendMedia(const int socket_fd);
+		void	setStaticMediaHeaders(void);
+		int		handleError(void);
+
+		unsigned short	status_code;
 
 	private:
 		void	_buildHeaders(std::stringstream& response) const;
 		int		_resolveRequest(const HttpRequest& request);
 		int		_resolveLocation(std::string& path, struct stat& file_stats, const std::string& request_location);
+		int		_sendStaticFile(const int socket_fd);
 
-		bool		_headers_parsed;
 		headers_t	_headers;
+		bool		_are_headers_sent;
 		::uint8_t	_action;
-		bool		_is_complete;
+		bool		_is_done;
+		bool		_are_headers_parsed;
 		int			_file_fd;
 		DIR*		_dir;
 		Location*	_location;
+		struct stat	_media_stat;
 		//int			_buffer_fd_in;	// -1 if empty
 };
 

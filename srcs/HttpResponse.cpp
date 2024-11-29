@@ -15,11 +15,13 @@
 
 HttpResponse::HttpResponse(void):
 	status_code(200),
-	_headers_parsed(false),
+	_are_headers_sent(false),
 	_action(NONE),
-	_is_complete(false),
+	_is_done(false),
+	_are_headers_parsed(false),
 	_file_fd(-1)
 {
+	::memset(&this->_media_stat, 0, sizeof(this->_media_stat));
 	this->setHeader("Server", "webserv/1.0");
 	this->setHeader("Connection", "close");
 }
@@ -27,30 +29,35 @@ HttpResponse::HttpResponse(void):
 HttpResponse::~HttpResponse(void)
 {
 	if (this->_file_fd != -1)
-		close(this->_file_fd);
+		::close(this->_file_fd);
 }
 
 // Getters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+const bool&	HttpResponse::areHeadersSent(void) const
+{
+	return (this->_are_headers_sent);
+}
+
 const bool&	HttpResponse::areHeadersParsed(void) const
 {
-	return (this->_headers_parsed);
+	return (this->_are_headers_parsed);
 }
 
-bool	HttpResponse::isSendingMedia(void) const
+const bool& HttpResponse::isDone(void) const
 {
-	return (this->_action & SENDING_MEDIA);
-}
-
-const bool& HttpResponse::isComplete(void) const
-{
-	return (this->_is_complete);
+	return (this->_is_done);
 }
 
 const ::uint8_t&	HttpResponse::getActionBits(void) const
 {
 	return (this->_action);
+}
+
+bool	HttpResponse::isSendingMedia(void) const
+{
+	return (this->_action & SENDING_MEDIA);
 }
 
 // Function members
@@ -71,8 +78,7 @@ int	HttpResponse::_resolveLocation(std::string& path, struct stat& file_stats, c
 	std::string	full_path;
 	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++) {
 		full_path = joinPath(path, *it);
-		std::cout << full_path << std::endl;
-		if (stat(full_path.c_str(), &file_stats) == -1) {
+		if (::stat(full_path.c_str(), &file_stats) == -1) {
 			::memset(&file_stats, 0, sizeof(file_stats));
 			continue;
 		} else {
@@ -82,7 +88,7 @@ int	HttpResponse::_resolveLocation(std::string& path, struct stat& file_stats, c
 	}
 
 	// else take the path as final try
-	if (stat(path.c_str(), &file_stats) == -1)
+	if (::stat(path.c_str(), &file_stats) == -1)
 		return (this->status_code = 404, -1);
 	return (0);
 }
@@ -91,21 +97,28 @@ int	HttpResponse::_resolveLocation(std::string& path, struct stat& file_stats, c
 // Will open directory or file automatically if found.
 int	HttpResponse::_resolveRequest(const HttpRequest& request)
 {
-	struct stat	file_stats;
 	std::string	complete_path;
-	::memset(&file_stats, 0, sizeof(file_stats));
-	if (this->_resolveLocation(complete_path, file_stats, request.getLocation()) == -1)
+	if (this->_resolveLocation(complete_path, this->_media_stat, request.getLocation()) == -1)
 		return (-1);
 
 	// Check for autoindex.
-	if (S_ISDIR(file_stats.st_mode)) {
-		this->_dir = opendir(complete_path.c_str());
+	if (S_ISDIR(this->_media_stat.st_mode)) {
+		this->_dir = ::opendir(complete_path.c_str());
 		if (!this->_dir)
 			return (error(ERR_DIR_OPENING, true), this->status_code = 500, -1);
 		if (this->_location->getAutoIndex())
 			this->_action |= DIRECTORY_LISTING;
-	} else if ((this->_file_fd = open(complete_path.c_str(), O_RDWR)) == -1)
-		return (error(ERR_FILE_OPEN, true), this->status_code = 500, -1);
+	} else {
+		if (this->_action & ACCEPTING_MEDIA) {
+			this->_file_fd = ::open(complete_path.c_str(), O_RDWR | O_CREAT);
+			DEBUG("File create at: " << complete_path);
+		} else {
+			this->_action |= STATIC_FILE;
+			this->_file_fd = ::open(complete_path.c_str(), O_RDWR);
+		}
+		if (this->_file_fd == -1)
+			return (error(ERR_FILE_OPEN, true), this->status_code = 500, -1);
+	}
 	return (0);
 }
 
@@ -142,6 +155,7 @@ void HttpResponse::_buildHeaders(std::stringstream& response) const
 // Supprimer un fichier -> DELETE -> DELETE_MEDIA
 
 // Entry point for solving an http request.
+// That function check for all prerequisites
 int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& request)
 {
 	const std::string&							request_location = request.getLocation();
@@ -149,8 +163,8 @@ int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& r
 	ServerConfig::locations_t::const_iterator	it;
 	ServerConfig::locations_t::const_iterator	matching = server_locations.end();
 
+	this->_are_headers_parsed = true;
 	DEBUG("handle request");
-	this->_headers_parsed = true;
 	// Take the matching location/route
 	for (it = server_locations.begin(); it != server_locations.end(); it++) {
 		if (request_location.find(it->first) == 0 &&
@@ -162,7 +176,7 @@ int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& r
 		return (this->status_code = 500, -1);
 	this->_location = matching->second;
 
-	// Handle request error here
+	// If request already have an error, it is inherited to response
 	if (request.getStatusCode() >= 400) {
 		this->_action = SENDING_MEDIA;
 		this->status_code = request.getStatusCode();
@@ -193,33 +207,68 @@ int	HttpResponse::sendHeaders(const int socket_fd)
 	DEBUG("Sending Headers !" << " (" << this->status_code << ')');
 	std::stringstream	headers;
 	this->_buildHeaders(headers);
-	if (write(socket_fd, headers.str().c_str(), headers.str().size()) == -1)
+	if (::write(socket_fd, headers.str().c_str(), headers.str().size()) == -1)
 		return (error("Error writing response", true), -1);
+	this->_are_headers_sent = true;
+	if (this->_action == NONE)
+		this->_is_done = true;
 	return (0);
 }
 
-int	HttpResponse::sendBodyPacket(const int socket_fd)
+int	HttpResponse::_sendStaticFile(const int socket_fd)
 {
-	uint8_t	packet[PACKETS_SIZE];
-	ssize_t	bytes;
+	ssize_t		bytes;
+	::uint8_t	packet[PACKETS_SIZE];
 
-	if ((bytes = read(this->_file_fd, packet, sizeof(packet))) == -1) {
-		this->_is_complete = true;
-		error(ERR_READING_FILE, true);
+	bytes = read(this->_file_fd, packet, sizeof(packet));
+	if (bytes == -1)
+		return (error(ERR_READING_FILE, true), this->_is_done = true, -1);
+
+	DEBUG("sending response packet to client");
+	if (::write(socket_fd, packet, sizeof(packet)) == -1)
+		return (error(ERR_SOCKET_WRITE, true), this->_is_done = true, -1);
+
+	if (bytes == 0)
+		this->_is_done = true;
+
+	return (0);
+}
+
+void	HttpResponse::setStaticMediaHeaders(void)
+{
+	if (this->_action & STATIC_FILE) {
+		this->setHeader("Content-Length", unsafe_itoa(this->_media_stat.st_size));
+	}
+}
+
+int	HttpResponse::sendMedia(const int socket_fd)
+{
+	if (this->_action & STATIC_FILE) {
+		return (this->_sendStaticFile(socket_fd));
+	}
+	return (0);
+}
+
+int	HttpResponse::handleError(void)
+{
+	const Location::error_page_t&			error_pages = this->_location->getErrorPages();
+	Location::error_page_t::const_iterator	it;
+	this->_action = NONE;
+
+	// check if there is an error page that match into the location
+	it = error_pages.find(unsafe_itoa(this->status_code));
+	if (it == error_pages.end())
 		return (-1);
-	}
-	DEBUG("sending a packet for body of " << bytes << " bytes");
 
-	if (bytes == 0) {
-		this->_is_complete = true;
-		return (0);
-	}
-
-	if (write(socket_fd, packet, bytes) == -1) {
-		this->_is_complete = true;
-		error(ERR_WRITING_FILE, true);
+	// check if the path exist
+	if (::stat(it->second->c_str(), &this->_media_stat) == -1)
 		return (-1);
-	}
 
+	if (this->_file_fd != -1)
+		::close(this->_file_fd);
+	this->_file_fd = ::open(it->second->c_str(), O_RDONLY);
+	if (this->_file_fd == -1)
+		return (-1);
+	this->_action |= SENDING_MEDIA | STATIC_FILE;
 	return (0);
 }

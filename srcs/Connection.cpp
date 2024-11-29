@@ -90,16 +90,32 @@ void	Connection::onOutEvent(void)
 
 	if (!this->response.areHeadersParsed()) {
 		this->response.handleRequest(this->_server_referer.getConfig(), this->request);
+		if (this->response.status_code >= 400)
+			this->response.handleError();
 	}
 
+	// Do the action specified by the bitflag.
+	// Taking in consideration that errors are already handled at this point
 	const ::uint8_t	bits = this->response.getActionBits();
 	if (bits & HttpResponse::SENDING_MEDIA) {
-
+		if (!this->response.areHeadersSent()) {
+			this->response.setStaticMediaHeaders();
+			this->response.sendHeaders(this->_socket);
+			return ;
+		}
+		this->response.sendMedia(this->_socket);
 	} else if (bits & HttpResponse::ACCEPTING_MEDIA) {
 
 	} else if (bits & HttpResponse::DELETING_MEDIA) {
 
+	} else if (bits == HttpResponse::NONE) {
+		this->response.sendHeaders(this->_socket);
+		this->_server_referer.deleteConnection(this);
+		return ;
 	}
+
+	if (this->response.isDone())
+		this->_server_referer.deleteConnection(this);
 }
 
 void	Connection::onEvent(::uint32_t events)
