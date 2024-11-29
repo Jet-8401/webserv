@@ -26,7 +26,7 @@ Location::Location(const Location& src):
 {
 	// do deep copy
 	std::map<std::string*, std::string*>				ptr_copy;
-	std::map<std::string, std::string*>::const_iterator	it;
+	std::map<int, std::string*>::const_iterator	it;
 
 	for (it = src._error_pages.begin(); it != src._error_pages.end(); it++) {
 		if (ptr_copy.find(it->second) != ptr_copy.end())
@@ -41,7 +41,7 @@ Location::Location(const Location& src):
 
 Location::~Location()
 {
-	std::map<std::string, std::string*>::iterator	it;
+	std::map<int, std::string*>::iterator	it;
 	std::set<std::string*>							pointers;
 	std::set<std::string*>::iterator				pointer_it;
 
@@ -118,21 +118,37 @@ void Location::setCgis(const std::string& value)
 
 void Location::setErrorPage(const std::string& value)
 {
-	std::istringstream iss(value);
-	std::vector<std::string> words;
-	std::string word;
-	while (iss >> word)
-	{
-		words.push_back(word);
-	}
-	if (words.size() < 2)
+    std::istringstream iss(value);
+    std::vector<std::string> words;
+    std::string word;
+
+    while (iss >> word)
     {
-		return; // or throw an exception if you prefer
-	}
-	std::string* valuePtr = new std::string(words[words.size() - 1]);
-	for (size_t i = 0; i < words.size() - 1; ++i)
-	{
-        _error_pages[words[i]] = valuePtr;
+        words.push_back(word);
+    }
+
+    if (words.size() < 2)
+    {
+        throw std::runtime_error("Error page configuration needs at least 2 values");
+    }
+
+    std::string* errorPathPtr = new std::string(words[words.size() - 1]);
+    for (size_t i = 0; i < words.size() - 1; ++i)
+    {
+        std::istringstream converter(words[i]);
+        int errorCode;
+
+        if (!(converter >> errorCode) || !converter.eof())
+        {
+            throw std::runtime_error("Invalid error code: " + words[i]);
+        }
+
+        if (errorCode < 100 || errorCode > 599)
+        {
+            throw std::runtime_error("Error code out of range: " + words[i]);
+        }
+
+        _error_pages[errorCode] = errorPathPtr;
     }
 }
 
@@ -166,7 +182,7 @@ const std::string& Location::getRoot(void) const
     return _root;
 }
 
-const std::map<std::string, std::string*>& Location::getErrorPages(void) const
+const std::map<int, std::string*>& Location::getErrorPages(void) const
 {
     return _error_pages;
 }

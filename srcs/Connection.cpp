@@ -98,12 +98,16 @@ void	Connection::onOutEvent(void)
 	// Taking in consideration that errors are already handled at this point
 	const ::uint8_t	bits = this->response.getActionBits();
 	if (bits & HttpResponse::SENDING_MEDIA) {
-		if (!this->response.areHeadersSent()) {
-			this->response.setStaticMediaHeaders();
-			this->response.sendHeaders(this->_socket);
-			return ;
-		}
-		this->response.sendMedia(this->_socket);
+		if (bits & HttpResponse::STATIC_FILE) {
+			if (!this->response.areHeadersSent()) {
+				this->response.setStaticMediaHeaders();
+				this->response.sendHeaders(this->_socket);
+				return ;
+			}
+			this->response.sendMedia(this->_socket);
+		} else if (bits & HttpResponse::DIRECTORY_LISTING) {
+            this->response._generateAutoIndex(this->_socket, this->request.getLocation());
+        }
 	} else if (bits & HttpResponse::ACCEPTING_MEDIA) {
 
 	} else if (bits & HttpResponse::DELETING_MEDIA) {

@@ -38,6 +38,7 @@ class HttpResponse {
 		int		sendMedia(const int socket_fd);
 		void	setStaticMediaHeaders(void);
 		int		handleError(void);
+		int		_generateAutoIndex(const int socket_fd, const std::string& uri);
 
 		unsigned short	status_code;
 

@@ -13,7 +13,7 @@ class Location {
 		Location(const Location& src);
 		~Location(void);
 
-		typedef	std::map<std::string, std::string*> error_page_t;
+		typedef	std::map<int, std::string*> error_page_t;
 
 		const std::set<std::string>&				getMethods(void) const;
 		const std::string&							getRoot(void) const;
@@ -38,7 +38,7 @@ class Location {
 	protected:
 		std::set<std::string>				_methods;
 		std::string							_root;
-		std::map<std::string, std::string*>	_error_pages;
+		error_page_t						_error_pages;
 		bool								_autoindex;
 		long								_client_max_body_size;
 		std::map<std::string, std::string>	_cgis;

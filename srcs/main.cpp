@@ -3,10 +3,10 @@
 #include <iostream>
 #include <iomanip>
 
-void displayErrorPages(const std::map<std::string, std::string*>& error_pages) {
+void displayErrorPages(const std::map<int, std::string*>& error_pages) {
     if (!error_pages.empty()) {
         std::cout << "\033[1;34m│   │  Error Pages:\033[0m" << std::endl;
-        for (std::map<std::string, std::string*>::const_iterator it = error_pages.begin();
+        for (std::map<int, std::string*>::const_iterator it = error_pages.begin();
              it != error_pages.end(); ++it) {
             std::cout << "\033[1;34m│   │     └─\033[0m " << it->first
                      << " → " << (it->second ? *it->second : "null") << std::endl;
