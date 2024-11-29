@@ -14,6 +14,7 @@ class Location {
 		~Location(void);
 
 		typedef	std::map<int, std::string*> error_page_t;
+		typedef std::set<std::string>		methods_t;
 
 		const std::set<std::string>&				getMethods(void) const;
 		const std::string&							getRoot(void) const;
@@ -36,7 +37,7 @@ class Location {
         void setReturn(const std::string& value);
 
 	protected:
-		std::set<std::string>				_methods;
+		methods_t							_methods;
 		std::string							_root;
 		error_page_t						_error_pages;
 		bool								_autoindex;

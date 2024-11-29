@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .upload-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .upload-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .upload-btn:hover {
+            background-color: #45a049;
+        }
+
+        #file-name {
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 10px;
+            transition: width 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Upload</h1>
+
+    <div class="upload-container">
+        <form id="upload-form" enctype="multipart/form-data">
+            <input type="file" id="file-input" name="file" style="display: none;">
+            <label for="file-input" class="upload-btn">Choose File</label>
+            <div id="file-name">No file chosen</div>
+            <button type="submit" class="upload-btn">Upload File</button>
+        </form>
+
+        <div class="progress-bar">
+            <div class="progress"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file-input');
+        const fileName = document.getElementById('file-name');
+        const progressBar = document.querySelector('.progress-bar');
+        const progress = document.querySelector('.progress');
+
+        fileInput.addEventListener('change', (e) => {
+            fileName.textContent = e.target.files[0].name;
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                progressBar.style.display = 'block';
+
+                const response = await fetch('/upload/', {  // Replace with your server endpoint
+                    method: 'POST',
+                    body: formData,
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        progress.style.width = percentCompleted + '%';
+                    }
+                });
+
+                if (response.ok) {
+                    alert('File uploaded successfully!');
+                } else {
+                    alert('Upload failed!');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Upload failed!');
+            } finally {
+                progressBar.style.display = 'none';
+                progress.style.width = '0%';
+                form.reset();
+                fileName.textContent = 'No file chosen';
+            }
+        });
+    </script>
+</body>
+</html>

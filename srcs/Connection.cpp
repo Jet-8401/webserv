@@ -109,7 +109,10 @@ void	Connection::onOutEvent(void)
             this->response._generateAutoIndex(this->_socket, this->request.getLocation());
         }
 	} else if (bits & HttpResponse::ACCEPTING_MEDIA) {
-
+		DEBUG("accepting media");
+		this->response.sendHeaders(this->_socket);
+		this->_server_referer.deleteConnection(this);
+		return ;
 	} else if (bits & HttpResponse::DELETING_MEDIA) {
 
 	} else if (bits == HttpResponse::NONE) {

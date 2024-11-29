@@ -9,3 +9,6 @@
 - delete allocated ErrorPages in Location ✓
 - do deep copy of ErrorPages in Location ✓
 - handle connections timeout
+- handle POST method
+- handle DELETE method
+- resolve bug where /upload will be match but not /upload/

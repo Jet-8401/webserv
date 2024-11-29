@@ -75,15 +75,17 @@ int	HttpResponse::_resolveLocation(std::string& path, struct stat& file_stats, c
 		path = joinPath(this->_location->getRoot(), request_location);
 
 	// know test for multiples index if there is
-	std::string	full_path;
-	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++) {
-		full_path = joinPath(path, *it);
-		if (::stat(full_path.c_str(), &file_stats) == -1) {
-			::memset(&file_stats, 0, sizeof(file_stats));
-			continue;
-		} else {
-			path = full_path;
-			return (0);
+	if (this->_action & SENDING_MEDIA) {
+		std::string	full_path;
+		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++) {
+			full_path = joinPath(path, *it);
+			if (::stat(full_path.c_str(), &file_stats) == -1) {
+				::memset(&file_stats, 0, sizeof(file_stats));
+				continue;
+			} else {
+				path = full_path;
+				return (0);
+			}
 		}
 	}
 
@@ -174,6 +176,7 @@ int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& r
 	if (!matching->second)
 		return (this->status_code = 500, -1);
 	this->_location = matching->second;
+	DEBUG("matching: " << matching->first);
 
 	// If request already have an error, it is inherited to response
 	if (request.getStatusCode() >= 400) {
@@ -184,7 +187,8 @@ int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& r
 
 	// Checking the method
 	const std::string&	method = request.getMethod();
-	if (this->_location->getMethods().find(request.getMethod()) == this->_location->getMethods().end())
+	DEBUG("request method: " << method);
+	if (this->_location->getMethods().find(method) == this->_location->getMethods().end())
 		return (this->status_code = 405, -1);
 	if (method == "POST")
 		this->_action = ACCEPTING_MEDIA;
