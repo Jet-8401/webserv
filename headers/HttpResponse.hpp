@@ -28,6 +28,7 @@ class HttpResponse {
 		// Gettrs
 		const bool&			areHeadersParsed(void) const;
 		const bool&			areHeadersSent(void) const;
+		const bool&			areMediaWrittenToDisk(void) const;
 		const bool& 		isDone(void) const;
 		const ::uint8_t&	getActionBits(void) const;
 		bool				isSendingMedia(void) const;
@@ -39,6 +40,10 @@ class HttpResponse {
 		void	setStaticMediaHeaders(void);
 		int		handleError(void);
 		int		_generateAutoIndex(const int socket_fd, const std::string& uri);
+		int		writeMediaToDisk(HttpRequest& request);
+
+		typedef std::map<std::string, std::string> mime_types_t;
+		static mime_types_t&	mime_types;
 
 		unsigned short	status_code;
 
@@ -48,16 +53,20 @@ class HttpResponse {
 		int		_resolveLocation(std::string& path, struct stat& file_stats, const std::string& request_location);
 		int		_sendStaticFile(const int socket_fd);
 
-		std::string _complete_path;
 		headers_t	_headers;
 		bool		_are_headers_sent;
+		bool		_are_headers_parsed;
+
 		::uint8_t	_action;
 		bool		_is_done;
-		bool		_are_headers_parsed;
+
+		std::string _complete_path;
 		int			_file_fd;
 		DIR*		_dir;
 		Location*	_location;
+
 		struct stat	_media_stat;
+		bool		_are_media_written_to_disk;
 		//int			_buffer_fd_in;	// -1 if empty
 };
 

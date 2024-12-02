@@ -2,12 +2,13 @@
 # define HTTP_REQUEST_HPP
 
 # include "BytesBuffer.hpp"
+#include "StreamBuffer.hpp"
 # include <cstddef>
 # include <map>
 # include <string>
 # include <stdint.h>
 
-# define PACKETS_SIZE 2048
+# define PACKETS_SIZE 1024
 
 enum http_header_behavior_e {
 	COMBINABLE		= 0b00000001,		// multiple instances, can be combined
@@ -18,7 +19,7 @@ enum http_header_behavior_e {
 };
 
 enum http_body_buffering_method_e {
-	RAW_CONTINUOUS,
+	RAW,
 	MULTIPART,
 	CHUNKED
 };
@@ -44,6 +45,8 @@ class HttpRequest {
 
 		void	printStream(void); // to remove after
 
+		StreamBuffer					request_body;
+
 	private:
 		static headers_behavior_t&	_headers_handeled;
 
@@ -52,16 +55,17 @@ class HttpRequest {
 		int		_bufferIncomingBody(uint8_t* packet, ssize_t bytes);
 		int		_bodyBufferingInit(void);
 
+		bool							_headers_received;
 		headers_t						_headers;
 		std::string						_method;
 		std::string						_location;
+
 		BytesBuffer						_request_buffer;
-		int								_buffer_fd_out;
-		size_t							_client_body_size;
-		bool							_headers_received;
 		bool							_body_pending;
 		size_t							_end_header_index;
+
 		unsigned int					_status_code;
+
 		http_body_buffering_method_e	_body_buffering_method;
 		size_t							_content_length;
 		std::string						_multipart_key;

@@ -6,20 +6,25 @@
     <title>Webserv Navigation</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f0f0f0;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            color: #ffffff;
+            min-height: 100vh;
         }
 
         h1 {
-            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
             text-align: center;
+            background: linear-gradient(45deg, #ff6b2c, #8b31d6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             padding: 20px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         .nav-container {
@@ -30,40 +35,52 @@
         }
 
         .nav-button {
-            background-color: white;
-            border: none;
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s ease;
             text-decoration: none;
-            color: #333;
+            color: #ffffff;
             text-align: center;
         }
 
         .nav-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-color: #ff6b2c;
+            box-shadow: 0 5px 15px rgba(255, 107, 44, 0.3);
         }
 
         .nav-button i {
             display: block;
             font-size: 24px;
             margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b2c, #8b31d6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .file-list {
-            background-color: white;
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             padding: 20px;
             margin-top: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
         .file-list h2 {
             margin-top: 0;
-            color: #333;
+            color: #ffffff;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ff6b2c, #8b31d6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .file-list ul {
@@ -72,21 +89,42 @@
         }
 
         .file-list li {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .file-list li:last-child {
             border-bottom: none;
         }
 
+        .file-list i {
+            color: #ff6b2c;
+        }
+
         .file-list a {
             text-decoration: none;
-            color: #4CAF50;
+            color: #ffffff;
+            transition: color 0.3s ease;
         }
 
         .file-list a:hover {
-            text-decoration: underline;
+            color: #ff6b2c;
+            text-decoration: none;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">

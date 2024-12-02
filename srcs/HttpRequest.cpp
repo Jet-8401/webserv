@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -36,6 +35,7 @@ HttpRequest::HttpRequest(void):
 	_body_pending(false),
 	_end_header_index(0),
 	_status_code(200),
+	_body_buffering_method(RAW),
 	_content_length(0)
 {}
 
@@ -128,10 +128,9 @@ int	HttpRequest::parse(void)
 	while (std::getline(parser, str)) {
 		if (str.empty())
 			continue;
-		// if there is data on that line but the colons are not found, then throw a 400 error (Bad request)
 		size_t	colon_pos = str.find(':');
 		if (colon_pos == std::string::npos)
-			return (this->_status_code = 400, -1);
+			continue ;
 
 		// separate the key and value, then triming them
 		key = str.substr(0, colon_pos);
@@ -140,7 +139,7 @@ int	HttpRequest::parse(void)
 		string_trim(value);
 
 		if (this->_checkHeaderSyntax(key, value) == -1)
-			return (this->_status_code = 400, -1);
+			return (-1);
 		this->_headers.insert(std::pair<std::string, std::string>(key, value));
 	}
 	return (0);
@@ -152,9 +151,8 @@ int	HttpRequest::_bufferIncomingBody(uint8_t* packet, ssize_t bytes)
 	if (this->_body_buffering_method == MULTIPART || this->_body_buffering_method == CHUNKED)
 		return (this->_body_pending = false, 0);
 
-	this->_client_body_size += write(this->_buffer_fd_out, packet, bytes);
-	std::cout << this->_client_body_size << " -> " << this->_content_length << std::endl;
-	if (this->_client_body_size >= this->_content_length)
+	this->request_body.write(packet, bytes);
+	if (this->request_body.size() >= this->_content_length)
 		this->_body_pending = false;
 	return (0);
 }
@@ -171,8 +169,8 @@ int	HttpRequest::_bodyBufferingInit(void)
 	}
 
 	it = this->_headers.find("Content-Type");
-	if (it != this->_headers.end() && it->second.find("multipart/form-data;")) {
-		this->_multipart_key = it->second.c_str() + it->second.find("boundary=");
+	if (it != this->_headers.end() && it->second.find("multipart/form-data;") != std::string::npos) {
+		this->_multipart_key = it->second.c_str() + (it->second.find("boundary=") + 9);
 		this->_body_buffering_method = MULTIPART;
 	} else if ((it = this->_headers.find("Transfer-Encoding")) != this->_headers.end() && it->second == "chunked") {
 		this->_body_buffering_method = CHUNKED;
@@ -211,6 +209,10 @@ int	HttpRequest::_bufferIncomingHeaders(uint8_t *packet, ssize_t bytes)
 		this->_body_pending = true;
 		if (this->_bodyBufferingInit() == -1)
 			return (-1);
+		this->request_body.write(
+			this->_request_buffer.read() + this->_end_header_index + 4,
+			this->_request_buffer.size() - (this->_end_header_index + 4)
+		);
 	}
 	return (0);
 }
@@ -228,7 +230,3 @@ int	HttpRequest::bufferIncomingData(const int socket_fd)
 	}
 	return (0);
 }
-
-/*
-curl -X POST -H "Content-Type: application/json" -d '{"name":"John","age":30}' http://localhost:8083
-*/

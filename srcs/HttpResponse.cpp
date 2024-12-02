@@ -8,7 +8,33 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <utility>
+
+// Static variables
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+HttpResponse::mime_types_t&	init_mime_types(void)
+{
+	static HttpResponse::mime_types_t	mime_types;
+
+	mime_types[".html"] = "text/html";
+	mime_types[".css"] = "text/css";
+	mime_types[".js"] = "application/javascript";
+	mime_types[".json"] = "application/json";
+	mime_types[".png"] = "image/png";
+	mime_types[".jpg"] = "image/jpeg";
+	mime_types[".jpeg"] = "image/jpeg";
+	mime_types[".gif"] = "image/gif";
+	mime_types[".pdf"] = "application/pdf";
+	mime_types[".txt"] = "text/plain";
+	mime_types[".mp4"] = "video/mp4";
+	mime_types[".mp3"] = "audio/mpeg";
+	mime_types[".xml"] = "application/xml";
+	mime_types[".zip"] = "application/zip";
+
+	return (mime_types);
+}
+
+HttpResponse::mime_types_t&	HttpResponse::mime_types = init_mime_types();
 
 // Constructor / Destructor
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -16,10 +42,13 @@
 HttpResponse::HttpResponse(void):
 	status_code(200),
 	_are_headers_sent(false),
+	_are_headers_parsed(false),
 	_action(NONE),
 	_is_done(false),
-	_are_headers_parsed(false),
-	_file_fd(-1)
+	_file_fd(-1),
+	_dir(0),
+	_location(0),
+	_are_media_written_to_disk(false)
 {
 	::memset(&this->_media_stat, 0, sizeof(this->_media_stat));
 	this->setHeader("Server", "webserv/1.0");
@@ -43,6 +72,11 @@ const bool&	HttpResponse::areHeadersSent(void) const
 const bool&	HttpResponse::areHeadersParsed(void) const
 {
 	return (this->_are_headers_parsed);
+}
+
+const bool& HttpResponse::areMediaWrittenToDisk(void) const
+{
+	return (this->_are_media_written_to_disk);
 }
 
 const bool& HttpResponse::isDone(void) const
@@ -75,14 +109,12 @@ int	HttpResponse::_resolveLocation(std::string& path, struct stat& file_stats, c
 		path = joinPath(this->_location->getRoot(), request_location);
 
 	// know test for multiples index if there is
+	std::string	full_path;
 	if (this->_action & SENDING_MEDIA) {
-		std::string	full_path;
 		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++) {
 			full_path = joinPath(path, *it);
-			if (::stat(full_path.c_str(), &file_stats) == -1) {
-				::memset(&file_stats, 0, sizeof(file_stats));
-				continue;
-			} else {
+			::memset(&file_stats, 0, sizeof(file_stats));
+			if (::stat(full_path.c_str(), &file_stats) != -1) {
 				path = full_path;
 				return (0);
 			}
@@ -102,6 +134,8 @@ int	HttpResponse::_resolveRequest(const HttpRequest& request)
 	if (this->_resolveLocation(this->_complete_path, this->_media_stat, request.getLocation()) == -1)
 		return (-1);
 
+	DEBUG("final destination -> " << this->_complete_path);
+
 	// Check for autoindex.
 	if (S_ISDIR(this->_media_stat.st_mode)) {
 		this->_dir = ::opendir(this->_complete_path.c_str());
@@ -109,14 +143,9 @@ int	HttpResponse::_resolveRequest(const HttpRequest& request)
 			return (error(ERR_DIR_OPENING, true), this->status_code = 500, -1);
 		if (this->_location->getAutoIndex())
 			this->_action |= DIRECTORY_LISTING;
-	} else {
-		if (this->_action & ACCEPTING_MEDIA) {
-			this->_file_fd = ::open(this->_complete_path.c_str(), O_RDWR | O_CREAT);
-			DEBUG("File create at: " << this->_complete_path);
-		} else {
-			this->_action |= STATIC_FILE;
-			this->_file_fd = ::open(this->_complete_path.c_str(), O_RDWR);
-		}
+	} else if (this->_action & SENDING_MEDIA) {
+		this->_action |= STATIC_FILE;
+		this->_file_fd = ::open(this->_complete_path.c_str(), O_RDWR);
 		if (this->_file_fd == -1)
 			return (error(ERR_FILE_OPEN, true), this->status_code = 500, -1);
 	}
@@ -213,8 +242,6 @@ int	HttpResponse::sendHeaders(const int socket_fd)
 	if (::write(socket_fd, headers.str().c_str(), headers.str().size()) == -1)
 		return (error("Error writing response", true), -1);
 	this->_are_headers_sent = true;
-	if (this->_action == NONE)
-		this->_is_done = true;
 	return (0);
 }
 
@@ -223,12 +250,12 @@ int	HttpResponse::_sendStaticFile(const int socket_fd)
 	ssize_t		bytes;
 	::uint8_t	packet[PACKETS_SIZE];
 
-	bytes = read(this->_file_fd, packet, sizeof(packet));
+	bytes = ::read(this->_file_fd, packet, sizeof(packet));
 	if (bytes == -1)
 		return (error(ERR_READING_FILE, true), this->_is_done = true, -1);
 
 	DEBUG("sending response packet to client");
-	if (::write(socket_fd, packet, sizeof(packet)) == -1)
+	if (::write(socket_fd, packet, bytes) == -1)
 		return (error(ERR_SOCKET_WRITE, true), this->_is_done = true, -1);
 
 	if (bytes == 0)
@@ -239,8 +266,16 @@ int	HttpResponse::_sendStaticFile(const int socket_fd)
 
 void	HttpResponse::setStaticMediaHeaders(void)
 {
+	std::map<std::string, std::string>::const_iterator	it;
+
 	if (this->_action & STATIC_FILE) {
 		this->setHeader("Content-Length", unsafe_itoa(this->_media_stat.st_size));
+		std::string	ext = this->_complete_path.substr(this->_complete_path.find('.'));
+		std::cout << "extension: ["  << ext << ']' << std::endl;
+		it = this->mime_types.find(ext);
+		if (it == this->mime_types.end())
+			return ;
+		this->setHeader("Content-Type", it->second);
 	}
 }
 
@@ -333,4 +368,17 @@ int HttpResponse::_generateAutoIndex(const int socket_fd, const std::string& uri
     this->_is_done = true;
     std::cout << "HERE: " << this->_is_done << std::endl;
     return (0);
+}
+
+int	HttpResponse::writeMediaToDisk(HttpRequest& request)
+{
+	uint8_t	packet[PACKETS_SIZE];
+	ssize_t	bytes = 0;
+
+	while ((bytes = request.request_body.consume(packet, sizeof(packet))) > 0) {
+		::write(1, packet, bytes);
+	}
+	DEBUG("WRITING MEDIA TO DISK");
+	this->_are_media_written_to_disk = true;
+	return (0);
 }

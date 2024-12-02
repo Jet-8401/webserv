@@ -14,7 +14,6 @@ class Connection {
 	private:
 		const int			_socket;
 		HttpServer&			_server_referer;
-		bool				_writable;
 		bool				_timed_out;
 		const ::uint64_t	_created_at;
 		::uint64_t			_ms_timeout_value;
@@ -27,7 +26,7 @@ class Connection {
 
 		// Getters
 		const int&		getSocketFD(void) const;
-		const bool&		isWritable(void) const;
+		bool			isWritable(void) const;
 		const ::uint64_t&	createdAt(void) const;
 
 		int		changeEvents(::uint32_t events);

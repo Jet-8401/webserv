@@ -14,7 +14,7 @@ class StreamBuffer {
 		uint8_t*	_intern_buffer;
 
 	public:
-		StreamBuffer(void); // default size at 16KB
+		StreamBuffer(void); // default size at 0
 		StreamBuffer(const size_t buffer_size);
 		virtual ~StreamBuffer(void);
 
