@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <string.h>
 
 Location::Location(void):
     _autoindex(false),
@@ -101,7 +102,22 @@ void Location::setAlias(const std::string& value)
 
 void Location::setRoot(const std::string& value)
 {
-    _root = value;
+	std::cout << "value :" << value << std::endl;
+	if (value[0] == '~') {
+		std::cout << "value[0] :" << value[0] << std::endl;
+		extern char** environ;
+		for (char** env = environ; *env; ++env)
+		{
+			if (strncmp(*env, "HOME=", 5) == 0) {
+				_root = (*env + 5) + value.substr(1);
+
+				std::cout << "root :" << _root << std::endl;
+				return ;
+			}
+		}
+	}
+	_root = value;
+
 }
 
 void Location::setCgis(const std::string& value)

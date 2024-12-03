@@ -64,9 +64,11 @@ class HttpResponse {
 		int			_file_fd;
 		DIR*		_dir;
 		Location*	_location;
+		std::string	_location_string;
 
 		struct stat	_media_stat;
 		bool		_are_media_written_to_disk;
+
 		//int			_buffer_fd_in;	// -1 if empty
 };
 

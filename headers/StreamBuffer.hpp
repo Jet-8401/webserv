@@ -24,6 +24,7 @@ class StreamBuffer {
 		// I/O opearations
 		ssize_t	write(void* data, const size_t size);
 		ssize_t	consume(void* dest, size_t chunk_size);
+		ssize_t	consume_until(void* dest, void* key, size_t key_lenght);
 };
 
 #endif

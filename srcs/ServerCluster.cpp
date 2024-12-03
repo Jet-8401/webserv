@@ -204,7 +204,6 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 
 	Location serv_location(*http_location);
 	parseServerBlockDefault(ss, &serv_location);
-	std::cout << serv_location.getRoot() << "OOOOOOO" << std::endl;
 	while (ss >> token)
 	{
 		std::cout << "Token: " << token << std::endl; // Debug

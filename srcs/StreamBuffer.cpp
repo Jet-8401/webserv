@@ -98,6 +98,21 @@ ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
     return bytes_copied;
 }
 
+// ssize_t	StreamBuffer::consume_until(void* dest, void* key, size_t key_length)
+// {
+// 	if (!dest || !key || key_length == 0 || _size == 0)
+//         return -1;
+
+//     uint8_t* dest_ptr = static_cast<uint8_t*>(dest);
+//     uint8_t* key_ptr = static_cast<uint8_t*>(key);
+//     size_t bytes_read = 0;
+//     size_t current_pos = _head;
+//     size_t key_pos = 0;
+//     size_t match_start = _head;
+
+//     while (bytes_read < _size)
+// }
+
 /*
 // Note: don't handle circular buffers
 void*	StreamBuffer::consume_until(void* value, const size_t length)
