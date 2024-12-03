@@ -69,10 +69,9 @@ int	HttpResponse::_resolveLocation(std::string& path, struct stat& file_stats, c
 	const std::string&			alias = this->_location->getAlias();
 	std::vector<std::string>	indexes = this->_location->getIndexes();
 
+	path = joinPath(this->_location->getRoot(), request_location);
 	if (!alias.empty())
-		path = joinPath(this->_location->getRoot(), alias);
-	else
-		path = joinPath(this->_location->getRoot(), request_location);
+		path.replace(path.find(_location_string), this->_location_string.length(), alias);
 
 	// know test for multiples index if there is
 	if (this->_action & SENDING_MEDIA) {
@@ -104,19 +103,16 @@ int	HttpResponse::_resolveRequest(const HttpRequest& request)
 	std::cout << this->_complete_path << std::endl;
 	// Check for autoindex.
 	if (S_ISDIR(this->_media_stat.st_mode)) {
+		std::cout << "BRANCH 1" << std::endl;
 		this->_dir = ::opendir(this->_complete_path.c_str());
 		if (!this->_dir)
 			return (error(ERR_DIR_OPENING, true), this->status_code = 500, -1);
 		if (this->_location->getAutoIndex())
 			this->_action |= DIRECTORY_LISTING;
-	} else {
-		if (this->_action & ACCEPTING_MEDIA) {
-			this->_file_fd = ::open(this->_complete_path.c_str(), O_RDWR | O_CREAT);
-			DEBUG("File create at: " << this->_complete_path);
-		} else {
-			this->_action |= STATIC_FILE;
-			this->_file_fd = ::open(this->_complete_path.c_str(), O_RDWR);
-		}
+	} else if (this->_action & SENDING_MEDIA) {
+		std::cout << "BRANCH 2" << std::endl;
+		this->_action |= STATIC_FILE;
+		this->_file_fd = ::open(this->_complete_path.c_str(), O_RDWR);
 		if (this->_file_fd == -1)
 			return (error(ERR_FILE_OPEN, true), this->status_code = 500, -1);
 	}
@@ -130,33 +126,7 @@ void HttpResponse::_buildHeaders(std::stringstream& response) const
         response << it->first << ": " << it->second << "\r\n";
     response << "\r\n";
 }
-// Location* HttpResponse::findMatchingLocation(const std::string& path, const std::map<std::string, Location*>& locations)
-// {
-//     std::map<std::string, Location*>::const_iterator root = locations.find("/");
-//     Location* match = (root != locations.end()) ? root->second : NULL;
-//     std::string longest = "";
 
-//     std::map<std::string, Location*>::const_iterator it;
-//     for (it = locations.begin(); it != locations.end(); ++it)
-//     {
-//         if (path.find(it->first) == 0 && it->first.length() > longest.length())
-//         {
-//             longest = it->first;
-//             match = it->second;
-//         }
-//     }
-//     return match;
-// }
-
-// Envoyer un fichier -> SENDING_MEDIA
-// - Envoyer un fichier static
-// - Exécuter un cgi -> file extension
-// - Lister un répertoire -> DIRECTORY_LISTING
-// Recevoir un fichier -> POST -> ACCEPT_MEDIA
-// Supprimer un fichier -> DELETE -> DELETE_MEDIA
-
-// Entry point for solving an http request.
-// That function check for all prerequisites
 int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& request)
 {
 	const std::string&							request_location = request.getLocation();
@@ -175,6 +145,7 @@ int	HttpResponse::handleRequest(const ServerConfig& config, const HttpRequest& r
 
 	if (!matching->second)
 		return (this->status_code = 500, -1);
+	this->_location_string = matching->first;
 	this->_location = matching->second;
 
 	// If request already have an error, it is inherited to response

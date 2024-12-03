@@ -48,16 +48,17 @@ class HttpResponse {
 		int		_resolveLocation(std::string& path, struct stat& file_stats, const std::string& request_location);
 		int		_sendStaticFile(const int socket_fd);
 
-		std::string _complete_path;
-		headers_t	_headers;
-		bool		_are_headers_sent;
-		::uint8_t	_action;
-		bool		_is_done;
-		bool		_are_headers_parsed;
-		int			_file_fd;
-		DIR*		_dir;
-		Location*	_location;
-		struct stat	_media_stat;
+		std::string			_complete_path;
+		std::string			_location_string;
+		headers_t			_headers;
+		bool				_are_headers_sent;
+		::uint8_t			_action;
+		bool				_is_done;
+		bool				_are_headers_parsed;
+		int					_file_fd;
+		DIR*				_dir;
+		Location*			_location;
+		struct stat			_media_stat;
 		//int			_buffer_fd_in;	// -1 if empty
 };
 
