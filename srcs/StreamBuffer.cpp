@@ -45,12 +45,12 @@ size_t	StreamBuffer::size(void) const
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-ssize_t StreamBuffer::write(void* data, const size_t size)
+ssize_t StreamBuffer::write(const void* data, const size_t size)
 {
 	if (size > this->_allocated_size - this->_size)
 		return (-1);
 
-	uint8_t* src = static_cast<uint8_t*>(data);
+	const uint8_t* src = static_cast<const uint8_t*>(data);
 	size_t bytes_until_end = this->_allocated_size - this->_tail;
 
 	if (size > bytes_until_end) {

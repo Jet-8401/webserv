@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <sys/socket.h>
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -16,7 +17,9 @@ Connection::Connection(const int client_socket_fd, HttpServer& server_referrer):
 	_server_referer(server_referrer),
 	_timed_out(false),
 	_created_at(0),
-	_ms_timeout_value(MS_TIMEOUT_ROUTINE)
+	_ms_timeout_value(MS_TIMEOUT_ROUTINE),
+	request(new HttpRequest(server_referrer.getConfig())),
+	response(0)
 {
 	::memset(&this->event, 0, sizeof(this->event));
 }
@@ -60,6 +63,7 @@ int	Connection::changeEvents(::uint32_t events)
 // 	return (now);
 // }
 
+/*
 void	Connection::onInEvent(void)
 {
 	if (this->request.getStatusCode() >= 400) {
@@ -119,18 +123,28 @@ void	Connection::onOutEvent(void)
 	if (this->response.isDone())
 		this->_server_referer.deleteConnection(this);
 }
-
+*/
 void	Connection::onEvent(::uint32_t events)
 {
+	uint8_t	io_buffer[PACKETS_SIZE];
+	ssize_t bytes;
+
 	if (events & EPOLLHUP) {
 		this->_server_referer.deleteConnection(this);
 	}
 
 	if (events & EPOLLIN) {
-		this->onInEvent();
+		bytes = ::recv(this->_socket, io_buffer, sizeof(io_buffer), MSG_DONTWAIT);
+		if (bytes == -1) {
+			error(ERR_ACCEPT_REQUEST, true);
+			return ;
+		}
+		this->request->parse(io_buffer, bytes);
 	}
 
 	if (events & EPOLLOUT) {
-		this->onOutEvent();
+		bytes = this->response->writePacket(io_buffer, sizeof(io_buffer));
+		if (bytes > 0 && ::write(this->_socket, io_buffer, bytes) == -1)
+			error(ERR_SOCKET_WRITE, true);
 	}
 }

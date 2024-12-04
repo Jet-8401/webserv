@@ -10,6 +10,8 @@ class Connection;
 # include "HttpResponse.hpp"
 # include "HttpServer.hpp"
 
+# define PACKETS_SIZE 2048
+
 class Connection {
 	private:
 		const int			_socket;
@@ -25,17 +27,15 @@ class Connection {
 		virtual ~Connection(void);
 
 		// Getters
-		const int&		getSocketFD(void) const;
-		bool			isWritable(void) const;
+		const int&			getSocketFD(void) const;
+		bool				isWritable(void) const;
 		const ::uint64_t&	createdAt(void) const;
 
 		int		changeEvents(::uint32_t events);
 		void	onEvent(::uint32_t events);
-		void	onInEvent(void);
-		void	onOutEvent(void);
 
-		HttpRequest			request;
-		HttpResponse 		response;
+		HttpRequest*		request;
+		HttpResponse* 		response;
 		struct epoll_event	event;
 };
 

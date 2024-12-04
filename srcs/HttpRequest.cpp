@@ -1,77 +1,11 @@
 #include "../headers/HttpRequest.hpp"
+#include <iostream>
 #include <algorithm>
-#include <cctype>
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
-#include <map>
-#include <sstream>
 #include <string>
-#include <unistd.h>
+#include <sstream>
+#include <iostream>	// To remove
 
-// Static variables
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-static uint8_t	_end_header_sequence[4] = {13, 10, 13, 10};
-
-HttpRequest::headers_behavior_t&	init_headers_behavior(void)
-{
-	static HttpRequest::headers_behavior_t	headers;
-
-	headers["Host"] = UNIQUE & MANDATORY;
-	headers["Content-Length"] = UNIQUE & MANDATORY_POST;
-	headers["Content-Type"] = UNIQUE & MANDATORY_POST;
-	headers["Set-Cookie"] = SEPARABLE;
-	return headers;
-}
-
-HttpRequest::headers_behavior_t&	HttpRequest::_headers_handeled = init_headers_behavior();
-
-// Constructors / Desctructors
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-HttpRequest::HttpRequest(void):
-	_headers_received(false),
-	_body_pending(false),
-	_end_header_index(0),
-	_status_code(200),
-	_body_buffering_method(RAW),
-	_content_length(0)
-{}
-
-HttpRequest::~HttpRequest(void)
-{}
-
-// Getters
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-const bool&	HttpRequest::isBodyPending(void) const
-{
-	return (this->_body_pending);
-}
-
-const bool& HttpRequest::headersReceived(void) const
-{
-	return (this->_headers_received);
-}
-
-const unsigned int&	HttpRequest::getStatusCode(void) const
-{
-	return (this->_status_code);
-}
-
-const std::string&	HttpRequest::getLocation(void) const
-{
-	return (this->_location);
-}
-
-const std::string&	HttpRequest::getMethod(void) const
-{
-	return (this->_method);
-}
-
-// Function members
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+static const char END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 
 void	string_trim(std::string& str)
 {
@@ -86,42 +20,100 @@ void	string_trim(std::string& str)
 	return ;
 }
 
-// check the syntax of the headers, like if their are two unique headers etc...
-int	HttpRequest::_checkHeaderSyntax(const std::string& key, const std::string& value)
-{
-	headers_behavior_t::const_iterator	it = this->_headers_handeled.find(key);
 
-	if (it == this->_headers_handeled.end())
-		return (0);
+// Constructors / Destructors
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+HttpRequest::HttpRequest(const ServerConfig& config):
+	HttpMessage(),
+	_state(READING_HEADERS),
+	_config_reference(config),
+	_matching_location(0),
+	_extanded_method(0)
+{}
+
+HttpRequest::~HttpRequest(void)
+{
+	if (this->_extanded_method)
+		delete this->_extanded_method;
+}
+
+// Function members
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+bool	HttpRequest::_bufferHeaders(const uint8_t* packet, size_t packet_size)
+{
+	const uint8_t*	buffer = this->_header_buff.read();
+	const uint8_t*	addr;
+	size_t			starting_point;
+
+	starting_point = std::max(static_cast<ssize_t>(0), static_cast<ssize_t>(this->_header_buff.size()) - 3);
+	if (this->_header_buff.write(packet, packet_size) == -1)
+		return (this->_status_code = 431, false);
+
+	addr = std::search(
+		buffer + starting_point,
+		buffer + this->_header_buff.size(),
+		END_SEQUENCE,
+		END_SEQUENCE + sizeof(END_SEQUENCE)
+	);
+
+	// if the end sequence has not been found
+	if (addr == buffer + this->_header_buff.size())
+		return (true);
+
+	// If found change to the next state.
+	// And check if there is a body and it is inside the given packet, write it to the buffer body.
+	this->_end_header_index = (reinterpret_cast<size_t>(addr) - reinterpret_cast<size_t>(buffer)) +
+		sizeof(END_SEQUENCE);
+	std::cout << "end header index: " << this->_end_header_index << std::endl;
+	std::cout << "buffer size: " << this->_header_buff.size() << std::endl;
+	std::cout << (char*) buffer;
+	if (this->_end_header_index != this->_header_buff.size()) {
+		std::cout << "body is inside the packet" << std::endl;
+		this->_body.write(buffer + this->_end_header_index, this->_header_buff.size() - this->_end_header_index);
+	}
+	this->_state = CHECK_METHOD;
+	return (true);
+}
+
+// check the syntax of the headers, like if their are two unique headers etc...
+bool	HttpRequest::_checkHeaderSyntax(const std::string& key, const std::string& value) const
+{
+	headers_behavior_t::const_iterator	it = HttpMessage::_headers_handeled.find(key);
+
+	if (it == HttpMessage::_headers_handeled.end())
+		return (true);
 	switch (it->second) {
 		case UNIQUE:
 			if (this->_headers.find(key) != this->_headers.end())
-				return (this->_status_code = 400, -1);
+				return (false);
 			// fallthrough
 		case SEPARABLE:
 			if (value.find(',') != std::string::npos)
-				return (this->_status_code = 400, -1);
+				return (false);
 			break;
 		default:
 			break;
 	}
-	return (0);
+	return (true);
 }
 
-int	HttpRequest::parse(void)
+// Parse the request-line then all the headers, it also check for syntax.
+// Check for only HTTP/1.1 version.
+bool	HttpRequest::_parseHeaders(void)
 {
 	std::string			str;
 	std::stringstream	parser;
 
-	parser.write(reinterpret_cast<const char*>(this->_request_buffer.read()), this->_end_header_index);
+	parser.write(reinterpret_cast<const char*>(this->_header_buff.read()), this->_end_header_index);
 
-	// do stronger parsing of protocol location etc... to have better status code precision
 	parser >> this->_method;
-	parser >> this->_location;
-	parser >> str;
-	if (str != "HTTP/1.1") {
-		return (this->_status_code = 505, -1);
-	}
+	parser >> this->_path;
+	parser >> this->_version;
+
+	if (this->_version != "HTTP/1.1")
+		return (this->_status_code = 505, false);
 
 	std::string	key, value;
 	parser.ignore();
@@ -138,95 +130,78 @@ int	HttpRequest::parse(void)
 		value = str.substr(colon_pos + 1);
 		string_trim(value);
 
-		if (this->_checkHeaderSyntax(key, value) == -1)
-			return (-1);
+		if (!this->_checkHeaderSyntax(key, value))
+			return (this->_status_code = 400, false);
 		this->_headers.insert(std::pair<std::string, std::string>(key, value));
 	}
-	return (0);
+	return (true);
 }
 
-// Buffer all the incoming data with setting based on the header provided.
-int	HttpRequest::_bufferIncomingBody(uint8_t* packet, ssize_t bytes)
+bool	HttpRequest::_findLocation(void)
 {
-	if (this->_body_buffering_method == MULTIPART || this->_body_buffering_method == CHUNKED)
-		return (this->_body_pending = false, 0);
+	ServerConfig::locations_t					server_locations = _config_reference.getLocations();
+	ServerConfig::locations_t::const_iterator	it;
+	ServerConfig::locations_t::const_iterator	matching = server_locations.end();
 
-	this->request_body.write(packet, bytes);
-	if (this->request_body.size() >= this->_content_length)
-		this->_body_pending = false;
-	return (0);
+	// Take the matching location/route
+	for (it = server_locations.begin(); it != server_locations.end(); it++) {
+		if (this->_path.find(it->first) == 0 &&
+			(matching == server_locations.end() || it->first.length() >= matching->first.length()))
+			matching = it;
+	}
+	if (!matching->second)
+		return (this->_status_code = 500, false);
+	this->_config_location_str = matching->first;
+	this->_matching_location = matching->second;
+	return (true);
 }
 
-// Setup the values for buffering the body later, like content_type, body_buffering_method, etc...
-int	HttpRequest::_bodyBufferingInit(void)
+bool	HttpRequest::_validateAndInitMethod(void)
 {
-	HttpRequest::headers_t::const_iterator	it;
-	std::string								str;
-
-	it = this->_headers.find("Content-Length");
-	if (it != this->_headers.end()) {
-		this->_content_length = std::atoi(it->second.c_str());
+	std::cout << "_validateAndInitMethod called" << std::endl;
+	// only parse the headers
+	if (!this->_parseHeaders()) {
+		std::cout << "error while parsing headers" << std::endl;
+		std::cout << "status_code: " << this->_status_code << std::endl;
+		return (false);
 	}
 
-	it = this->_headers.find("Content-Type");
-	if (it != this->_headers.end() && it->second.find("multipart/form-data;") != std::string::npos) {
-		this->_multipart_key = it->second.c_str() + (it->second.find("boundary=") + 9);
-		this->_body_buffering_method = MULTIPART;
-	} else if ((it = this->_headers.find("Transfer-Encoding")) != this->_headers.end() && it->second == "chunked") {
-		this->_body_buffering_method = CHUNKED;
+	// try to match a location
+	if (!this->_findLocation()) {
+		std::cout << "didn't find any locations" << std::endl;
+		return (false);
 	}
-	return (0);
+
+	std::cout << this->_config_location_str << " found!" << std::endl;
+
+	// check if method is allowed
+	if (this->_matching_location->getMethods().find(this->_method) == this->_matching_location->getMethods().end())
+		return (this->_status_code = 405, false);
+
+	// based onto the headers check which extanded method to get
+	if (this->_method == "GET") {
+		std::cout << "Choosing GET" << std::endl;
+	} else if (this->_method == "POST") {
+		std::cout << "Choosing POST" << std::endl;
+	} else if (this->_method == "DELETE") {
+		std::cout << "Choosing DELETE" << std::endl;
+	}
+	return (true);
 }
 
-int	HttpRequest::_bufferIncomingHeaders(uint8_t *packet, ssize_t bytes)
+bool	HttpRequest::parse(const uint8_t* packet, const size_t packet_size)
 {
-	const uint8_t*	buffer = this->_request_buffer.read();
-	const uint8_t*	addr;
-	size_t			starting_point;
-
-	starting_point = std::max(static_cast<ssize_t>(0), static_cast<ssize_t>(this->_request_buffer.size()) - 3);
-	if (this->_request_buffer.write(packet, bytes) == -1)
-		return (this->_status_code = 431, -1);
-
-	addr = std::search(
-		buffer + starting_point,
-		buffer + this->_request_buffer.size(),
-		_end_header_sequence,
-		_end_header_sequence + 4
-	);
-
-	// if the end sequence has not been found
-	if (addr == buffer + this->_request_buffer.size())
-		return (0);
-
-	// else parse it
-	this->_end_header_index = static_cast<size_t>(addr - buffer);
-	this->_headers_received = true;
-	if (this->parse() == -1)
-		return (-1);
-
-	if (this->_method == "POST") {
-		this->_body_pending = true;
-		if (this->_bodyBufferingInit() == -1)
-			return (-1);
-		this->request_body.write(
-			this->_request_buffer.read() + this->_end_header_index + 4,
-			this->_request_buffer.size() - (this->_end_header_index + 4)
-		);
+	switch (this->_state) {
+		case READING_HEADERS:
+			if (!this->_bufferHeaders(packet, packet_size)) return (false);
+		case CHECK_METHOD:
+			if (!this->_validateAndInitMethod()) return (false);
+		default:
+			std::cout << "state n°" << this->_state << " not supported!" << std::endl;
+			break;
 	}
-	return (0);
-}
-
-int	HttpRequest::bufferIncomingData(const int socket_fd)
-{
-	uint8_t			packet[PACKETS_SIZE];
-	ssize_t			bytes;
-
-	while ((bytes = read(socket_fd, packet, sizeof(packet))) > 0) {
-		if (this->_body_pending && this->_bufferIncomingBody(packet, bytes) == -1)
-			return (-1);
-		else if (this->_bufferIncomingHeaders(packet, bytes) == -1)
-			return (-1);
-	}
-	return (0);
+	(void) packet;
+	(void) packet_size;
+	std::cout << "REQUEST PARSING !!" << std::endl;
+	return (true);
 }
