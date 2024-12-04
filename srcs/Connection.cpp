@@ -18,8 +18,7 @@ Connection::Connection(const int client_socket_fd, HttpServer& server_referrer):
 	_timed_out(false),
 	_created_at(0),
 	_ms_timeout_value(MS_TIMEOUT_ROUTINE),
-	request(new HttpRequest(server_referrer.getConfig())),
-	response(0)
+	request(server_referrer.getConfig())
 {
 	::memset(&this->event, 0, sizeof(this->event));
 }
@@ -139,6 +138,10 @@ void	Connection::onEvent(::uint32_t events)
 			error(ERR_ACCEPT_REQUEST, true);
 			return ;
 		}
+		/*else if (bytes == 0) {
+			this->_server_referer.deleteConnection(this);
+			return ;
+		}*/
 		this->request->parse(io_buffer, bytes);
 	}
 

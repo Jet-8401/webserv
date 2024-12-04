@@ -32,11 +32,13 @@ class HttpPostMethod : public AHttpMethod {
 		std::string	_multipart_key;
 };
 
+// Become a http handler with response and request properties
 class HttpRequest : public HttpMessage {
 	public:
 		HttpRequest(const ServerConfig& config);
-		virtual ~HttpRequest(void);
-		virtual bool	parse(const uint8_t* packet, const size_t packet_size);
+		~HttpRequest(void);
+		bool	parse(const uint8_t* packet, const size_t packet_size);
+		ssize_t	writePacket(uint8_t* io_buffer, size_t buff_length);
 
 		typedef enum parsing_state_e {
 			READING_HEADERS,
@@ -61,6 +63,7 @@ class HttpRequest : public HttpMessage {
 		std::string			_config_location_str;
 		Location*			_matching_location;
 
+		//Connection&			_connection_referer;
 		AHttpMethod*		_extanded_method;
 
 	private:

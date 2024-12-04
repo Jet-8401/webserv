@@ -34,8 +34,8 @@ class Connection {
 		int		changeEvents(::uint32_t events);
 		void	onEvent(::uint32_t events);
 
-		HttpRequest*		request;
-		HttpResponse* 		response;
+		HttpRequest			request;
+		HttpResponse 		response;
 		struct epoll_event	event;
 };
 

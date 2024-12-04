@@ -330,8 +330,7 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 		if (incoming_events[i].events & EPOLLOUT)
 			DEBUG("EPOLLOUT");
 		if (incoming_events[i].events & EPOLLHUP)
-			DEBUG("EPOLLIN");
-		DEBUG((incoming_events[i].events & EPOLLIN ? "EPOLLIN" : "EPOLLOUT / EPOLLHUP") << " event received");
+			DEBUG("EPOLLHUP");
 		event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
 		switch (event_wrapper->socket_type)
 		{

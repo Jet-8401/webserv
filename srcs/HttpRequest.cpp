@@ -4,6 +4,8 @@
 #include <string>
 #include <sstream>
 #include <iostream>	// To remove
+#include <sys/socket.h>
+#include <sys/types.h>
 
 static const char END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 
@@ -26,6 +28,7 @@ void	string_trim(std::string& str)
 
 HttpRequest::HttpRequest(const ServerConfig& config):
 	HttpMessage(),
+	_body(64000),
 	_state(READING_HEADERS),
 	_config_reference(config),
 	_matching_location(0),
@@ -180,7 +183,7 @@ bool	HttpRequest::_validateAndInitMethod(void)
 
 	// based onto the headers check which extanded method to get
 	if (this->_method == "GET") {
-		std::cout << "Choosing GET" << std::endl;
+
 	} else if (this->_method == "POST") {
 		std::cout << "Choosing POST" << std::endl;
 	} else if (this->_method == "DELETE") {
@@ -196,12 +199,30 @@ bool	HttpRequest::parse(const uint8_t* packet, const size_t packet_size)
 			if (!this->_bufferHeaders(packet, packet_size)) return (false);
 		case CHECK_METHOD:
 			if (!this->_validateAndInitMethod()) return (false);
+		case READING_BODY:
+			if (this->_extanded_method)
+				return (this->_extanded_method->parse(packet, packet_size));
 		default:
 			std::cout << "state n°" << this->_state << " not supported!" << std::endl;
 			break;
 	}
-	(void) packet;
-	(void) packet_size;
 	std::cout << "REQUEST PARSING !!" << std::endl;
 	return (true);
+}
+
+ssize_t	HttpRequest::writePacket(uint8_t* io_buffer, size_t buff_length)
+{
+	ssize_t	bytes_written = 0;
+
+	switch (response.state) {
+		case WAITING:
+			bytes_written = this->_extanded_method->writePacket(io_buffer, buff_length);
+		case SEDING_HEADER:
+			this->send_header();
+		case SENDING_BODY:
+			bytes_written = this->_extanded_method->writePacket(io_buffer, buff_length);
+		default:
+			break ;
+	}
+	return (bytes_written);
 }

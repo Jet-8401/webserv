@@ -98,37 +98,32 @@ ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
     return bytes_copied;
 }
 
-// ssize_t	StreamBuffer::consume_until(void* dest, void* key, size_t key_length)
-// {
-// 	if (!dest || !key || key_length == 0 || _size == 0)
-//         return -1;
-
-//     uint8_t* dest_ptr = static_cast<uint8_t*>(dest);
-//     uint8_t* key_ptr = static_cast<uint8_t*>(key);
-//     size_t bytes_read = 0;
-//     size_t current_pos = _head;
-//     size_t key_pos = 0;
-//     size_t match_start = _head;
-
-//     while (bytes_read < _size)
-// }
-
-/*
-// Note: don't handle circular buffers
-void*	StreamBuffer::consume_until(void* value, const size_t length)
+ssize_t	StreamBuffer::consume_until(void* dest, void* key, size_t key_length)
 {
-	void*	chunk;
+	if (!dest || !key || key_length == 0 || _size == 0)
+		return -1;
 
-	if (this->_size < length)
-		return (0);
-	for (size_t i = 0; i < this->_size; i++) {
-		if (::memcmp(this->_intern_buffer + this->_head + i, value, length) != 0)
+	unsigned char* dest_ptr = reinterpret_cast<unsigned char*>(dest);
+	unsigned char* key_ptr = reinterpret_cast<unsigned char*>(key);
+	size_t pos = _head;
+
+	for (size_t remaining = _size;remaining >= key_length;pos = (pos + 1) % _allocated_size, remaining--) {
+		if (_intern_buffer[pos] == key_ptr[0])
 			continue;
-		chunk = new uint8_t[i + length];
-		::memcpy(chunk, this->_intern_buffer + this->_head, i + length);
-		this->_head += i + length;
-		return (chunk);
+		size_t i;
+		for (i = 1; i < key_length; i++) {
+			if (_intern_buffer[(pos + i) % _allocated_size] != key_ptr[i])
+				break;
+		}
+		if (i == key_length) {
+			// Key found - copy data up to key position
+			size_t bytes_to_copy = (pos - _head + _allocated_size) % _allocated_size;
+			for (i = 0; i < bytes_to_copy; i++)
+				dest_ptr[i] = _intern_buffer[(_head + i) % _allocated_size];
+			_head = (pos + key_length) % _allocated_size;
+			_size -= (bytes_to_copy + key_length);
+			return bytes_to_copy;
+		}
 	}
-	return (0);
+	return -1;
 }
-*/

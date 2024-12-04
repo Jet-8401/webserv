@@ -67,6 +67,8 @@ void Location::setMethods(const std::string& value)
 	_methods.clear();
 	while (iss >> method)
 	{
+		if (method != "GET" && method != "POST" && method != "DELETE")
+			throw std::runtime_error("Method not supported");
 		_methods.insert(method);
 	}
 }
