@@ -1,43 +1,79 @@
 #ifndef HTTP_REQUEST_HPP
 # define HTTP_REQUEST_HPP
 
+# include "HttpMessage.hpp"
 # include "BytesBuffer.hpp"
-# include <map>
+# include "ServerConfig.hpp"
+# include "StreamBuffer.hpp"
+# include "Location.hpp"
 # include <string>
-# include <stdint.h>
 
-enum http_header_behavior_e {
-	UNIQUE,			// one instance only
-	SEPARABLE,		// multiple instances, must stay separate
-	COMBINABLE		// multiple instances, can be combined
+class HttpRequest;
+
+class AHttpMethod {
+	public:
+		AHttpMethod(HttpRequest& referer);
+		virtual ~AHttpMethod(void);
+
+		virtual bool	parse(const uint8_t* packet, const size_t packet_size) = 0;
+		virtual ssize_t	writePacket(uint8_t* io_buffer, size_t buff_length);
+
+	protected:
+		HttpRequest&	referer;
 };
 
-class HttpRequest {
+class HttpPostMethod : public AHttpMethod {
 	public:
-		typedef std::map<std::string, enum http_header_behavior_e> headers_behavior_t;
+		HttpPostMethod(void);
+		virtual ~HttpPostMethod(void);
+
+	protected:
+		int			_fild_fd;
+		std::string	_multipart_key;
+};
+
+// Become a http handler with response and request properties
+class HttpRequest : public HttpMessage {
+	public:
+		HttpRequest(const ServerConfig& config);
+		~HttpRequest(void);
+		bool	parse(const uint8_t* packet, const size_t packet_size);
+		ssize_t	writePacket(uint8_t* io_buffer, size_t buff_length);
+
+		typedef enum parsing_state_e {
+			READING_HEADERS,
+			CHECK_METHOD,
+			READING_BODY,
+			DONE,
+			ERROR
+		}	parsing_state_t;
+
+		const parsing_state_t&	getState(void) const;
+
+	protected:
+		std::string			_method;
+		std::string			_path;
+		std::string			_version;
+
+		BytesBuffer			_header_buff;
+		StreamBuffer		_body;
+		parsing_state_e		_state;
+
+		const ServerConfig&	_config_reference;
+		std::string			_config_location_str;
+		Location*			_matching_location;
+
+		//Connection&			_connection_referer;
+		AHttpMethod*		_extanded_method;
 
 	private:
-		static headers_behavior_t&				_headers_handeled;
-		static uint8_t							_end_header_sequence[4];
+		size_t				_end_header_index;
 
-		std::multimap<std::string, std::string>	_headers;
-		bool									_headers_received;
-		bool									_is_complete;
-		BytesBuffer								_request_buffer;
-		const uint8_t*							_end_header_addr;
-
-		// note: set the _content_buff max to client_max_body_size;
-
-	public:
-		HttpRequest(void);
-		virtual ~HttpRequest(void);
-
-		// Getters
-		const bool&	isComplete(void) const;
-		const std::string&	getHeader(const std::string header_name);
-
-		int	parse(const int socket_fd);
-		int	bufferIncomingData(const int socket_fd);
+		bool				_bufferHeaders(const uint8_t* packet, size_t packet_size);
+		bool				_checkHeaderSyntax(const std::string& key, const std::string& value) const;
+		bool				_parseHeaders(void);
+		bool				_findLocation(void);
+		bool				_validateAndInitMethod(void);
 };
 
 #endif

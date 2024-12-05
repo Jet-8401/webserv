@@ -5,13 +5,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <string.h>
 
 Location::Location(void):
-    _methods(),
-    _root(),
-    _error_pages(),
     _autoindex(false),
-    _client_max_body_size(0)
+    _client_max_body_size(32768)
 {
 	_methods.insert("GET");
     std::cout << "Location constructor called" << std::endl;
@@ -28,18 +26,23 @@ Location::Location(const Location& src):
 	_alias(src._alias)
 {
 	// do deep copy
-	std::string*										copy;
-	std::map<std::string, std::string*>::const_iterator	it;
+	std::map<std::string*, std::string*>				ptr_copy;
+	std::map<int, std::string*>::const_iterator	it;
 
 	for (it = src._error_pages.begin(); it != src._error_pages.end(); it++) {
-		copy = new std::string(*(it->second));
-		this->_error_pages[it->first] = copy;
+		if (ptr_copy.find(it->second) != ptr_copy.end())
+			continue ;
+		ptr_copy[it->second] = new std::string(*it->second);
+	}
+
+	for (it = src._error_pages.begin(); it != src._error_pages.end(); it++) {
+		this->_error_pages[it->first] = ptr_copy[it->second];
 	}
 }
 
 Location::~Location()
 {
-	std::map<std::string, std::string*>::iterator	it;
+	std::map<int, std::string*>::iterator	it;
 	std::set<std::string*>							pointers;
 	std::set<std::string*>::iterator				pointer_it;
 
@@ -64,20 +67,22 @@ void Location::setMethods(const std::string& value)
 	_methods.clear();
 	while (iss >> method)
 	{
+		if (method != "GET" && method != "POST" && method != "DELETE")
+			throw std::runtime_error("Method not supported");
 		_methods.insert(method);
 	}
 }
 
 void Location::setReturn(const std::string& value)
 {
-        std::istringstream iss(value);
-        std::string first, second;
+	std::istringstream iss(value);
+	std::string first, second;
 
-        iss >> first;
-        if (iss >> second)
-            _return = std::make_pair(first, second);
-        else
-            _return = std::make_pair("301", first);
+	iss >> first;
+	if (iss >> second)
+	    _return = std::make_pair(first, second);
+	else
+	    _return = std::make_pair("301", first);
 }
 
 void Location::setIndex(const std::string& value)
@@ -99,7 +104,22 @@ void Location::setAlias(const std::string& value)
 
 void Location::setRoot(const std::string& value)
 {
-    _root = value;
+	std::cout << "value :" << value << std::endl;
+	if (value[0] == '~') {
+		std::cout << "value[0] :" << value[0] << std::endl;
+		extern char** environ;
+		for (char** env = environ; *env; ++env)
+		{
+			if (strncmp(*env, "HOME=", 5) == 0) {
+				_root = (*env + 5) + value.substr(1);
+
+				std::cout << "root :" << _root << std::endl;
+				return ;
+			}
+		}
+	}
+	_root = value;
+
 }
 
 void Location::setCgis(const std::string& value)
@@ -116,21 +136,37 @@ void Location::setCgis(const std::string& value)
 
 void Location::setErrorPage(const std::string& value)
 {
-	std::istringstream iss(value);
-	std::vector<std::string> words;
-	std::string word;
-	while (iss >> word)
-	{
-		words.push_back(word);
-	}
-	if (words.size() < 2)
+    std::istringstream iss(value);
+    std::vector<std::string> words;
+    std::string word;
+
+    while (iss >> word)
     {
-		return; // or throw an exception if you prefer
-	}
-	std::string* valuePtr = new std::string(words[words.size() - 1]);
-	for (size_t i = 0; i < words.size() - 1; ++i)
-	{
-        _error_pages[words[i]] = valuePtr;
+        words.push_back(word);
+    }
+
+    if (words.size() < 2)
+    {
+        throw std::runtime_error("Error page configuration needs at least 2 values");
+    }
+
+    std::string* errorPathPtr = new std::string(words[words.size() - 1]);
+    for (size_t i = 0; i < words.size() - 1; ++i)
+    {
+        std::istringstream converter(words[i]);
+        int errorCode;
+
+        if (!(converter >> errorCode) || !converter.eof())
+        {
+            throw std::runtime_error("Invalid error code: " + words[i]);
+        }
+
+        if (errorCode < 100 || errorCode > 599)
+        {
+            throw std::runtime_error("Error code out of range: " + words[i]);
+        }
+
+        _error_pages[errorCode] = errorPathPtr;
     }
 }
 
@@ -164,7 +200,7 @@ const std::string& Location::getRoot(void) const
     return _root;
 }
 
-const std::map<std::string, std::string*>& Location::getErrorPages(void) const
+const std::map<int, std::string*>& Location::getErrorPages(void) const
 {
     return _error_pages;
 }

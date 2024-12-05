@@ -1,13 +1,38 @@
-#include "../headers/WebServ.hpp"
 #include "../headers/HttpResponse.hpp"
-#include <sstream>
-#include <unistd.h>
 
-// Constructor / Destructor
+// Static variables
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+HttpResponse::mime_types_t&	init_mime_types(void)
+{
+	static HttpResponse::mime_types_t	mime_types;
+
+	mime_types[".html"] = "text/html";
+	mime_types[".css"] = "text/css";
+	mime_types[".js"] = "application/javascript";
+	mime_types[".json"] = "application/json";
+	mime_types[".png"] = "image/png";
+	mime_types[".jpg"] = "image/jpeg";
+	mime_types[".jpeg"] = "image/jpeg";
+	mime_types[".gif"] = "image/gif";
+	mime_types[".pdf"] = "application/pdf";
+	mime_types[".txt"] = "text/plain";
+	mime_types[".mp4"] = "video/mp4";
+	mime_types[".mp3"] = "audio/mpeg";
+	mime_types[".xml"] = "application/xml";
+	mime_types[".zip"] = "application/zip";
+
+	return (mime_types);
+}
+
+HttpResponse::mime_types_t&	HttpResponse::mime_types = init_mime_types();
+
+// Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpResponse::HttpResponse(void):
-	status_code(0)
+	HttpMessage(),
+	state(INIT)
 {}
 
 HttpResponse::~HttpResponse(void)
@@ -16,21 +41,15 @@ HttpResponse::~HttpResponse(void)
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-int	HttpResponse::send(const int socket_fd)
+void	HttpResponse::_buildHeaders(std::stringstream& stream) const
 {
-	DEBUG("Sending response for " << socket_fd);
+	(void) stream;
+	return ;
+}
 
-	std::stringstream	message;
-
-	message << "HTTP/1.1 200 OK\r\n";
-	message << "Content-Type: text/html\r\n";
-	message << "Connection: close\r\n";
-	message << "\r\n";
-	message << "Hello, World!";
-	if (write(socket_fd, message.str().c_str(), message.str().size()) == -1)
-		return (error("Error writing response", true), -1);
-
-	DEBUG("End of sending response for " << socket_fd);
-
+ssize_t	HttpResponse::writePacket(uint8_t* io_buffer, size_t buff_length)
+{
+	(void) io_buffer;
+	(void) buff_length;
 	return (0);
 }

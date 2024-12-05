@@ -1,10 +1,14 @@
 - handle max_connections in config file ✓
-- handle proper buffering for requests (change BytesBuffer by a StreamBuffer)
+- handle maximum connections in HttpServer::acceptConnection
+- adding a StreamBuffer to HttpRequest for the request body ✓
 - add proper address support for HttpServer ✓
 - handle SIG operations for clean exit
-- add proper logs to the server
 - add checks for unset properties in ServerConfig
 - delete allocated Location in ServerConfig destructors ✓
 - do deep copy of Locations in ServerConfig ✓
 - delete allocated ErrorPages in Location ✓
 - do deep copy of ErrorPages in Location ✓
+- handle connections timeout
+- handle POST method
+- handle DELETE method
+- resolve bug where /upload will be match but not /upload/

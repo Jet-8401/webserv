@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+    <style>
+	    * {
+	        margin: 0;
+	        padding: 0;
+	        box-sizing: border-box;
+	    }
+
+	    body {
+	        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	        background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+	        color: #ffffff;
+	        min-height: 100vh;
+	        display: flex;
+	        flex-direction: column;
+	        align-items: center;
+	        padding: 40px 20px;
+	    }
+
+	    h1 {
+	        font-size: 2.5rem;
+	        margin-bottom: 2rem;
+	        text-transform: uppercase;
+	        letter-spacing: 2px;
+	        text-align: center;
+	        background: linear-gradient(45deg, #ff6b2c, #8b31d6);
+	        -webkit-background-clip: text;
+	        -webkit-text-fill-color: transparent;
+	    }
+
+	    .upload-container {
+	        background: rgba(20, 20, 20, 0.8);
+	        backdrop-filter: blur(10px);
+	        border: 2px solid rgba(255, 255, 255, 0.1);
+	        padding: 40px;
+	        border-radius: 20px;
+	        width: 100%;
+	        max-width: 600px;
+	        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+	    }
+
+	    .upload-btn {
+	        background: linear-gradient(45deg, #ff6b2c, #8b31d6);
+	        color: #ffffff;
+	        padding: 12px 24px;
+	        border: none;
+	        border-radius: 8px;
+	        cursor: pointer;
+	        font-weight: 600;
+	        transition: all 0.3s ease;
+	        text-transform: uppercase;
+	        letter-spacing: 1px;
+	        margin: 10px 0;
+	    }
+
+	    .upload-btn:hover {
+	        transform: translateY(-2px);
+	        box-shadow: 0 5px 15px rgba(255, 107, 44, 0.3);
+	    }
+
+	    #file-name {
+	        margin: 15px 0;
+	        color: #808080;
+	        font-size: 0.9rem;
+	    }
+
+	    .progress-bar {
+	        width: 100%;
+	        height: 8px;
+	        background-color: rgba(255, 255, 255, 0.05);
+	        border-radius: 4px;
+	        margin-top: 20px;
+	        overflow: hidden;
+	        display: none;
+	    }
+
+	    .progress {
+	        width: 0%;
+	        height: 100%;
+	        background: linear-gradient(45deg, #ff6b2c, #8b31d6);
+	        border-radius: 4px;
+	        transition: width 0.3s ease-in-out;
+	    }
+
+	    form {
+	        display: flex;
+	        flex-direction: column;
+	        align-items: center;
+	        gap: 15px;
+	    }
+
+	    .upload-icon {
+	        font-size: 48px;
+	        margin-bottom: 20px;
+	        color: #ff6b2c;
+	    }
+
+	    .drag-text {
+	        color: #808080;
+	        margin: 10px 0;
+	        font-size: 0.9rem;
+	    }
+
+	    @keyframes gradient {
+	        0% {
+	            background-position: 0% 50%;
+	        }
+	        50% {
+	            background-position: 100% 50%;
+	        }
+	        100% {
+	            background-position: 0% 50%;
+	        }
+	    }
+    </style>
+</head>
+<body>
+    <h1>File Upload</h1>
+
+    <div class="upload-container">
+        <form id="upload-form" enctype="multipart/form-data">
+            <div class="upload-icon">📤</div>
+            <input type="file" id="file-input" name="file" style="display: none;">
+            <label for="file-input" class="upload-btn">Choose File</label>
+            <div class="drag-text">or drag and drop your file here</div>
+            <div id="file-name">No file chosen</div>
+            <button type="submit" class="upload-btn">Upload File</button>
+        </form>
+
+        <div class="progress-bar">
+            <div class="progress"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file-input');
+        const fileName = document.getElementById('file-name');
+        const progressBar = document.querySelector('.progress-bar');
+        const progress = document.querySelector('.progress');
+        const uploadContainer = document.querySelector('.upload-container');
+
+        // Add drag and drop functionality
+        uploadContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadContainer.style.borderColor = '#ff6b2c';
+        });
+
+        uploadContainer.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadContainer.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        });
+
+        uploadContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadContainer.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            fileInput.files = e.dataTransfer.files;
+            fileName.textContent = e.dataTransfer.files[0].name;
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            fileName.textContent = e.target.files[0].name;
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                progressBar.style.display = 'block';
+
+                const response = await fetch('/upload/', {
+                    method: 'POST',
+                    body: formData,
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        progress.style.width = percentCompleted + '%';
+                    }
+                });
+
+                if (response.ok) {
+                    alert('File uploaded successfully!');
+                } else {
+                    alert('Upload failed!');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Upload failed!');
+            } finally {
+                progressBar.style.display = 'none';
+                progress.style.width = '0%';
+                form.reset();
+                fileName.textContent = 'No file chosen';
+            }
+        });
+    </script>
+</body>
+</html>

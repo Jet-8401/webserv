@@ -2,6 +2,7 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/EventWrapper.hpp"
 #include "../headers/Connection.hpp"
+#include <asm-generic/socket.h>
 #include <cstring>
 #include <netinet/in.h>
 #include <stdexcept>
@@ -26,10 +27,14 @@ const int	HttpServer::_backlog = 1024;
 HttpServer::HttpServer(const ServerConfig& config):
     _config(config),
     _socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
-    _address(_config.getHost() + ':' + unsafe_itoa(_config.getPort()))
+    _address(_config.getHost() + ':' + unsafe_itoa(_config.getPort())),
+    _max_connections(1024)
 {
-    if (this->_socket_fd == -1)
-        throw std::runtime_error(ERR_SOCKET_CREATION);
+	int	opt = 1;
+
+	if (this->_socket_fd == -1)
+		throw std::runtime_error(ERR_SOCKET_CREATION);
+	setsockopt(this->_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 }
 
 HttpServer::HttpServer(const HttpServer& src):
@@ -37,10 +42,14 @@ HttpServer::HttpServer(const HttpServer& src):
 	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
 	_epoll_fd(src._epoll_fd),
 	_address(src._address),
-	_connections(src._connections)
+	_connections(src._connections),
+	_max_connections(src._max_connections)
 {
+	int	opt = 1;
+
 	if (this->_socket_fd == -1)
 		throw std::runtime_error(ERR_SOCKET_CREATION);
+    setsockopt(this->_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 }
 
 HttpServer::~HttpServer(void)
@@ -134,7 +143,7 @@ int	HttpServer::acceptConnection(void)
 	event_wrapper->casted_value = static_cast<void*>(client_connection);
 
 	// set the event of connection and add it to epoll
-	client_connection->event.events = EPOLLIN | EPOLLET;
+	client_connection->event.events = EPOLLIN | EPOLLHUP;
 	client_connection->event.data.ptr = event_wrapper;
 	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &client_connection->event) == -1)
 		return (error(ERR_EPOLL_ADD, true), -1);
@@ -159,6 +168,7 @@ void	HttpServer::onEvent(::uint32_t events)
 
 int	HttpServer::deleteConnection(Connection* connection)
 {
+	DEBUG("deleting connection");
 	if (!connection)
 		return (-1);
 	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_DEL, connection->getSocketFD(), &connection->event) == -1)

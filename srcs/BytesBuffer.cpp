@@ -2,11 +2,12 @@
 #include "../headers/BytesBuffer.hpp"
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <stdint.h>
 
-# define KILO_BYTES_32 32768
-# define MEGA_BYTES_4 4194304
+# define KILO_BYTES_32 32000
+# define MEGA_BYTES_4 4000000
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -19,6 +20,7 @@ BytesBuffer::BytesBuffer(void):
 	_bytes_threshold(MEGA_BYTES_4)
 {
 	this->_internal_buff = new uint8_t[this->_max_bytes_size];
+	::memset(this->_internal_buff, 0, this->_max_bytes_size);
 }
 
 BytesBuffer::BytesBuffer(const size_t max_bytes_size):
@@ -29,6 +31,7 @@ BytesBuffer::BytesBuffer(const size_t max_bytes_size):
 	_bytes_threshold(MEGA_BYTES_4)
 {
 	this->_internal_buff = new uint8_t[this->_max_bytes_size];
+	::memset(this->_internal_buff, 0, this->_max_bytes_size);
 }
 
 BytesBuffer::BytesBuffer(const size_t max_bytes_size, const size_t bytes_threshold):
@@ -39,6 +42,7 @@ BytesBuffer::BytesBuffer(const size_t max_bytes_size, const size_t bytes_thresho
 	_bytes_threshold(bytes_threshold)
 {
 	this->_internal_buff = new uint8_t[this->_max_bytes_size];
+	::memset(this->_internal_buff, 0, this->_max_bytes_size);
 }
 
 BytesBuffer::~BytesBuffer(void)
@@ -46,7 +50,7 @@ BytesBuffer::~BytesBuffer(void)
 	if (this->_file_buff_fd != -1)
 		close(this->_file_buff_fd);
 	if (this->_internal_buff)
-		delete this->_internal_buff;
+		delete [] this->_internal_buff;
 }
 
 // Function member
@@ -71,7 +75,7 @@ int	BytesBuffer::_switchBufferingMode(void)
 	return (0);
 }
 
-const size_t&	BytesBuffer::getSize(void) const
+const size_t&	BytesBuffer::size(void) const
 {
 	return (this->_size);
 }
@@ -96,7 +100,7 @@ int	BytesBuffer::write(const uint8_t* data, const size_t size)
 	return (0);
 }
 
-const uint8_t*	BytesBuffer::read(void) const
+uint8_t*	BytesBuffer::read(void) const
 {
 	return (this->_internal_buff);
 }

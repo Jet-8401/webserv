@@ -6,6 +6,7 @@
 # include "EventWrapper.hpp"
 
 # define MAX_EPOLL_EVENTS 2048
+# define MS_TIMEOUT_ROUTINE 5000
 
 // TODO: add an underscore to all private members
 
@@ -35,12 +36,14 @@ class ServerCluster {
 
         static void initDirectives();
 
+        void	_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_EVENTS], int events);
+
 	public:
 		ServerCluster(void);
 		virtual	~ServerCluster(void);
 
 		int	importConfig(const std::string& config_path);
-		int	listenAll(void);
+		int	run(void);
 
 		// Getters
 		const servers_type_t&	getServers(void) const;
