@@ -30,9 +30,10 @@ class Connection {
 		const int&			getSocketFD(void) const;
 		bool				isWritable(void) const;
 		const ::uint64_t&	createdAt(void) const;
+		const HttpServer&	getServerReferer(void) const;
 
-		int		changeEvents(::uint32_t events);
-		void	onEvent(::uint32_t events);
+		int					changeEvents(::uint32_t events);
+		void				onEvent(::uint32_t events);
 
 		HttpRequest			request;
 		HttpResponse 		response;

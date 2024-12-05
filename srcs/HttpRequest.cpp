@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>	// To remove
+#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -28,17 +29,27 @@ void	string_trim(std::string& str)
 
 HttpRequest::HttpRequest(const ServerConfig& config):
 	HttpMessage(),
+	events(0),
 	_body(64000),
 	_state(READING_HEADERS),
-	_config_reference(config),
 	_matching_location(0),
-	_extanded_method(0)
+	_config_reference(config),
+	_extanded_method(0),
+	_has_events_changed(false)
 {}
 
 HttpRequest::~HttpRequest(void)
 {
 	if (this->_extanded_method)
 		delete this->_extanded_method;
+}
+
+// Getters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+bool	HttpRequest::hasEventsChanged(void) const
+{
+	return (this->_has_events_changed);
 }
 
 // Function members
@@ -202,27 +213,13 @@ bool	HttpRequest::parse(const uint8_t* packet, const size_t packet_size)
 		case READING_BODY:
 			if (this->_extanded_method)
 				return (this->_extanded_method->parse(packet, packet_size));
+		case DONE:
+			this->_has_events_changed = true;
+			this->events = EPOLLOUT;
 		default:
 			std::cout << "state n°" << this->_state << " not supported!" << std::endl;
 			break;
 	}
 	std::cout << "REQUEST PARSING !!" << std::endl;
 	return (true);
-}
-
-ssize_t	HttpRequest::writePacket(uint8_t* io_buffer, size_t buff_length)
-{
-	ssize_t	bytes_written = 0;
-
-	switch (response.state) {
-		case WAITING:
-			bytes_written = this->_extanded_method->writePacket(io_buffer, buff_length);
-		case SEDING_HEADER:
-			this->send_header();
-		case SENDING_BODY:
-			bytes_written = this->_extanded_method->writePacket(io_buffer, buff_length);
-		default:
-			break ;
-	}
-	return (bytes_written);
 }

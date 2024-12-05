@@ -11,7 +11,7 @@ class StreamBuffer {
 		size_t		_size;
 		size_t		_head;
 		size_t		_tail;
-		size_t		_bytes_passed_through;
+		//size_t		_bytes_passed_through;
 		uint8_t*	_intern_buffer;
 
 	public:

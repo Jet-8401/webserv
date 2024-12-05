@@ -1,4 +1,6 @@
 #include "../headers/HttpResponse.hpp"
+#include "../headers/HttpRequest.hpp"
+#include <sstream>
 
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -30,9 +32,10 @@ HttpResponse::mime_types_t&	HttpResponse::mime_types = init_mime_types();
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpResponse::HttpResponse(void):
+HttpResponse::HttpResponse(HttpRequest& request):
 	HttpMessage(),
-	state(INIT)
+	state(INIT),
+	_request_reference(request)
 {}
 
 HttpResponse::~HttpResponse(void)
@@ -41,14 +44,20 @@ HttpResponse::~HttpResponse(void)
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-void	HttpResponse::_buildHeaders(std::stringstream& stream) const
+void	HttpResponse::_buildHeaders(std::stringstream& response) const
 {
-	(void) stream;
-	return ;
+    response << "HTTP/1.1 " << this->_status_code << "\r\n";
+    for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+        response << it->first << ": " << it->second << "\r\n";
+    response << "\r\n";
 }
 
 ssize_t	HttpResponse::writePacket(uint8_t* io_buffer, size_t buff_length)
 {
+	switch (this->state) {
+
+	}
+	std::exit(0);
 	(void) io_buffer;
 	(void) buff_length;
 	return (0);
