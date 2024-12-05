@@ -7,73 +7,68 @@
 # include "StreamBuffer.hpp"
 # include "Location.hpp"
 # include <string>
+# include <sstream>  // Add this include for stringstream
 
-class HttpRequest;
-
-class AHttpMethod {
-	public:
-		AHttpMethod(HttpRequest& referer);
-		virtual ~AHttpMethod(void);
-
-		virtual bool	parse(const uint8_t* packet, const size_t packet_size) = 0;
-		virtual ssize_t	writePacket(uint8_t* io_buffer, size_t buff_length);
-
-	protected:
-		HttpRequest&	referer;
-};
-
-class HttpPostMethod : public AHttpMethod {
-	public:
-		HttpPostMethod(void);
-		virtual ~HttpPostMethod(void);
-
-	protected:
-		int			_fild_fd;
-		std::string	_multipart_key;
-};
-
-// Become a http handler with response and request properties
 class HttpRequest : public HttpMessage {
-	public:
-		HttpRequest(const ServerConfig& config);
-		~HttpRequest(void);
-		bool	parse(const uint8_t* packet, const size_t packet_size);
-		ssize_t	writePacket(uint8_t* io_buffer, size_t buff_length);
+    public:
+        typedef enum parsing_state_e {
+            READING_HEADERS,
+            CHECK_METHOD,
+            READING_BODY,
+            DONE,
+            ERROR
+        } parsing_state_t;
 
-		typedef enum parsing_state_e {
-			READING_HEADERS,
-			CHECK_METHOD,
-			READING_BODY,
-			DONE,
-			ERROR
-		}	parsing_state_t;
+        typedef enum response_state_e {
+            WAITING,        // Waiting for request to complete
+            SENDING_HEADER, // Sending response headers
+            SENDING_BODY,   // Sending response body
+            RESPONSE_DONE   // Response completed
+        } response_state_t;
 
-		const parsing_state_t&	getState(void) const;
+        HttpRequest(const ServerConfig& config);
+        virtual ~HttpRequest(void);
 
-	protected:
-		std::string			_method;
-		std::string			_path;
-		std::string			_version;
+        static std::string getStatusMessage(int status_code);
+        virtual bool parse(const uint8_t* packet, const size_t packet_size);
+        virtual ssize_t writePacket(uint8_t* io_buffer, size_t buff_length);
 
-		BytesBuffer			_header_buff;
-		StreamBuffer		_body;
-		parsing_state_e		_state;
+        const parsing_state_t& getState(void) const;
 
-		const ServerConfig&	_config_reference;
-		std::string			_config_location_str;
-		Location*			_matching_location;
+    protected:
+        std::string _method;
+        std::string _path;
+        std::string _version;
 
-		//Connection&			_connection_referer;
-		AHttpMethod*		_extanded_method;
+        BytesBuffer _header_buff;
+        StreamBuffer _body;
+        parsing_state_e _state;
+        response_state_t _response_state;
 
-	private:
-		size_t				_end_header_index;
+        const ServerConfig& _config_reference;
+        std::string _config_location_str;
+        Location* _matching_location;
 
-		bool				_bufferHeaders(const uint8_t* packet, size_t packet_size);
-		bool				_checkHeaderSyntax(const std::string& key, const std::string& value) const;
-		bool				_parseHeaders(void);
-		bool				_findLocation(void);
-		bool				_validateAndInitMethod(void);
+        HttpRequest* _extanded_method;
+
+        // Response related members
+        std::stringstream _response_headers;
+        bool _headers_sent;
+
+        // Helper methods
+        virtual void _prepareResponseHeaders();
+        virtual ssize_t _sendHeaders(uint8_t* io_buffer, size_t buff_length);
+        virtual ssize_t _sendBody(uint8_t* io_buffer, size_t buff_length);
+
+    private:
+        size_t _end_header_index;
+        static std::map<int, std::string> _status_messages;
+
+        bool _bufferHeaders(const uint8_t* packet, size_t packet_size);
+        bool _checkHeaderSyntax(const std::string& key, const std::string& value) const;
+        bool _parseHeaders(void);
+        bool _findLocation(void);
+        bool _validateAndInitMethod(void);
 };
 
 #endif

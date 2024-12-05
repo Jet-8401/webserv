@@ -1,5 +1,6 @@
 #include "../headers/HttpGetCGIRequest.hpp"
 #include <unistd.h>
+#include <cstring>
 #include <sys/wait.h>
 
 HttpGetCGIRequest::HttpGetCGIRequest(const ServerConfig& config)

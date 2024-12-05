@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <iostream>	// To remove
 #include <sys/socket.h>
@@ -26,14 +27,49 @@ void	string_trim(std::string& str)
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+std::map<int, std::string> init_status_messages()
+{
+    std::map<int, std::string> messages;
+    messages[200] = "OK";
+    messages[201] = "Created";
+    messages[204] = "No Content";
+    messages[301] = "Moved Permanently";
+    messages[302] = "Found";
+    messages[400] = "Bad Request";
+    messages[401] = "Unauthorized";
+    messages[403] = "Forbidden";
+    messages[404] = "Not Found";
+    messages[405] = "Method Not Allowed";
+    messages[413] = "Payload Too Large";
+    messages[500] = "Internal Server Error";
+    messages[501] = "Not Implemented";
+    messages[502] = "Bad Gateway";
+    messages[503] = "Service Unavailable";
+    messages[505] = "HTTP Version Not Supported";
+    return messages;
+}
+
+std::string HttpRequest::getStatusMessage(int status_code)
+{
+    std::map<int, std::string>::const_iterator it = _status_messages.find(status_code);
+    if (it != _status_messages.end())
+        return it->second;
+    return "Unknown Status";
+}
+
+// Constructor should initialize _extanded_method
 HttpRequest::HttpRequest(const ServerConfig& config):
-	HttpMessage(),
-	_body(64000),
-	_state(READING_HEADERS),
-	_config_reference(config),
-	_matching_location(0),
-	_extanded_method(0)
-{}
+    HttpMessage(),
+    _body(64000),
+    _state(READING_HEADERS),
+    _response_state(WAITING),
+    _config_reference(config),
+    _matching_location(0),
+    _extanded_method(0),
+    _headers_sent(false)
+{
+	_status_messages = init_status_messages();
+}
 
 HttpRequest::~HttpRequest(void)
 {
@@ -210,19 +246,67 @@ bool	HttpRequest::parse(const uint8_t* packet, const size_t packet_size)
 	return (true);
 }
 
-ssize_t	HttpRequest::writePacket(uint8_t* io_buffer, size_t buff_length)
+ssize_t HttpRequest::writePacket(uint8_t* io_buffer, size_t buff_length)
 {
-	ssize_t	bytes_written = 0;
+    ssize_t bytes_written = 0;
 
-	switch (response.state) {
-		case WAITING:
-			bytes_written = this->_extanded_method->writePacket(io_buffer, buff_length);
-		case SEDING_HEADER:
-			this->send_header();
-		case SENDING_BODY:
-			bytes_written = this->_extanded_method->writePacket(io_buffer, buff_length);
-		default:
-			break ;
-	}
-	return (bytes_written);
+    switch (_response_state) {
+        case WAITING:
+            if (_state == DONE) {
+                _prepareResponseHeaders();
+                _response_state = SENDING_HEADER;
+            }
+            break;
+
+        case SENDING_HEADER:
+            bytes_written = _sendHeaders(io_buffer, buff_length);
+            if (bytes_written > 0) {
+                if (_headers_sent) {
+                    _response_state = SENDING_BODY;
+                }
+                return bytes_written;
+            }
+            break;
+
+        case SENDING_BODY:
+            bytes_written = _sendBody(io_buffer, buff_length);
+            if (bytes_written == 0) {
+                _response_state = RESPONSE_DONE;
+            }
+            return bytes_written;
+
+        case RESPONSE_DONE:
+            return 0;
+    }
+    return bytes_written;
+}
+
+void HttpRequest::_prepareResponseHeaders()
+{
+    _response_headers.str("");
+    _response_headers << "HTTP/1.1 " << _status_code << " " << getStatusMessage(_status_code) << "\r\n";
+    _response_headers << "Server: webserv/1.0\r\n";
+    _response_headers << "\r\n";
+}
+
+ssize_t HttpRequest::_sendHeaders(uint8_t* io_buffer, size_t buff_length)
+{
+    if (_headers_sent)
+        return 0;
+
+    std::string headers = _response_headers.str();
+    size_t to_copy = std::min(headers.length(), buff_length);
+
+    memcpy(io_buffer, headers.c_str(), to_copy);
+    _headers_sent = true;
+
+    return to_copy;
+}
+
+ssize_t HttpRequest::_sendBody(uint8_t* io_buffer, size_t buff_length)
+{
+    // Base class implementation - specialized classes should override this
+    (void)io_buffer;
+    (void)buff_length;
+    return 0;
 }

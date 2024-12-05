@@ -1,6 +1,8 @@
 #include "../headers/HttpPostRequest.hpp"
 #include <fcntl.h>
 #include <unistd.h>
+#include <cstring>
+#include <sstream>
 
 HttpPostRequest::HttpPostRequest(const ServerConfig& config)
     : HttpRequest(config),
@@ -8,7 +10,8 @@ HttpPostRequest::HttpPostRequest(const ServerConfig& config)
       _file_fd(-1),
       _content_length(0),
       _bytes_received(0),
-      _headers_parsed(false)
+      _headers_parsed(false),
+      _headers_sent(false)
 {}
 
 HttpPostRequest::~HttpPostRequest()
@@ -25,10 +28,12 @@ bool HttpPostRequest::parse(const uint8_t* packet, const size_t packet_size)
         if (!_parseContentType())
             return false;
 
-        std::string content_length_str = _headers["Content-Length"];
-        if (content_length_str.empty())
+        // Changed this part
+        headers_t::const_iterator it = _headers.find("Content-Length");
+        if (it == _headers.end())
             return false;
 
+        std::string content_length_str = it->second;
         _content_length = std::atol(content_length_str.c_str());
         if (_content_length > _matching_location->getClientMaxBodySize())
             return false;
@@ -51,8 +56,10 @@ bool HttpPostRequest::parse(const uint8_t* packet, const size_t packet_size)
                 return false;
         }
 
-        if (_bytes_received >= _content_length)
+        if (_bytes_received >= _content_length) {
             this->_state = DONE;
+            _prepareResponseHeaders();
+        }
     }
 
     return true;
@@ -60,10 +67,12 @@ bool HttpPostRequest::parse(const uint8_t* packet, const size_t packet_size)
 
 bool HttpPostRequest::_parseContentType()
 {
-    std::string content_type = _headers["Content-Type"];
-    if (content_type.empty())
+    // Changed this part too
+    headers_t::const_iterator it = _headers.find("Content-Type");
+    if (it == _headers.end())
         return false;
 
+    std::string content_type = it->second;
     if (content_type.find("multipart/form-data") != std::string::npos) {
         _content_type = MULTIPART_FORM;
         size_t boundary_pos = content_type.find("boundary=");
@@ -121,11 +130,31 @@ void HttpPostRequest::_closeUploadFile()
     }
 }
 
+void HttpPostRequest::_prepareResponseHeaders()
+{
+    _response_headers.str("");
+    _response_headers << "HTTP/1.1 201 Created\r\n";
+    _response_headers << "Content-Type: text/plain\r\n";
+    _response_headers << "Content-Length: 13\r\n";
+    _response_headers << "\r\n";
+    _response_headers << "File uploaded\n";
+}
+
+ssize_t HttpPostRequest::_sendHeaders(uint8_t* io_buffer, size_t buff_length)
+{
+    std::string headers = _response_headers.str();
+    size_t to_copy = std::min(headers.length(), buff_length);
+
+    memcpy(io_buffer, headers.c_str(), to_copy);
+    _headers_sent = true;
+
+    return to_copy;
+}
+
 ssize_t HttpPostRequest::writePacket(uint8_t* io_buffer, size_t buff_length)
 {
-    // POST requests typically don't need to write response packets
-    // Response handling should be done by the response class
-    (void)io_buffer;
-    (void)buff_length;
-    return 0;
+    if (!_headers_sent)
+        return _sendHeaders(io_buffer, buff_length);
+
+    return 0; // All data sent
 }

@@ -3,7 +3,7 @@
 
 # include "HttpRequest.hpp"
 # include <string>
-# include <map>
+# include <sstream>
 
 class HttpPostRequest : public HttpRequest {
     private:
@@ -20,6 +20,8 @@ class HttpPostRequest : public HttpRequest {
         size_t _content_length;
         size_t _bytes_received;
         bool _headers_parsed;
+        bool _headers_sent;
+        std::stringstream _response_headers;
 
     public:
         HttpPostRequest(const ServerConfig& config);
@@ -34,6 +36,8 @@ class HttpPostRequest : public HttpRequest {
         bool _handleUrlEncoded(const uint8_t* data, size_t size);
         bool _createUploadFile();
         void _closeUploadFile();
+        void _prepareResponseHeaders();
+        ssize_t _sendHeaders(uint8_t* io_buffer, size_t buff_length);
 };
 
 #endif
