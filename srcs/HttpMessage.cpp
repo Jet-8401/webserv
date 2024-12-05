@@ -25,3 +25,19 @@ HttpMessage::HttpMessage(void):
 
 HttpMessage::~HttpMessage(void)
 {}
+
+// Getters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const short unsigned int&	HttpMessage::getStatusCode(void) const
+{
+	return (this->_status_code);
+}
+
+// Function memebers
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+void	HttpMessage::setHeader(const std::string key, const std::string value)
+{
+	this->_headers.insert(std::pair<const std::string, const std::string>(key, value));
+}

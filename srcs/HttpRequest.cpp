@@ -1,4 +1,5 @@
 #include "../headers/HttpRequest.hpp"
+#include "../headers/HttpGetStaticFile.hpp"
 #include <iostream>
 #include <algorithm>
 #include <string>
@@ -30,8 +31,8 @@ void	string_trim(std::string& str)
 HttpRequest::HttpRequest(const ServerConfig& config):
 	HttpMessage(),
 	events(0),
+	state(READING_HEADERS),
 	_body(64000),
-	_state(READING_HEADERS),
 	_matching_location(0),
 	_config_reference(config),
 	_extanded_method(0),
@@ -46,6 +47,16 @@ HttpRequest::~HttpRequest(void)
 
 // Getters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const std::string&	HttpRequest::getPath(void) const
+{
+	return (this->_path);
+}
+
+const Location&	HttpRequest::getMatchingLocation(void) const
+{
+	return (*this->_matching_location);
+}
 
 bool	HttpRequest::hasEventsChanged(void) const
 {
@@ -87,7 +98,7 @@ bool	HttpRequest::_bufferHeaders(const uint8_t* packet, size_t packet_size)
 		std::cout << "body is inside the packet" << std::endl;
 		this->_body.write(buffer + this->_end_header_index, this->_header_buff.size() - this->_end_header_index);
 	}
-	this->_state = CHECK_METHOD;
+	this->state = CHECK_METHOD;
 	return (true);
 }
 
@@ -189,12 +200,14 @@ bool	HttpRequest::_validateAndInitMethod(void)
 	std::cout << this->_config_location_str << " found!" << std::endl;
 
 	// check if method is allowed
-	if (this->_matching_location->getMethods().find(this->_method) == this->_matching_location->getMethods().end())
+	if (this->_matching_location->getMethods().find(this->_method) == this->_matching_location->getMethods().end()) {
+		std::cout << "Method not allowed !" << std::endl;
 		return (this->_status_code = 405, false);
+	}
 
 	// based onto the headers check which extanded method to get
 	if (this->_method == "GET") {
-
+		this->_extanded_method = new HttpGetStaticFile(this);
 	} else if (this->_method == "POST") {
 		std::cout << "Choosing POST" << std::endl;
 	} else if (this->_method == "DELETE") {
@@ -205,19 +218,27 @@ bool	HttpRequest::_validateAndInitMethod(void)
 
 bool	HttpRequest::parse(const uint8_t* packet, const size_t packet_size)
 {
-	switch (this->_state) {
+	switch (this->state) {
 		case READING_HEADERS:
 			if (!this->_bufferHeaders(packet, packet_size)) return (false);
+			if (this->state == READING_HEADERS)
+				break;
 		case CHECK_METHOD:
 			if (!this->_validateAndInitMethod()) return (false);
+			this->state = READING_BODY;
 		case READING_BODY:
 			if (this->_extanded_method)
-				return (this->_extanded_method->parse(packet, packet_size));
+				this->_extanded_method->parse(packet, packet_size);
+			else
+				this->state = DONE;
+			if (this->state == READING_BODY)
+				break;
 		case DONE:
 			this->_has_events_changed = true;
 			this->events = EPOLLOUT;
+			break;
 		default:
-			std::cout << "state n°" << this->_state << " not supported!" << std::endl;
+			std::cout << "state n°" << this->state << " not supported!" << std::endl;
 			break;
 	}
 	std::cout << "REQUEST PARSING !!" << std::endl;

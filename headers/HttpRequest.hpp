@@ -25,10 +25,15 @@ class HttpRequest : public HttpMessage {
 			ERROR
 		}	parsing_state_t;
 
+		const std::string&		getPath(void) const;
+		const Location&			getMatchingLocation(void) const;
+		AHttpMethod*			getExtandedMethod(void) const;
+
 		bool					hasEventsChanged(void) const;
 		uint32_t				events;
 
 		bool	parse(const uint8_t* packet, const size_t packet_size);
+		parsing_state_e		state;
 
 	protected:
 		std::string			_method;
@@ -37,7 +42,6 @@ class HttpRequest : public HttpMessage {
 
 		BytesBuffer			_header_buff;
 		StreamBuffer		_body;
-		parsing_state_e		_state;
 
 		std::string			_config_location_str;
 		Location*			_matching_location;

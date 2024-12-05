@@ -155,4 +155,7 @@ void	Connection::onEvent(::uint32_t events)
 
 	if (this->request.hasEventsChanged())
 		this->changeEvents(this->request.events);
+
+	if (this->response.isDone())
+		this->_server_referer.deleteConnection(this);
 }

@@ -21,6 +21,10 @@ class HttpMessage {
 		HttpMessage(void);
 		virtual ~HttpMessage(void);
 
+		const short unsigned int&	getStatusCode(void) const;
+
+		void	setHeader(const std::string key, const std::string value);
+
 	protected:
 		headers_t					_headers;
 		static headers_behavior_t&	_headers_handeled;

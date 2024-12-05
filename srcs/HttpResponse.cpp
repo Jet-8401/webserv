@@ -1,6 +1,7 @@
 #include "../headers/HttpResponse.hpp"
 #include "../headers/HttpRequest.hpp"
 #include <sstream>
+#include <iostream> // to remove
 
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -34,31 +35,76 @@ HttpResponse::mime_types_t&	HttpResponse::mime_types = init_mime_types();
 
 HttpResponse::HttpResponse(HttpRequest& request):
 	HttpMessage(),
-	state(INIT),
-	_request_reference(request)
-{}
+	state(BUILD_HEADERS),
+	_request_reference(request),
+	_extanded_method(0),
+	_is_done(false)
+{
+	this->setHeader("Server", "webserv/1.0");
+	this->setHeader("Connection", "close");
+}
 
 HttpResponse::~HttpResponse(void)
 {}
 
+// Getters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const bool&	HttpResponse::isDone(void) const
+{
+	return (this->_is_done);
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-void	HttpResponse::_buildHeaders(std::stringstream& response) const
+void	HttpResponse::_buildHeaders()
 {
-    response << "HTTP/1.1 " << this->_status_code << "\r\n";
+    this->_header_content << "HTTP/1.1 " << this->_status_code << "\r\n";
     for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
-        response << it->first << ": " << it->second << "\r\n";
-    response << "\r\n";
+        this->_header_content << it->first << ": " << it->second << "\r\n";
+    this->_header_content << "\r\n";
 }
 
 ssize_t	HttpResponse::writePacket(uint8_t* io_buffer, size_t buff_length)
 {
 	switch (this->state) {
-
+		case WAITING:
+			if (this->_extanded_method)
+				this->_extanded_method->writePacket(io_buffer, buff_length);
+			else
+				this->state = BUILD_HEADERS;
+			if (this->state == WAITING)
+				break;
+		case BUILD_HEADERS:
+			if (this->_request_reference.getStatusCode() >= 400) {
+				this->state = ERROR;
+				this->_status_code = this->_request_reference.getStatusCode();
+			}
+			this->_buildHeaders();
+			this->state = SEND_HEADERS;
+		case SEND_HEADERS:
+			if (this->_header_content.eof()) {
+				std::cout << "SEND BODY" << std::endl;
+				this->state = SEND_BODY;
+			} else {
+				this->_header_content.read(reinterpret_cast<char*>(io_buffer), buff_length);
+				std::cout << this->_header_content.gcount() << std::endl;
+				return (this->_header_content.gcount());
+			}
+		case SEND_BODY:
+			if (this->_extanded_method)
+				this->_extanded_method->writePacket(io_buffer, buff_length);
+			else
+				this->state = DONE;
+			if (this->state == SEND_BODY)
+				break;
+		case DONE:
+			this->_is_done = true;
+			break;
+		default:
+			std::cout << "state n°" << this->state << " not supported!" << std::endl;
+			break;
 	}
-	std::exit(0);
-	(void) io_buffer;
-	(void) buff_length;
 	return (0);
 }

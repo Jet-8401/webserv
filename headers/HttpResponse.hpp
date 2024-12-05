@@ -1,6 +1,7 @@
 #ifndef HTTP_RESPONSE_HPP
 # define HTTP_RESPONSE_HPP
 
+#include <sstream>
 class HttpResponse;
 
 # include "HttpRequest.hpp"
@@ -15,9 +16,10 @@ class HttpResponse : public HttpMessage {
 
 		enum sending_state_e {
 			INIT,
+			WAITING,
 			BUILD_HEADERS,
-			HEADERS_SENT,
-			BODY_SENT,
+			SEND_HEADERS,
+			SEND_BODY,
 			DONE,
 			ERROR
 		}	state;
@@ -27,11 +29,16 @@ class HttpResponse : public HttpMessage {
 		typedef std::map<std::string, std::string> mime_types_t;
 		static mime_types_t&	mime_types;
 
+		const bool&				isDone(void) const;
+
 	protected:
-		void	_buildHeaders(std::stringstream& stream) const;
+		void	_buildHeaders();
 
 		HttpRequest&		_request_reference;
 		AHttpMethod*		_extanded_method;
+		std::stringstream	_header_content;
+
+		bool				_is_done;
 };
 
 #endif
