@@ -1,7 +1,5 @@
 #include "../headers/HttpResponse.hpp"
 #include "../headers/HttpRequest.hpp"
-#include <sstream>
-#include <iostream> // to remove
 
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -33,16 +31,22 @@ HttpResponse::mime_types_t&	HttpResponse::mime_types = init_mime_types();
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpResponse::HttpResponse(HttpRequest& request):
+HttpResponse::HttpResponse(const HttpRequest& request):
 	HttpMessage(),
 	state(BUILD_HEADERS),
-	_request_reference(request),
-	_extanded_method(0),
+	_request(request),
 	_is_done(false)
 {
 	this->setHeader("Server", "webserv/1.0");
 	this->setHeader("Connection", "close");
 }
+
+HttpResponse::HttpResponse(const HttpResponse& src):
+	HttpMessage(src),
+	state(src.state),
+	_request(src._request),
+	_is_done(src._is_done)
+{}
 
 HttpResponse::~HttpResponse(void)
 {}
@@ -66,6 +70,7 @@ void	HttpResponse::_buildHeaders()
     this->_header_content << "\r\n";
 }
 
+/*
 ssize_t	HttpResponse::writePacket(uint8_t* io_buffer, size_t buff_length)
 {
 	switch (this->state) {
@@ -108,3 +113,4 @@ ssize_t	HttpResponse::writePacket(uint8_t* io_buffer, size_t buff_length)
 	}
 	return (0);
 }
+*/

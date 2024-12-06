@@ -6,9 +6,8 @@ class Connection;
 # include <ctime>
 # include <stdint.h>
 # include <sys/epoll.h>
-# include "HttpRequest.hpp"
-# include "HttpResponse.hpp"
 # include "HttpServer.hpp"
+# include "HttpParser.hpp"
 
 # define PACKETS_SIZE 32
 
@@ -35,8 +34,7 @@ class Connection {
 		int					changeEvents(::uint32_t events);
 		void				onEvent(::uint32_t events);
 
-		HttpRequest			request;
-		HttpResponse 		response;
+		HttpParser*			handler;
 		struct epoll_event	event;
 };
 

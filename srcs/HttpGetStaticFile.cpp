@@ -1,14 +1,13 @@
 #include "../headers/HttpGetStaticFile.hpp"
-#include "../headers/HttpRequest.hpp"
 #include <fcntl.h>
 #include <unistd.h>
 #include <iostream>
 
-HttpGetStaticFile::HttpGetStaticFile(HttpRequest* request):
-	AHttpMethod(request),
+HttpGetStaticFile::HttpGetStaticFile(const HttpParser& parser):
+	HttpParser(parser),
 	_file_fd(-1)
 {
-	_file_path = request->getMatchingLocation().getRoot() + request->getPath();
+	_file_path = _request.getMatchingLocation().getRoot() + _request.getPath();
 	std::cout << _file_path << std::endl;
     _file_fd = open(_file_path.c_str(), O_RDONLY);
     if (this->_file_fd == -1)
@@ -25,17 +24,16 @@ HttpGetStaticFile::~HttpGetStaticFile()
 
 bool HttpGetStaticFile::parse(const uint8_t* packet, const size_t packet_size)
 {
-	this->reference._request->state = HttpRequest::DONE;
 	std::cout << "c'est DONE enculer" << std::endl;
 	(void) packet;
 	(void) packet_size;
 	return (true);
 }
 
-ssize_t HttpGetStaticFile::writePacket(uint8_t* io_buffer, size_t buff_length)
+ssize_t HttpGetStaticFile::write(const uint8_t* io_buffer, const size_t buff_length)
 {
 	std::cout << "poihfpzeofhzep" << std::endl;
     if (_file_fd == -1)
         return -1;
-    return read(_file_fd, io_buffer, buff_length);
+    return read(_file_fd, const_cast<uint8_t*>(io_buffer), buff_length);
 }

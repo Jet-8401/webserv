@@ -1,11 +1,11 @@
 #ifndef HTTP_REQUEST_HPP
 # define HTTP_REQUEST_HPP
 
-class HttpRequest;
+class HttpResponse;
 
+# include "ParserDefinitions.hpp"
 # include "Location.hpp"
 # include "ServerConfig.hpp"
-# include "AHttpMethod.hpp"
 # include "HttpMessage.hpp"
 # include "BytesBuffer.hpp"
 # include "StreamBuffer.hpp"
@@ -14,26 +14,22 @@ class HttpRequest;
 
 class HttpRequest : public HttpMessage {
 	public:
-		HttpRequest(const ServerConfig& config);
+		HttpRequest(const ServerConfig& config, const HttpResponse& response);
+		HttpRequest(const HttpRequest& src);
 		virtual ~HttpRequest(void);
 
-		typedef enum parsing_state_e {
-			READING_HEADERS,
-			CHECK_METHOD,
-			READING_BODY,
-			DONE,
-			ERROR
-		}	parsing_state_t;
+		const std::string&	getMethod(void) const;
+		const std::string&	getPath(void) const;
+		const Location&		getMatchingLocation(void) const;
+		const uint32_t&		getEvents(void);
 
-		const std::string&		getPath(void) const;
-		const Location&			getMatchingLocation(void) const;
-		AHttpMethod*			getExtandedMethod(void) const;
+		void				setEvents(const uint32_t events);
 
-		bool					hasEventsChanged(void) const;
-		uint32_t				events;
+		bool				hasEventsChanged(void) const;
 
-		bool	parse(const uint8_t* packet, const size_t packet_size);
-		parsing_state_e		state;
+		parsing_state_t		bufferHeaders(const uint8_t* packet, size_t packet_len);
+		parsing_state_t		parseHeaders(void);
+		parsing_state_t		validateAndInitLocation(void);
 
 	protected:
 		std::string			_method;
@@ -47,17 +43,16 @@ class HttpRequest : public HttpMessage {
 		Location*			_matching_location;
 
 		const ServerConfig&	_config_reference;
-		AHttpMethod*		_extanded_method;
+		const HttpResponse&	_response;
+
+		uint32_t			_events;
 
 	private:
 		bool				_has_events_changed;
 		size_t				_end_header_index;
 
-		bool				_bufferHeaders(const uint8_t* packet, size_t packet_size);
 		bool				_checkHeaderSyntax(const std::string& key, const std::string& value) const;
-		bool				_parseHeaders(void);
 		bool				_findLocation(void);
-		bool				_validateAndInitMethod(void);
 };
 
 #endif

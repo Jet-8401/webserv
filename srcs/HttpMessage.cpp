@@ -1,3 +1,4 @@
+#include "../headers/WebServ.hpp"
 #include "../headers/HttpMessage.hpp"
 
 // Static declarations
@@ -23,6 +24,11 @@ HttpMessage::HttpMessage(void):
 	_status_code(200)
 {}
 
+HttpMessage::HttpMessage(const HttpMessage& src):
+	_headers(src._headers),
+	_status_code(src._status_code)
+{}
+
 HttpMessage::~HttpMessage(void)
 {}
 
@@ -36,6 +42,13 @@ const short unsigned int&	HttpMessage::getStatusCode(void) const
 
 // Function memebers
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+parsing_state_t	HttpMessage::error(status_code_t status_code)
+{
+	this->_status_code = status_code;
+	DEBUG("changed status code to -> " << status_code);
+	return (parsing_state_t(ERROR, true));
+}
 
 void	HttpMessage::setHeader(const std::string key, const std::string value)
 {

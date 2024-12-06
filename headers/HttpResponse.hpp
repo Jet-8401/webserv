@@ -1,17 +1,16 @@
 #ifndef HTTP_RESPONSE_HPP
 # define HTTP_RESPONSE_HPP
 
-#include <sstream>
-class HttpResponse;
+class HttpRequest;
 
-# include "HttpRequest.hpp"
 # include "HttpMessage.hpp"
-# include "AHttpMethod.hpp"
 # include <sys/types.h>
+# include <sstream>
 
 class HttpResponse : public HttpMessage {
 	public:
-		HttpResponse(HttpRequest& request);
+		HttpResponse(const HttpRequest& request);
+		HttpResponse(const HttpResponse& src);
 		virtual ~HttpResponse(void);
 
 		enum sending_state_e {
@@ -24,8 +23,6 @@ class HttpResponse : public HttpMessage {
 			ERROR
 		}	state;
 
-		ssize_t	writePacket(uint8_t* io_buffer, size_t buff_length);
-
 		typedef std::map<std::string, std::string> mime_types_t;
 		static mime_types_t&	mime_types;
 
@@ -34,8 +31,7 @@ class HttpResponse : public HttpMessage {
 	protected:
 		void	_buildHeaders();
 
-		HttpRequest&		_request_reference;
-		AHttpMethod*		_extanded_method;
+		const HttpRequest&	_request;
 		std::stringstream	_header_content;
 
 		bool				_is_done;
