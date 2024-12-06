@@ -18,7 +18,7 @@ Connection::Connection(const int client_socket_fd, HttpServer& server_referrer):
 	_timed_out(false),
 	_created_at(0),
 	_ms_timeout_value(MS_TIMEOUT_ROUTINE),
-	request(server_referrer.getConfig())
+	handler(server_referrer.getConfig())
 {
 	::memset(&this->event, 0, sizeof(this->event));
 }
@@ -132,22 +132,34 @@ void	Connection::onEvent(::uint32_t events)
 		this->_server_referer.deleteConnection(this);
 	}
 
+	std::cout << "Connection::onEvent called with events: "
+              << (events & EPOLLIN ? "EPOLLIN " : "")
+              << (events & EPOLLOUT ? "EPOLLOUT " : "")
+              << (events & EPOLLHUP ? "EPOLLHUP" : "") << std::endl;
+
 	if (events & EPOLLIN) {
 		bytes = ::recv(this->_socket, io_buffer, sizeof(io_buffer), MSG_DONTWAIT);
 		if (bytes == -1) {
 			error(ERR_ACCEPT_REQUEST, true);
 			return ;
 		}
-		/*else if (bytes == 0) {
+		else if (bytes == 0) {
 			this->_server_referer.deleteConnection(this);
 			return ;
-		}*/
-		this->request->parse(io_buffer, bytes);
+		}
+		if (this->handler.parse(io_buffer, bytes)) {
+            std::cout << "Parsing successful, changing to EPOLLOUT" << std::endl;
+            this->changeEvents(EPOLLOUT);  // Change pour EPOLLOUT après un parsing réussi
+        }
 	}
 
 	if (events & EPOLLOUT) {
-		bytes = this->response->writePacket(io_buffer, sizeof(io_buffer));
-		if (bytes > 0 && ::write(this->_socket, io_buffer, bytes) == -1)
+		bytes = this->handler.writePacket(io_buffer, sizeof(io_buffer));
+		if (bytes > 0 && ::write(this->_socket, io_buffer, bytes) == -1) {
 			error(ERR_SOCKET_WRITE, true);
+		}
+		else if (bytes == 0) {  // Si plus rien à envoyer
+            this->_server_referer.deleteConnection(this);
+		}
 	}
 }

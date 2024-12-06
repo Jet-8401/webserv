@@ -6,7 +6,7 @@ class Connection;
 # include <ctime>
 # include <stdint.h>
 # include <sys/epoll.h>
-# include "HttpRequest.hpp"
+# include "HttpHandler.hpp"
 # include "HttpResponse.hpp"
 # include "HttpServer.hpp"
 
@@ -34,7 +34,7 @@ class Connection {
 		int		changeEvents(::uint32_t events);
 		void	onEvent(::uint32_t events);
 
-		HttpRequest			request;
+		HttpHandler			handler;
 		HttpResponse 		response;
 		struct epoll_event	event;
 };

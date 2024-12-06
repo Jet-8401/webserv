@@ -4,6 +4,7 @@
 #include <sstream>
 #include <sys/time.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 void	error(const std::string message, bool use_perror)
 {
@@ -15,7 +16,7 @@ void	error(const std::string message, bool use_perror)
 		std::cerr << message << std::endl;
 }
 
-std::string	unsafe_itoa(const int n)
+std::string	unsafe_itoa(const ssize_t n)
 {
 	std::stringstream	ss;
 	ss << n;

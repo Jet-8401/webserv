@@ -25,6 +25,8 @@ class HttpMessage {
 		headers_t					_headers;
 		static headers_behavior_t&	_headers_handeled;
 		short unsigned int			_status_code;
+
+		std::string buildHeadersString(void) const;
 };
 
 #endif

@@ -5,6 +5,7 @@
 # include <iostream>
 # include <iomanip>
 # include <stdint.h>
+#include <sys/types.h>
 
 # define PROG_NAME "webserv"
 # define ERR_USAGE "usage: ./webserv <configFile>"
@@ -48,7 +49,7 @@
 
 // utils.cpp
 void		error(const std::string message, bool perror);
-std::string	unsafe_itoa(const int n);
+std::string	unsafe_itoa(const ssize_t n);
 ::uint64_t	getTimeMs(void);
 std::string	joinPath(const std::string& path1, const std::string& path2);
 

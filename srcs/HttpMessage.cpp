@@ -1,5 +1,5 @@
 #include "../headers/HttpMessage.hpp"
-
+#include <sstream>
 // Static declarations
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -25,3 +25,15 @@ HttpMessage::HttpMessage(void):
 
 HttpMessage::~HttpMessage(void)
 {}
+// function
+std::string HttpMessage::buildHeadersString(void) const
+{
+    std::stringstream headers;
+
+    headers << "HTTP/1.1 " << this->_status_code << " OK\r\n";
+    for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+        headers << it->first << ": " << it->second << "\r\n";
+    headers << "\r\n";
+
+    return headers.str();
+}
