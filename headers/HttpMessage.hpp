@@ -27,7 +27,7 @@ class HttpMessage {
 		const status_code_t&	getStatusCode(void) const;
 
 		void					setHeader(const std::string key, const std::string value);
-		parsing_state_t			error(status_code_t status_code);
+		handler_state_t			error(status_code_t status_code);
 
 	protected:
 		headers_t					_headers;

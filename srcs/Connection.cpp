@@ -40,7 +40,7 @@ const int&	Connection::getSocketFD(void) const
 
 bool	Connection::isWritable(void) const
 {
-	return (this->event.events & EPOLLIN);
+	return (this->event.events & EPOLLOUT);
 }
 
 // Function members
@@ -141,19 +141,27 @@ void	Connection::onEvent(::uint32_t events)
 		bytes = ::recv(this->_socket, io_buffer, sizeof(io_buffer), MSG_DONTWAIT);
 		if (bytes == -1) {
 			error(ERR_ACCEPT_REQUEST, true);
-			return ;
+			return;
 		}
-		/*else if (bytes == 0) {
-			this->_server_referer.deleteConnection(this);
-			return ;
-		}*/
 		this->handler->parse(io_buffer, bytes);
 	}
 
 	if (events & EPOLLOUT) {
-		bytes = this->handler->write(io_buffer, sizeof(io_buffer));
-		if (bytes > 0 && ::write(this->_socket, io_buffer, bytes) == -1)
+		if (this->handler->state.flag == SENDING_BODY) {
+			bytes = this->handler->write(io_buffer, sizeof(io_buffer));
+		} else {
+			// force the use of the write method to send the headers, errors and redirections
+			bytes = this->handler->HttpParser::write(io_buffer, sizeof(io_buffer));
+		}
+		DEBUG("Outgoing data (" << bytes << " bytes)");
+		if (bytes == -1) {
 			error(ERR_SOCKET_WRITE, true);
+			this->_server_referer.deleteConnection(this);
+		} else if (bytes > 0) {
+			std::cout.write((char*) io_buffer, bytes);
+			if (::write(this->_socket, io_buffer, bytes) == -1)
+				error(ERR_SOCKET_WRITE, true);
+		}
 	}
 
 	if (this->handler->checkUpgrade()) {
@@ -166,6 +174,6 @@ void	Connection::onEvent(::uint32_t events)
 		this->changeEvents(this->handler->getRequest().getEvents());
 	}
 
-	if (this->handler->getResponse().isDone())
+	if (this->handler->state.flag == DONE)
 		this->_server_referer.deleteConnection(this);
 }

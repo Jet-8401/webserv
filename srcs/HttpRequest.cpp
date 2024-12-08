@@ -97,7 +97,7 @@ void	HttpRequest::setEvents(const uint32_t events)
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-parsing_state_t	HttpRequest::bufferHeaders(const uint8_t* packet, size_t packet_size)
+handler_state_t	HttpRequest::bufferHeaders(const uint8_t* packet, size_t packet_size)
 {
 	const uint8_t*	buffer = this->_header_buff.read();
 	const uint8_t*	addr;
@@ -116,7 +116,7 @@ parsing_state_t	HttpRequest::bufferHeaders(const uint8_t* packet, size_t packet_
 
 	// if the end sequence has not been found
 	if (addr == buffer + this->_header_buff.size())
-		return (parsing_state_t(READING_HEADERS, false));
+		return (handler_state_t(READING_HEADERS, false));
 
 	// If found change to the next state.
 	// And check if there is a body and it is inside the given packet, write it to the buffer body.
@@ -129,7 +129,7 @@ parsing_state_t	HttpRequest::bufferHeaders(const uint8_t* packet, size_t packet_
 		std::cout << "body is inside the packet" << std::endl;
 		this->_body.write(buffer + this->_end_header_index, this->_header_buff.size() - this->_end_header_index);
 	}
-	return (parsing_state_t(PARSE_HEADERS, true));
+	return (handler_state_t(PARSE_HEADERS, true));
 }
 
 // check the syntax of the headers, like if their are two unique headers etc...
@@ -156,7 +156,7 @@ bool	HttpRequest::_checkHeaderSyntax(const std::string& key, const std::string& 
 
 // Parse the request-line then all the headers, it also check for syntax.
 // Check for only HTTP/1.1 version.
-parsing_state_t	HttpRequest::parseHeaders(void)
+handler_state_t	HttpRequest::parseHeaders(void)
 {
 	std::string			str;
 	std::stringstream	parser;
@@ -189,7 +189,7 @@ parsing_state_t	HttpRequest::parseHeaders(void)
 			return (this->error(400));
 		this->_headers.insert(std::pair<std::string, std::string>(key, value));
 	}
-	return (parsing_state_t(VALIDATE_REQUEST, true));
+	return (handler_state_t(VALIDATE_REQUEST, true));
 }
 
 // Try to check for a matching location.
@@ -214,7 +214,7 @@ bool	HttpRequest::_findLocation(void)
 }
 
 // Check if the asked location is found and if mandatory options are ok.
-parsing_state_t	HttpRequest::validateAndInitLocation(void)
+handler_state_t	HttpRequest::validateAndInitLocation(void)
 {
 	DEBUG("_validateAndInitMethod called");
 
@@ -231,7 +231,7 @@ parsing_state_t	HttpRequest::validateAndInitLocation(void)
 		DEBUG("Method not allowed !");
 		return (this->error(405));
 	}
-	return (parsing_state_t(NEED_UPGRADE, true));
+	return (handler_state_t(NEED_UPGRADE, true));
 }
 
 /*

@@ -1,5 +1,7 @@
 #include "../headers/HttpResponse.hpp"
 #include "../headers/HttpRequest.hpp"
+#include "../headers/WebServ.hpp"
+#include <ios>
 
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -33,9 +35,7 @@ HttpResponse::mime_types_t&	HttpResponse::mime_types = init_mime_types();
 
 HttpResponse::HttpResponse(const HttpRequest& request):
 	HttpMessage(),
-	state(BUILD_HEADERS),
-	_request(request),
-	_is_done(false)
+	_request(request)
 {
 	this->setHeader("Server", "webserv/1.0");
 	this->setHeader("Connection", "close");
@@ -43,9 +43,7 @@ HttpResponse::HttpResponse(const HttpRequest& request):
 
 HttpResponse::HttpResponse(const HttpResponse& src):
 	HttpMessage(src),
-	state(src.state),
-	_request(src._request),
-	_is_done(src._is_done)
+	_request(src._request)
 {}
 
 HttpResponse::~HttpResponse(void)
@@ -54,20 +52,39 @@ HttpResponse::~HttpResponse(void)
 // Getters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-const bool&	HttpResponse::isDone(void) const
-{
-	return (this->_is_done);
-}
+// const bool&	HttpResponse::isDone(void) const
+// {
+// 	return (this->_is_done);
+// }
 
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-void	HttpResponse::_buildHeaders()
+handler_state_t	HttpResponse::buildHeaders()
 {
+	DEBUG("Building headers");
     this->_header_content << "HTTP/1.1 " << this->_status_code << "\r\n";
     for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
         this->_header_content << it->first << ": " << it->second << "\r\n";
     this->_header_content << "\r\n";
+    return (handler_state_t(SENDING_HEADERS, true));
+}
+
+handler_state_t	HttpResponse::sendHeaders(const uint8_t* io_buffer, const size_t buff_len,
+	std::streamsize& bytes_written)
+{
+	DEBUG("HttpResponse::sendHeaders called");
+
+	if (this->_header_content.eof()) {
+		bytes_written = 0;
+		return (handler_state_t(SENDING_BODY, false));
+	}
+
+	this->_header_content.read(const_cast<char*>(reinterpret_cast<const char*>(io_buffer)), buff_len);
+	// unreadable compare to
+	// this->_header_content.read((char*) io_buffer, buff_len);
+	bytes_written = this->_header_content.gcount();
+	return (handler_state_t(SENDING_HEADERS, false));
 }
 
 /*

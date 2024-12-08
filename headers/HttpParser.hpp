@@ -21,7 +21,7 @@ class HttpParser {
 		HttpParser(const ServerConfig& config);
 		virtual ~HttpParser(void);
 
-		parsing_state_t	state;
+		handler_state_t	state;
 
 		virtual bool	parse(const uint8_t* packet, const size_t packet_len);
 		virtual ssize_t	write(const uint8_t* io_buffer, const size_t buff_len);

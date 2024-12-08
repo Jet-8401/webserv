@@ -43,11 +43,11 @@ const short unsigned int&	HttpMessage::getStatusCode(void) const
 // Function memebers
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-parsing_state_t	HttpMessage::error(status_code_t status_code)
+handler_state_t	HttpMessage::error(status_code_t status_code)
 {
 	this->_status_code = status_code;
 	DEBUG("changed status code to -> " << status_code);
-	return (parsing_state_t(ERROR, true));
+	return (handler_state_t(ERROR, true));
 }
 
 void	HttpMessage::setHeader(const std::string key, const std::string value)

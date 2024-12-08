@@ -53,10 +53,6 @@ bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
 {
 	size_t	iterations = 0;
 
-	// For debugs
-	if (packet_len == 0)
-		DEBUG("RECEIVED A PACKET OF SIZE 0, (end of transmission)");
-
 	do {
 		DEBUG("entering the switch in HttpParser::parse with code: " << this->state.flag);
 		switch (this->state.flag) {
@@ -70,17 +66,47 @@ bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
 				this->state = this->_request.validateAndInitLocation();
 				break;
 			case NEED_UPGRADE:
-				this->state = parsing_state_t(DONE, true);
+				// NEED_UPGRADE is the last state before giving the responsability to the upgraded class to handle
+				// the rest of the request because we its not mandatory to wait for a body depending on the method.
+				// Expl: If a POST request, its the its responsability to make the state.flag = READING_BODY in its constructor
+				this->state = handler_state_t(READY_TO_SEND, true);
 				this->_need_upgrade = true;
 				break;
-			case DONE:
-				this->_request.setEvents(EPOLLOUT);
+			case ERROR:
+				DEBUG("error handling not supported");
+				// fallthrough
+			default:
 				this->state.continue_loop = false;
 				break;
-			case ERROR:
+		}
+	} while (this->state.continue_loop && iterations++ < MAX_ITERATIONS);
+
+	if (iterations >= MAX_ITERATIONS) {
+		this->state = handler_state_t(ERROR, false);
+		DEBUG("Max iterations reach for HttpParser::parse!");
+		return (false);
+	}
+
+	return (true);
+}
+
+// HttpParser::write will handle default errors, redirections and the sending of headers as those tasks are common
+// to all request's methods.
+ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
+{
+	size_t	iterations = 0;
+	std::streamsize	bytes_written = -1;
+
+	do {
+		DEBUG("entering the switch in HttpParser::write with code: " << this->state.flag);
+		switch (this->state.flag) {
+			case READY_TO_SEND:
 				// fallthrough
-				this->state.continue_loop = false;
-				DEBUG("error handling not supported");
+			case BUILD_HEADERS:
+				this->state = this->_response.buildHeaders();
+				break;
+			case SENDING_HEADERS:
+				this->state = this->_response.sendHeaders(io_buffer, buff_len, bytes_written);
 				break;
 			default:
 				this->state.continue_loop = false;
@@ -89,21 +115,11 @@ bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
 	} while (this->state.continue_loop && iterations++ < MAX_ITERATIONS);
 
 	if (iterations >= MAX_ITERATIONS) {
+		this->state = handler_state_t(ERROR, false);
 		DEBUG("Max iterations reach for HttpParser::parse!");
-		return (false);
+		return (-1);
 	}
-
-	return (true);
-}
-
-ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
-{
-	(void) io_buffer;
-	(void) buff_len;
-	std::cout << "gjkqgmqzjmgoqizjmgoqzigjqzoeigjqzmoegijqzemgjqzgjiqmzogimzqoiegjmqzoigjmzqoigjemzoqigj \
-	qzegiqzjgeùzqijegqziejgmzqgjiemzqogijqzmgoijzqmgjezq \
-	gqzgeoziqjgzjioqegijqz" << std::endl;
-	return (0);
+	return (bytes_written);
 }
 
 HttpParser*	HttpParser::upgrade(void)
@@ -113,6 +129,7 @@ HttpParser*	HttpParser::upgrade(void)
 	if (!this->_need_upgrade)
 		return (0);
 
+	this->_need_upgrade = false;
 	if (method == "GET") {
 		return new HttpGetStaticFile(*this);
 	}

@@ -27,9 +27,9 @@ class HttpRequest : public HttpMessage {
 
 		bool				hasEventsChanged(void) const;
 
-		parsing_state_t		bufferHeaders(const uint8_t* packet, size_t packet_len);
-		parsing_state_t		parseHeaders(void);
-		parsing_state_t		validateAndInitLocation(void);
+		handler_state_t		bufferHeaders(const uint8_t* packet, size_t packet_len);
+		handler_state_t		parseHeaders(void);
+		handler_state_t		validateAndInitLocation(void);
 
 	protected:
 		std::string			_method;
