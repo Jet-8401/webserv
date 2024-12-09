@@ -1,7 +1,7 @@
 #ifndef HTTP_PARSER_HPP
 # define HTTP_PARSER_HPP
 
-# include "ParserDefinitions.hpp"
+# include "CommonDefinitions.hpp"
 # include "HttpResponse.hpp"
 # include "HttpRequest.hpp"
 # include <stdint.h>

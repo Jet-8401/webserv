@@ -1,7 +1,7 @@
 #ifndef HTTP_RESPONSE_HPP
 # define HTTP_RESPONSE_HPP
 
-# include "ParserDefinitions.hpp"
+# include "CommonDefinitions.hpp"
 
 class HttpRequest;
 

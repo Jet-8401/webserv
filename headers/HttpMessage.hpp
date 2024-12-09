@@ -1,7 +1,7 @@
 #ifndef HTTP_MESSAGE_HPP
 # define HTTP_MESSAGE_HPP
 
-#include "ParserDefinitions.hpp"
+#include "CommonDefinitions.hpp"
 # include <string>
 # include <map>
 # include <stdint.h>

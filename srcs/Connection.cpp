@@ -147,16 +147,16 @@ void	Connection::onEvent(::uint32_t events)
 	}
 
 	if (events & EPOLLOUT) {
-		if (this->handler->state.flag == SENDING_BODY) {
-			bytes = this->handler->write(io_buffer, sizeof(io_buffer));
-		} else {
-			// force the use of the write method to send the headers, errors and redirections
+		if (this->handler->state.flag == ERROR || this->handler->state.flag == REDIRECTION) {
 			bytes = this->handler->HttpParser::write(io_buffer, sizeof(io_buffer));
+		} else {
+			bytes = this->handler->write(io_buffer, sizeof(io_buffer));
 		}
 		DEBUG("Outgoing data (" << bytes << " bytes)");
 		if (bytes == -1) {
 			error(ERR_SOCKET_WRITE, true);
 			this->_server_referer.deleteConnection(this);
+			return;
 		} else if (bytes > 0) {
 			std::cout.write((char*) io_buffer, bytes);
 			if (::write(this->_socket, io_buffer, bytes) == -1)

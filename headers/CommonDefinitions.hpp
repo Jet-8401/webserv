@@ -12,6 +12,7 @@ enum handler_state_e {
 	SENDING_HEADERS,
 	SENDING_BODY,
 	DONE,
+	REDIRECTION,
 	ERROR
 };
 
@@ -21,5 +22,7 @@ typedef struct state_obj {
 
 	state_obj(handler_state_e f, bool c): flag(f), continue_loop(c) {}
 }	handler_state_t;
+
+typedef short unsigned int	status_t;
 
 #endif

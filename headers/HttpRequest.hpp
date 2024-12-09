@@ -3,7 +3,7 @@
 
 class HttpResponse;
 
-# include "ParserDefinitions.hpp"
+# include "../headers/CommonDefinitions.hpp"
 # include "Location.hpp"
 # include "ServerConfig.hpp"
 # include "HttpMessage.hpp"
