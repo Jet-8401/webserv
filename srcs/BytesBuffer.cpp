@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <sys/types.h>
 #include <unistd.h>
 #include <stdint.h>
 
@@ -43,6 +44,28 @@ BytesBuffer::BytesBuffer(const size_t max_bytes_size, const size_t bytes_thresho
 {
 	this->_internal_buff = new uint8_t[this->_max_bytes_size];
 	::memset(this->_internal_buff, 0, this->_max_bytes_size);
+}
+
+BytesBuffer::BytesBuffer(const BytesBuffer& src, const bool takeOwnership):
+	_size(src._size),
+	_buffered_as_file(src._buffered_as_file),
+	_max_bytes_size(src._max_bytes_size),
+	_bytes_threshold(src._bytes_threshold)
+{
+	if (takeOwnership) {
+		this->_internal_buff = src._internal_buff;
+		this->_file_buff_fd = src._file_buff_fd;
+
+		// Clear the source's pointers/FD (since we're taking ownership)
+		const_cast<BytesBuffer&>(src)._internal_buff = 0;
+		const_cast<BytesBuffer&>(src)._file_buff_fd = -1;
+		const_cast<BytesBuffer&>(src)._size = 0;
+	} else if (src._buffered_as_file) {
+		this->_file_buff_fd = src._file_buff_fd;
+	} else {
+		this->_internal_buff = new uint8_t[this->_max_bytes_size];
+		memcpy(this->_internal_buff, src._internal_buff, _size);
+	}
 }
 
 BytesBuffer::~BytesBuffer(void)

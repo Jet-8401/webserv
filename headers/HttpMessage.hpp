@@ -1,12 +1,17 @@
 #ifndef HTTP_MESSAGE_HPP
 # define HTTP_MESSAGE_HPP
 
+#include "CommonDefinitions.hpp"
 # include <string>
 # include <map>
 # include <stdint.h>
 
 class HttpMessage {
 	public:
+		HttpMessage(void);
+		HttpMessage(const HttpMessage& src);
+		virtual ~HttpMessage(void);
+
 		enum headers_behavior_e {
 			COMBINABLE		= 0b00000001,		// multiple instances, can be combined
 			UNIQUE			= 0b00000010,		// one instance only
@@ -17,13 +22,12 @@ class HttpMessage {
 
 		typedef std::map<std::string, uint8_t> 						headers_behavior_t;
 		typedef std::multimap<const std::string, const std::string> headers_t;
+		typedef short unsigned int									status_code_t;
 
-		HttpMessage(void);
-		virtual ~HttpMessage(void);
+		const status_code_t&	getStatusCode(void) const;
 
-		const short unsigned int&	getStatusCode(void) const;
-
-		void	setHeader(const std::string key, const std::string value);
+		void					setHeader(const std::string key, const std::string value);
+		handler_state_t			error(status_code_t status_code);
 
 	protected:
 		headers_t					_headers;

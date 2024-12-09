@@ -12,3 +12,4 @@
 - handle POST method
 - handle DELETE method
 - resolve bug where /upload will be match but not /upload/
+- refactor Connection::onEvent logic

@@ -1,5 +1,5 @@
+#include "../headers/WebServ.hpp"
 #include "../headers/HttpRequest.hpp"
-#include "../headers/HttpGetStaticFile.hpp"
 #include <iostream>
 #include <algorithm>
 #include <string>
@@ -24,29 +24,45 @@ void	string_trim(std::string& str)
 	return ;
 }
 
-
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpRequest::HttpRequest(const ServerConfig& config):
+HttpRequest::HttpRequest(const ServerConfig& config, const HttpResponse& response):
 	HttpMessage(),
-	events(0),
-	state(READING_HEADERS),
 	_body(64000),
 	_matching_location(0),
 	_config_reference(config),
-	_extanded_method(0),
+	_response(response),
+	_events(0),
 	_has_events_changed(false)
 {}
 
+HttpRequest::HttpRequest(const HttpRequest& src):
+	HttpMessage(src),
+	_method(src._method),
+	_path(src._path),
+	_version(src._version),
+	_header_buff(src._header_buff, true),
+	_body(src._body, true),
+	_config_location_str(src._config_location_str),
+	_matching_location(src._matching_location),
+	_config_reference(src._config_reference),
+	_response(src._response),
+	_events(src._events),
+	_has_events_changed(src._has_events_changed),
+	_end_header_index(src._end_header_index)
+{}
+
 HttpRequest::~HttpRequest(void)
-{
-	if (this->_extanded_method)
-		delete this->_extanded_method;
-}
+{}
 
 // Getters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const std::string&	HttpRequest::getMethod(void) const
+{
+	return (this->_method);
+}
 
 const std::string&	HttpRequest::getPath(void) const
 {
@@ -63,10 +79,25 @@ bool	HttpRequest::hasEventsChanged(void) const
 	return (this->_has_events_changed);
 }
 
+const uint32_t&	HttpRequest::getEvents(void)
+{
+	this->_has_events_changed = false;
+	return (this->_events);
+}
+
+// Setters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+void	HttpRequest::setEvents(const uint32_t events)
+{
+	this->_has_events_changed = true;
+	this->_events = events;
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-bool	HttpRequest::_bufferHeaders(const uint8_t* packet, size_t packet_size)
+handler_state_t	HttpRequest::bufferHeaders(const uint8_t* packet, size_t packet_size)
 {
 	const uint8_t*	buffer = this->_header_buff.read();
 	const uint8_t*	addr;
@@ -74,7 +105,7 @@ bool	HttpRequest::_bufferHeaders(const uint8_t* packet, size_t packet_size)
 
 	starting_point = std::max(static_cast<ssize_t>(0), static_cast<ssize_t>(this->_header_buff.size()) - 3);
 	if (this->_header_buff.write(packet, packet_size) == -1)
-		return (this->_status_code = 431, false);
+		return (this->error(431));
 
 	addr = std::search(
 		buffer + starting_point,
@@ -85,7 +116,7 @@ bool	HttpRequest::_bufferHeaders(const uint8_t* packet, size_t packet_size)
 
 	// if the end sequence has not been found
 	if (addr == buffer + this->_header_buff.size())
-		return (true);
+		return (handler_state_t(READING_HEADERS, false));
 
 	// If found change to the next state.
 	// And check if there is a body and it is inside the given packet, write it to the buffer body.
@@ -98,8 +129,7 @@ bool	HttpRequest::_bufferHeaders(const uint8_t* packet, size_t packet_size)
 		std::cout << "body is inside the packet" << std::endl;
 		this->_body.write(buffer + this->_end_header_index, this->_header_buff.size() - this->_end_header_index);
 	}
-	this->state = CHECK_METHOD;
-	return (true);
+	return (handler_state_t(PARSE_HEADERS, true));
 }
 
 // check the syntax of the headers, like if their are two unique headers etc...
@@ -126,7 +156,7 @@ bool	HttpRequest::_checkHeaderSyntax(const std::string& key, const std::string& 
 
 // Parse the request-line then all the headers, it also check for syntax.
 // Check for only HTTP/1.1 version.
-bool	HttpRequest::_parseHeaders(void)
+handler_state_t	HttpRequest::parseHeaders(void)
 {
 	std::string			str;
 	std::stringstream	parser;
@@ -138,7 +168,7 @@ bool	HttpRequest::_parseHeaders(void)
 	parser >> this->_version;
 
 	if (this->_version != "HTTP/1.1")
-		return (this->_status_code = 505, false);
+		return (this->error(505));
 
 	std::string	key, value;
 	parser.ignore();
@@ -156,12 +186,14 @@ bool	HttpRequest::_parseHeaders(void)
 		string_trim(value);
 
 		if (!this->_checkHeaderSyntax(key, value))
-			return (this->_status_code = 400, false);
+			return (this->error(400));
 		this->_headers.insert(std::pair<std::string, std::string>(key, value));
 	}
-	return (true);
+	return (handler_state_t(VALIDATE_REQUEST, true));
 }
 
+// Try to check for a matching location.
+// Will never return false unless one the pointer is null, therefore an error occured previously.
 bool	HttpRequest::_findLocation(void)
 {
 	ServerConfig::locations_t					server_locations = _config_reference.getLocations();
@@ -175,47 +207,34 @@ bool	HttpRequest::_findLocation(void)
 			matching = it;
 	}
 	if (!matching->second)
-		return (this->_status_code = 500, false);
+		return (false);
 	this->_config_location_str = matching->first;
 	this->_matching_location = matching->second;
 	return (true);
 }
 
-bool	HttpRequest::_validateAndInitMethod(void)
+// Check if the asked location is found and if mandatory options are ok.
+handler_state_t	HttpRequest::validateAndInitLocation(void)
 {
-	std::cout << "_validateAndInitMethod called" << std::endl;
-	// only parse the headers
-	if (!this->_parseHeaders()) {
-		std::cout << "error while parsing headers" << std::endl;
-		std::cout << "status_code: " << this->_status_code << std::endl;
-		return (false);
-	}
+	DEBUG("_validateAndInitMethod called");
 
 	// try to match a location
 	if (!this->_findLocation()) {
-		std::cout << "didn't find any locations" << std::endl;
-		return (false);
+		DEBUG("didn't find any locations");
+		return (this->error(500));
 	}
 
-	std::cout << this->_config_location_str << " found!" << std::endl;
+	DEBUG(this->_config_location_str << " found!");
 
 	// check if method is allowed
 	if (this->_matching_location->getMethods().find(this->_method) == this->_matching_location->getMethods().end()) {
-		std::cout << "Method not allowed !" << std::endl;
-		return (this->_status_code = 405, false);
+		DEBUG("Method not allowed !");
+		return (this->error(405));
 	}
-
-	// based onto the headers check which extanded method to get
-	if (this->_method == "GET") {
-		this->_extanded_method = new HttpGetStaticFile(this);
-	} else if (this->_method == "POST") {
-		std::cout << "Choosing POST" << std::endl;
-	} else if (this->_method == "DELETE") {
-		std::cout << "Choosing DELETE" << std::endl;
-	}
-	return (true);
+	return (handler_state_t(NEED_UPGRADE, true));
 }
 
+/*
 bool	HttpRequest::parse(const uint8_t* packet, const size_t packet_size)
 {
 	switch (this->state) {
@@ -244,3 +263,4 @@ bool	HttpRequest::parse(const uint8_t* packet, const size_t packet_size)
 	std::cout << "REQUEST PARSING !!" << std::endl;
 	return (true);
 }
+*/

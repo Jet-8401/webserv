@@ -17,6 +17,7 @@ class StreamBuffer {
 	public:
 		StreamBuffer(void); // default size at 0
 		StreamBuffer(const size_t buffer_size);
+		StreamBuffer(const StreamBuffer& src, bool takeOwnership);
 		virtual ~StreamBuffer(void);
 
 		// Getter

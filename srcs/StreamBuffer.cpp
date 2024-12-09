@@ -28,6 +28,25 @@ StreamBuffer::StreamBuffer(const size_t buffer_size):
 	this->_intern_buffer = new uint8_t[this->_allocated_size];
 }
 
+StreamBuffer::StreamBuffer(const StreamBuffer& src, bool takeOwnership):
+	_allocated_size(src._allocated_size),
+	_size(src._size),
+	_head(src._head),
+	_tail(src._tail)
+{
+	if (takeOwnership) {
+		this->_intern_buffer = src._intern_buffer;
+
+		const_cast<StreamBuffer&>(src)._intern_buffer = 0;
+		const_cast<StreamBuffer&>(src)._size = 0;
+		const_cast<StreamBuffer&>(src)._head = 0;
+		const_cast<StreamBuffer&>(src)._tail = 0;
+	} else {
+		this->_intern_buffer = new uint8_t[this->_allocated_size];
+		::memcpy(this->_intern_buffer, src._intern_buffer, this->_size);
+	}
+}
+
 StreamBuffer::~StreamBuffer(void)
 {
 	if (this->_intern_buffer)

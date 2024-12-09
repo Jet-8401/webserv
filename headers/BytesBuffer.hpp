@@ -23,12 +23,13 @@ class BytesBuffer {
 		BytesBuffer(void); // set max_bytes_size at 32KB
 		BytesBuffer(const size_t max_bytes_size); // set threshold by default at 4MB
 		BytesBuffer(const size_t max_bytes_size, const size_t bytes_threshold);
+		BytesBuffer(const BytesBuffer& src, const bool takeOwnership);
 		virtual ~BytesBuffer(void);
 
 		// Getters
 		const size_t&	size(void) const;
 
-		int	write(const uint8_t* data, const size_t size);
+		int			write(const uint8_t* data, const size_t size);
 		uint8_t*	read(void) const;
 };
 

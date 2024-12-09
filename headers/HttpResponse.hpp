@@ -1,44 +1,31 @@
 #ifndef HTTP_RESPONSE_HPP
 # define HTTP_RESPONSE_HPP
 
-#include <sstream>
-class HttpResponse;
+# include "CommonDefinitions.hpp"
 
-# include "HttpRequest.hpp"
+class HttpRequest;
+
 # include "HttpMessage.hpp"
-# include "AHttpMethod.hpp"
 # include <sys/types.h>
+# include <sstream>
+# include <stdint.h>
 
 class HttpResponse : public HttpMessage {
 	public:
-		HttpResponse(HttpRequest& request);
+		HttpResponse(const HttpRequest& request);
+		HttpResponse(const HttpResponse& src);
 		virtual ~HttpResponse(void);
-
-		enum sending_state_e {
-			INIT,
-			WAITING,
-			BUILD_HEADERS,
-			SEND_HEADERS,
-			SEND_BODY,
-			DONE,
-			ERROR
-		}	state;
-
-		ssize_t	writePacket(uint8_t* io_buffer, size_t buff_length);
 
 		typedef std::map<std::string, std::string> mime_types_t;
 		static mime_types_t&	mime_types;
 
-		const bool&				isDone(void) const;
+		// const bool&				isDone(void) const;
+		handler_state_t	buildHeaders(void);
+		handler_state_t	sendHeaders(const uint8_t* io_buffer, const size_t buff_len, std::streamsize& bytes_written);
 
 	protected:
-		void	_buildHeaders();
-
-		HttpRequest&		_request_reference;
-		AHttpMethod*		_extanded_method;
+		const HttpRequest&	_request;
 		std::stringstream	_header_content;
-
-		bool				_is_done;
 };
 
 #endif
