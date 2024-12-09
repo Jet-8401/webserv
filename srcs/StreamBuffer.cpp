@@ -45,28 +45,25 @@ size_t	StreamBuffer::size(void) const
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-ssize_t	StreamBuffer::write(void* data, const size_t size)
+ssize_t StreamBuffer::write(const void* data, const size_t size)
 {
-	uint8_t*	src;
-	size_t		bytes_until_end;
-
-	if (this->_size + size > this->_allocated_size)
+	if (size > this->_allocated_size - this->_size)
 		return (-1);
 
-	src = static_cast<uint8_t*>(data);
-	bytes_until_end = this->_allocated_size - this->_tail;
+	const uint8_t* src = static_cast<const uint8_t*>(data);
+	size_t bytes_until_end = this->_allocated_size - this->_tail;
 
 	if (size > bytes_until_end) {
 		::memcpy(this->_intern_buffer + this->_tail, src, bytes_until_end);
-		this->_tail = size - bytes_until_end;
-		::memcpy(this->_intern_buffer, src + bytes_until_end, this->_tail);
+		::memcpy(this->_intern_buffer, src + bytes_until_end, size - bytes_until_end);
+		this->_tail = (size - bytes_until_end) % this->_allocated_size;
 	} else {
-		::memcpy(this->_intern_buffer, src + this->_tail, size);
-		this->_tail = size;
+		::memcpy(this->_intern_buffer + this->_tail, src, size);
+		this->_tail = (this->_tail + size) % this->_allocated_size;
 	}
 
 	this->_size += size;
-	return (size);
+	return size;
 }
 
 // Might return less that chunk_size
@@ -81,39 +78,52 @@ ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
 		return (-1);
 	if (chunk_size == 0 || this->_size == 0)
 		return (0);
-	bytes_copied = 0;
-	bytes_until_end = this->_allocated_size - this->_head;
 
-	if (this->_head + chunk_size > bytes_until_end) {
-		::memcpy(dest, this->_intern_buffer + this->_head, bytes_until_end);
-		this->_head = std::min(this->_tail, chunk_size - bytes_until_end);
-		::memcpy(((uint8_t*) dest) + bytes_until_end, this->_intern_buffer, this->_head);
-		bytes_copied += bytes_until_end + this->_head;
-	} else {
-		bytes_copied = std::min(this->_tail, chunk_size);
-		::memcpy(dest, this->_intern_buffer + this->_head, bytes_copied);
-	}
+	chunk_size = std::min(chunk_size, this->_size);
+    bytes_until_end = this->_allocated_size - this->_head;
 
-	this->_size -= bytes_copied;
-	return (bytes_copied);
+    if (chunk_size > bytes_until_end) {
+        ::memcpy(dest, this->_intern_buffer + this->_head, bytes_until_end);
+        ::memcpy(((uint8_t*)dest) + bytes_until_end, this->_intern_buffer,
+                 chunk_size - bytes_until_end);
+        this->_head = (chunk_size - bytes_until_end) % this->_allocated_size;
+        bytes_copied = chunk_size;
+    } else {
+        ::memcpy(dest, this->_intern_buffer + this->_head, chunk_size);
+        this->_head = (this->_head + chunk_size) % this->_allocated_size;
+        bytes_copied = chunk_size;
+    }
+
+    this->_size -= bytes_copied;
+    return bytes_copied;
 }
 
-/*
-// Note: don't handle circular buffers
-void*	StreamBuffer::consume_until(void* value, const size_t length)
+ssize_t	StreamBuffer::consume_until(void* dest, void* key, size_t key_length)
 {
-	void*	chunk;
+	if (!dest || !key || key_length == 0 || _size == 0)
+		return -1;
 
-	if (this->_size < length)
-		return (0);
-	for (size_t i = 0; i < this->_size; i++) {
-		if (::memcmp(this->_intern_buffer + this->_head + i, value, length) != 0)
+	unsigned char* dest_ptr = reinterpret_cast<unsigned char*>(dest);
+	unsigned char* key_ptr = reinterpret_cast<unsigned char*>(key);
+	size_t pos = _head;
+
+	for (size_t remaining = _size;remaining >= key_length;pos = (pos + 1) % _allocated_size, remaining--) {
+		if (_intern_buffer[pos] == key_ptr[0])
 			continue;
-		chunk = new uint8_t[i + length];
-		::memcpy(chunk, this->_intern_buffer + this->_head, i + length);
-		this->_head += i + length;
-		return (chunk);
+		size_t i;
+		for (i = 1; i < key_length; i++) {
+			if (_intern_buffer[(pos + i) % _allocated_size] != key_ptr[i])
+				break;
+		}
+		if (i == key_length) {
+			// Key found - copy data up to key position
+			size_t bytes_to_copy = (pos - _head + _allocated_size) % _allocated_size;
+			for (i = 0; i < bytes_to_copy; i++)
+				dest_ptr[i] = _intern_buffer[(_head + i) % _allocated_size];
+			_head = (pos + key_length) % _allocated_size;
+			_size -= (bytes_to_copy + key_length);
+			return bytes_to_copy;
+		}
 	}
-	return (0);
+	return -1;
 }
-*/

@@ -1,72 +1,63 @@
 #ifndef HTTP_REQUEST_HPP
 # define HTTP_REQUEST_HPP
 
+class HttpRequest;
+
+# include "Location.hpp"
+# include "ServerConfig.hpp"
+# include "AHttpMethod.hpp"
+# include "HttpMessage.hpp"
 # include "BytesBuffer.hpp"
 # include "StreamBuffer.hpp"
-# include <map>
 # include <string>
 # include <stdint.h>
 
-# define PACKETS_SIZE 4
-
-enum http_header_behavior_e {
-	COMBINABLE		= 0b00000001,		// multiple instances, can be combined
-	UNIQUE			= 0b00000010,		// one instance only
-	SEPARABLE		= 0b00000100,		// multiple instances, must stay separate
-	MANDATORY		= 0b00001000,		// Mandatory for every requests
-	MANDATORY_POST	= 0b00010000		// Mandatory for post requests
-};
-
-enum http_body_buffering_method_e {
-	RAW_CONTINUOUS,
-	MULTIPART,
-	CHUNKED
-};
-
-class HttpRequest {
+class HttpRequest : public HttpMessage {
 	public:
-		HttpRequest(void);
+		HttpRequest(const ServerConfig& config);
 		virtual ~HttpRequest(void);
 
-		typedef std::map<std::string, uint8_t> headers_behavior_t;
-		typedef std::multimap<const std::string, const std::string> headers_t;
+		typedef enum parsing_state_e {
+			READING_HEADERS,
+			CHECK_METHOD,
+			READING_BODY,
+			DONE,
+			ERROR
+		}	parsing_state_t;
 
-		// Getters
-		const bool& 		headersReceived(void) const;
-		const bool&			isBodyPending(void) const;
-		const unsigned int&	getStatusCode(void) const;
-		const std::string&	getLocation(void) const;
-		const std::string&	getMethod(void) const;
-		const headers_t&	getHeaders(void) const;
+		const std::string&		getPath(void) const;
+		const Location&			getMatchingLocation(void) const;
+		AHttpMethod*			getExtandedMethod(void) const;
 
-		int	parse(void);	// Might switch it to private
-		int	bufferIncomingData(const int socket_fd);
+		bool					hasEventsChanged(void) const;
+		uint32_t				events;
 
-		void	printStream(void); // to remove after
+		bool	parse(const uint8_t* packet, const size_t packet_size);
+		parsing_state_e		state;
+
+	protected:
+		std::string			_method;
+		std::string			_path;
+		std::string			_version;
+
+		BytesBuffer			_header_buff;
+		StreamBuffer		_body;
+
+		std::string			_config_location_str;
+		Location*			_matching_location;
+
+		const ServerConfig&	_config_reference;
+		AHttpMethod*		_extanded_method;
 
 	private:
-		static headers_behavior_t&	_headers_handeled;
+		bool				_has_events_changed;
+		size_t				_end_header_index;
 
-		int		_checkHeaderSyntax(const std::string& key, const std::string& value);
-		int		_bufferIncomingHeaders(uint8_t* packet, ssize_t bytes);
-		int		_bufferIncomingBody(uint8_t* packet, ssize_t bytes);
-		int		_bodyBufferingInit(void);
-
-
-		headers_t						_headers;
-		std::string						_method;
-		std::string						_location;
-		BytesBuffer						_request_buffer;
-		StreamBuffer					_buffer_body;
-		bool							_headers_received;
-		bool							_body_pending;
-		size_t							_end_header_index;
-		unsigned int					_status_code;
-		http_body_buffering_method_e	_body_buffering_method;
-		size_t							_content_length;
-		std::string						_multipart_key;
-
-		// note: set the _content_buff max to client_max_body_size;
+		bool				_bufferHeaders(const uint8_t* packet, size_t packet_size);
+		bool				_checkHeaderSyntax(const std::string& key, const std::string& value) const;
+		bool				_parseHeaders(void);
+		bool				_findLocation(void);
+		bool				_validateAndInitMethod(void);
 };
 
 #endif

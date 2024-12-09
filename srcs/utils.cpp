@@ -29,3 +29,20 @@ uint64_t	getTimeMs(void)
 
     return (static_cast<uint64_t>((tv.tv_sec) * 1000 + (tv.tv_usec / 1000)));
 }
+
+std::string	joinPath(const std::string& path1, const std::string& path2)
+{
+	if (path1.empty() || path2.empty())
+		return path2;
+
+	char lastChar = path1[path1.length() - 1];
+	char firstChar = path2[0];
+
+	if (lastChar == '/' && firstChar == '/') {
+		return path1 + path2.substr(1);
+	} else if (lastChar == '/' || firstChar == '/') {
+		return path1 + path2;
+	} else {
+		return path1 + "/" + path2;
+	}
+}

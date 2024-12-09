@@ -7,8 +7,6 @@ class HttpServer;
 # include <string>
 # include <sys/types.h>
 # include <stdint.h>
-# include "HttpResponse.hpp"
-# include "HttpRequest.hpp"
 # include "ServerConfig.hpp"
 # include "Connection.hpp"
 # include "EventWrapper.hpp"
@@ -28,9 +26,6 @@ class HttpServer {
 		unsigned int			_max_connections;
 
 	public:
-		typedef HttpResponse Response;
-		typedef HttpRequest Request;
-
 		HttpServer(const ServerConfig& config);
 		HttpServer(const HttpServer& src);
 		virtual ~HttpServer(void);

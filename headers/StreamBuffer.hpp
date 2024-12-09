@@ -11,10 +11,11 @@ class StreamBuffer {
 		size_t		_size;
 		size_t		_head;
 		size_t		_tail;
+		//size_t		_bytes_passed_through;
 		uint8_t*	_intern_buffer;
 
 	public:
-		StreamBuffer(void); // default size at 16KB
+		StreamBuffer(void); // default size at 0
 		StreamBuffer(const size_t buffer_size);
 		virtual ~StreamBuffer(void);
 
@@ -22,8 +23,21 @@ class StreamBuffer {
 		size_t	size(void) const;
 
 		// I/O opearations
-		ssize_t	write(void* data, const size_t size);
+		ssize_t	write(const void* data, const size_t size);
 		ssize_t	consume(void* dest, size_t chunk_size);
+		ssize_t	consume_until(void* dest, void* key, size_t key_lenght);
 };
 
 #endif
+
+/*/
+Content-Type: multiform-data; boundary=----WebKitFormDataskdfjazdazdz
+
+----WebKitFormDataskdfjazdazdz
+Content-Disposition: filename="ic65656165i.txt"
+Content-Type: "text/html"
+
+<!doctype html>
+</html>
+...
+*/

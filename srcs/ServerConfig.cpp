@@ -119,11 +119,6 @@ void	ServerConfig::addLocation(const std::string& path, Location* location)
 	_locations[path] = location;
 }
 
-bool ServerConfig::hasLocation(const std::string& path) const
-{
-    return _locations.find(path) != _locations.end();
-}
-
 void	ServerConfig::setMaxConnections(const std::string& value)
 {
 	std::istringstream	iss(value);

@@ -143,7 +143,7 @@ int	HttpServer::acceptConnection(void)
 	event_wrapper->casted_value = static_cast<void*>(client_connection);
 
 	// set the event of connection and add it to epoll
-	client_connection->event.events = EPOLLIN | EPOLLET;
+	client_connection->event.events = EPOLLIN | EPOLLHUP;
 	client_connection->event.data.ptr = event_wrapper;
 	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, client_fd, &client_connection->event) == -1)
 		return (error(ERR_EPOLL_ADD, true), -1);
@@ -168,6 +168,7 @@ void	HttpServer::onEvent(::uint32_t events)
 
 int	HttpServer::deleteConnection(Connection* connection)
 {
+	DEBUG("deleting connection");
 	if (!connection)
 		return (-1);
 	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_DEL, connection->getSocketFD(), &connection->event) == -1)

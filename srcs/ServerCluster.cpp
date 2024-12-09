@@ -2,7 +2,6 @@
 #include "../headers/WebServ.hpp"
 #include <cstdio>
 #include <cstring>
-#include <list>
 #include <netinet/in.h>
 #include <string>
 #include <sys/socket.h>
@@ -205,13 +204,12 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 
 	Location serv_location(*http_location);
 	parseServerBlockDefault(ss, &serv_location);
-	std::cout << serv_location.getRoot() << "OOOOOOO" << std::endl;
 	while (ss >> token)
 	{
 		std::cout << "Token: " << token << std::endl; // Debug
 		if (token == "}")
 		{
-			if (!config.hasLocation("/"))
+			if (config.getLocations().empty())
 				config.addLocation("/", new Location(serv_location));
 			HttpServer server(config);
 			_servers.push_back(server); // Use size as key instead of invalid socket fd
@@ -228,7 +226,9 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 				return (-1);
 			std::stringstream ss_paths(paths);
 			while (ss_paths >> paths)
+			{
 				config.addLocation(paths, location);
+			}
 		}
 		else
 		{
@@ -301,7 +301,7 @@ int	ServerCluster::run(void)
 		it->setEpollFD(this->_epoll_fd);
 		event_wrapper = this->_events_wrapper.create(REQUEST);
 		event_wrapper->casted_value = &(*it);
-		ep_event.events = EPOLLIN | EPOLLET;
+		ep_event.events = EPOLLIN;
 		ep_event.data.ptr = static_cast<void*>( event_wrapper );
 		if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, it->getSocketFD(), &ep_event) == -1)
 			return (error(ERR_EPOLL_ADD, true), -1);
@@ -322,22 +322,28 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 {
 	event_wrapper_t*			event_wrapper;
 
-	DEBUG(events << " events received");
+	if (events != 0)
+		DEBUG(events << " events received");
 	for (int i = 0; i < events; i++) {
-		DEBUG((incoming_events[i].events & EPOLLIN ? "EPOLLIN" : "EPOLLOUT / EPOLLHUP") << " event received");
+		if (incoming_events[i].events & EPOLLIN)
+			DEBUG("EPOLLIN");
+		if (incoming_events[i].events & EPOLLOUT)
+			DEBUG("EPOLLOUT");
+		if (incoming_events[i].events & EPOLLHUP)
+			DEBUG("EPOLLHUP");
 		event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
 		switch (event_wrapper->socket_type)
 		{
-		case REQUEST:
-			DEBUG("event[" << i << "]: connection request");
-			static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-			break ;
-		case CLIENT:
-			DEBUG("event[" << i << "]: client package");
-			static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-			break ;
-		default:
-			break;
+			case REQUEST:
+				DEBUG("event[" << i << "]: connection request");
+				static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+				break ;
+			case CLIENT:
+				DEBUG("event[" << i << "]: client package");
+				static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+				break ;
+			default:
+				break;
 		}
 	}
 }

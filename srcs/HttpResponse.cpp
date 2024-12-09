@@ -1,152 +1,110 @@
 #include "../headers/HttpResponse.hpp"
-#include "../headers/WebServ.hpp"
 #include "../headers/HttpRequest.hpp"
-#include "../headers/ServerConfig.hpp"
-#include <unistd.h>
 #include <sstream>
+#include <iostream> // to remove
 
-HttpResponse::HttpResponse(void):
-    _headers(),
-    _content(),
-    _is_sent(false)
+// Static variables
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+HttpResponse::mime_types_t&	init_mime_types(void)
 {
-    this->setHeader("Server", "Webserv/1.0");
-    this->setHeader("Connection", "close");
+	static HttpResponse::mime_types_t	mime_types;
+
+	mime_types[".html"] = "text/html";
+	mime_types[".css"] = "text/css";
+	mime_types[".js"] = "application/javascript";
+	mime_types[".json"] = "application/json";
+	mime_types[".png"] = "image/png";
+	mime_types[".jpg"] = "image/jpeg";
+	mime_types[".jpeg"] = "image/jpeg";
+	mime_types[".gif"] = "image/gif";
+	mime_types[".pdf"] = "application/pdf";
+	mime_types[".txt"] = "text/plain";
+	mime_types[".mp4"] = "video/mp4";
+	mime_types[".mp3"] = "audio/mpeg";
+	mime_types[".xml"] = "application/xml";
+	mime_types[".zip"] = "application/zip";
+
+	return (mime_types);
 }
 
+HttpResponse::mime_types_t&	HttpResponse::mime_types = init_mime_types();
+
+// Constructors / Destructors
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+HttpResponse::HttpResponse(HttpRequest& request):
+	HttpMessage(),
+	state(BUILD_HEADERS),
+	_request_reference(request),
+	_extanded_method(0),
+	_is_done(false)
+{
+	this->setHeader("Server", "webserv/1.0");
+	this->setHeader("Connection", "close");
+}
 
 HttpResponse::~HttpResponse(void)
 {}
 
-Location* HttpResponse::findMatchingLocation(const std::string& path, const std::map<std::string, Location*>& locations)
+// Getters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const bool&	HttpResponse::isDone(void) const
 {
-    std::map<std::string, Location*>::const_iterator root = locations.find("/");
-    Location* match = (root != locations.end()) ? root->second : NULL;
-    std::string longest = "";
-
-    std::map<std::string, Location*>::const_iterator it;
-    for (it = locations.begin(); it != locations.end(); ++it)
-    {
-        if (path.find(it->first) == 0 && it->first.length() > longest.length())
-        {
-            longest = it->first;
-            match = it->second;
-        }
-    }
-    return match;
-}
-// std::string HttpResponse::_resolvePath(const std::string& uri, const ServerConfig& config) const
-// {
-//     const std::map<std::string, Location*>& locations = config.getLocations();
-//     std::string longest_match = "";
-//     Location* matching_location = NULL;
-
-//     // Find matching location block
-//     for (std::map<std::string, Location*>::const_iterator it = locations.begin();
-//          it != locations.end(); ++it) {
-//         if (uri.find(it->first) == 0 && it->first.length() > longest_match.length()) {
-//             longest_match = it->first;
-//             matching_location = it->second;
-//         }
-//     }
-
-//     if (!matching_location)
-//         return "";
-
-//     // Apply root/alias rules
-//     std::string path;
-//     if (!matching_location->getAlias().empty())
-//         path = matching_location->getAlias() + uri.substr(longest_match.length());
-//     else
-//         path = matching_location->getRoot() + uri.substr(longest_match.length());
-
-//     return path;
-// }
-
-bool	HttpResponse::handleRequest(const ServerConfig& conf, const HttpRequest& request)
-{
-	(void) conf;
-	(void) request;
-	// this->_current_location = findMatchingLocation(request.getLocation(), conf.getLocations());
-	// if (request.getStatusCode() > 400)
-
-	return true;
+	return (this->_is_done);
 }
 
-void HttpResponse::setHeader(const std::string& key, const std::string& value)
+// Function members
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+void	HttpResponse::_buildHeaders()
 {
-    this->_headers.insert(std::make_pair(key, value));
+    this->_header_content << "HTTP/1.1 " << this->_status_code << "\r\n";
+    for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+        this->_header_content << it->first << ": " << it->second << "\r\n";
+    this->_header_content << "\r\n";
 }
 
-void HttpResponse::_buildHeaders(std::stringstream& response) const
+ssize_t	HttpResponse::writePacket(uint8_t* io_buffer, size_t buff_length)
 {
-    response << "HTTP/1.1 200 OK\r\n";
-    for (std::multimap<std::string, std::string>::const_iterator it = _headers.begin();
-         it != _headers.end(); ++it)
-    {
-        response << it->first << ": " << it->second << "\r\n";
-    }
-    response << "\r\n";
-}
-
-bool HttpResponse::_sendAll(const int socket_fd, const std::string& data) const
-{
-    size_t total_sent = 0;
-    ssize_t sent;
-
-    while (total_sent < data.length())
-    {
-        sent = write(socket_fd, data.c_str() + total_sent, data.length() - total_sent);
-        if (sent == -1)
-            return false;
-        total_sent += sent;
-    }
-    return true;
-}
-
-int HttpResponse::send(const int socket_fd)
-{
-    DEBUG("Starting send()");
-    if (this->_is_sent)
-    {
-        DEBUG("Response already sent");
-        return 0;
-    }
-
-    std::stringstream headers;
-    this->_buildHeaders(headers);
-    std::string headers_str = headers.str();
-    DEBUG("Headers to send:\n" << headers_str);
-
-    if (!this->_sendAll(socket_fd, headers_str))
-    {
-        DEBUG("Failed to send headers");
-        return -1;
-    }
-    DEBUG("Headers sent successfully");
-
-    if (this->_content.size() > 0)
-    {
-        DEBUG("Sending content of size: " << this->_content.size());
-        const uint8_t* content = this->_content.read();
-        if (write(socket_fd, content, this->_content.size()) == -1)
-        {
-            DEBUG("Failed to send content");
-            return -1;
-        }
-        DEBUG("Content sent successfully");
-    }
-    else
-    {
-        DEBUG("No content to send");
-    }
-
-    this->_is_sent = true;
-    DEBUG("Send completed");
-    return 0;
-}
-
-bool HttpResponse::isSent(void) const
-{
-    return this->_is_sent;
+	switch (this->state) {
+		case WAITING:
+			if (this->_extanded_method)
+				this->_extanded_method->writePacket(io_buffer, buff_length);
+			else
+				this->state = BUILD_HEADERS;
+			if (this->state == WAITING)
+				break;
+		case BUILD_HEADERS:
+			if (this->_request_reference.getStatusCode() >= 400) {
+				this->state = ERROR;
+				this->_status_code = this->_request_reference.getStatusCode();
+			}
+			this->_buildHeaders();
+			this->state = SEND_HEADERS;
+		case SEND_HEADERS:
+			if (this->_header_content.eof()) {
+				std::cout << "SEND BODY" << std::endl;
+				this->state = SEND_BODY;
+			} else {
+				this->_header_content.read(reinterpret_cast<char*>(io_buffer), buff_length);
+				std::cout << this->_header_content.gcount() << std::endl;
+				return (this->_header_content.gcount());
+			}
+		case SEND_BODY:
+			if (this->_extanded_method)
+				this->_extanded_method->writePacket(io_buffer, buff_length);
+			else
+				this->state = DONE;
+			if (this->state == SEND_BODY)
+				break;
+		case DONE:
+			this->_is_done = true;
+			break;
+		default:
+			std::cout << "state n°" << this->state << " not supported!" << std::endl;
+			break;
+	}
+	return (0);
 }

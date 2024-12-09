@@ -30,8 +30,6 @@ class ServerConfig {
         void	addLocation(const std::string& path, Location* location);
         void	setMaxConnections(const std::string& value);
 
-        // Utils
-		bool hasLocation(const std::string& path) const;
 	protected:
 		std::vector<std::string>	_server_names;
 		std::string					_host;
