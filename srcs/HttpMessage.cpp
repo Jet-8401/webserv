@@ -40,6 +40,16 @@ const short unsigned int&	HttpMessage::getStatusCode(void) const
 	return (this->_status_code);
 }
 
+bool	HttpMessage::isError(void) const
+{
+	return (this->_status_code >= 400 && this->_status_code < 600);
+}
+
+bool	HttpMessage::isRedirection(void) const
+{
+	return (this->_status_code >= 300 && this->_status_code < 400);
+}
+
 // Function memebers
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 

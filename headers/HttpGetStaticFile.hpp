@@ -2,12 +2,10 @@
 # define HTTP_GET_STATIC_FILE_HPP
 
 # include "HttpParser.hpp"
-# include <string>
 
 class HttpGetStaticFile : public HttpParser {
     private:
         int			_file_fd;
-        std::string	_file_path;
 
     public:
         HttpGetStaticFile(const HttpParser& parser);

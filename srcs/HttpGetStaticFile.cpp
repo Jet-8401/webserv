@@ -12,9 +12,8 @@ HttpGetStaticFile::HttpGetStaticFile(const HttpParser& parser):
 	// switching directly to EPOLLOUT
 	this->_request.setEvents(EPOLLOUT);
 
-	_file_path = _request.getMatchingLocation().getRoot() + _request.getPath();
-	std::cout << _file_path << std::endl;
-	_file_fd = open(_file_path.c_str(), O_RDONLY);
+	std::cout << "{" << this->_request.getResolvedPath().c_str() << "}" << std::endl;
+	this->_file_fd = open(this->_request.getResolvedPath().c_str(), O_RDONLY);
 	if (this->_file_fd == -1) {
 		std::cerr << "could not open file" << std::endl;
 		this->state = this->_request.error(404);
@@ -43,11 +42,9 @@ ssize_t HttpGetStaticFile::write(const uint8_t* io_buffer, const size_t buff_len
 	if (this->state.flag != SENDING_BODY)
 		return (this->HttpParser::write(io_buffer, buff_length));
 
-	_response.error(404);
-
 	if (_file_fd == -1) {
-		this->state = handler_state_t(DONE, true);
-		return (0);
+		this->state = handler_state_t(ERROR, true);
+		return (-1);
 	}
 	bytes_read = read(_file_fd, const_cast<uint8_t*>(io_buffer), buff_length);
 	if (bytes_read == 0) {

@@ -77,6 +77,8 @@ handler_state_t	HttpResponse::sendHeaders(const uint8_t* io_buffer, const size_t
 
 	if (this->_header_content.eof()) {
 		bytes_written = 0;
+		if (this->_request.isError() || this->_request.isRedirection())
+			return (handler_state_t(DONE, false));
 		return (handler_state_t(SENDING_BODY, false));
 	}
 
@@ -85,6 +87,11 @@ handler_state_t	HttpResponse::sendHeaders(const uint8_t* io_buffer, const size_t
 	// this->_header_content.read((char*) io_buffer, buff_len);
 	bytes_written = this->_header_content.gcount();
 	return (handler_state_t(SENDING_HEADERS, false));
+}
+
+handler_state_t	HttpResponse::handleError(void)
+{
+	return (handler_state_t(BUILD_HEADERS, true));
 }
 
 /*

@@ -13,7 +13,8 @@ enum handler_state_e {
 	SENDING_BODY,
 	DONE,
 	REDIRECTION,
-	ERROR
+	ERROR,
+	SENDING_ERROR_FILE
 };
 
 typedef struct state_obj {
@@ -22,7 +23,5 @@ typedef struct state_obj {
 
 	state_obj(handler_state_e f, bool c): flag(f), continue_loop(c) {}
 }	handler_state_t;
-
-typedef short unsigned int	status_t;
 
 #endif
