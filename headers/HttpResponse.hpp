@@ -22,6 +22,8 @@ class HttpResponse : public HttpMessage {
 		// const bool&				isDone(void) const;
 		handler_state_t	buildHeaders(void);
 		handler_state_t	sendHeaders(const uint8_t* io_buffer, const size_t buff_len, std::streamsize& bytes_written);
+		handler_state_t	handleError(void);
+		handler_state_t	handleRedirection(void);
 
 	protected:
 		const HttpRequest&	_request;

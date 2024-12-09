@@ -31,9 +31,6 @@ class HttpParser {
 		const bool&		checkUpgrade(void) const;
 
 		HttpParser*		upgrade(void);
-
-		void			handleRedirection(void);
-		void			handleError(void);
 };
 
 #endif

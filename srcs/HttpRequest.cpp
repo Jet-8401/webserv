@@ -1,5 +1,7 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/HttpRequest.hpp"
+#include "../headers/HttpResponse.hpp"
+#include <fcntl.h>
 #include <iostream>
 #include <algorithm>
 #include <string>
@@ -8,6 +10,8 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <cstring>
 
 static const char END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 
@@ -44,8 +48,10 @@ HttpRequest::HttpRequest(const HttpRequest& src):
 	_version(src._version),
 	_header_buff(src._header_buff, true),
 	_body(src._body, true),
+	_resolved_path(src._resolved_path),
 	_config_location_str(src._config_location_str),
 	_matching_location(src._matching_location),
+	_path_stat(src._path_stat),
 	_config_reference(src._config_reference),
 	_response(src._response),
 	_events(src._events),
@@ -83,6 +89,11 @@ const uint32_t&	HttpRequest::getEvents(void)
 {
 	this->_has_events_changed = false;
 	return (this->_events);
+}
+
+const std::string&	HttpRequest::getResolvedPath(void) const
+{
+	return (this->_resolved_path);
 }
 
 // Setters
@@ -213,6 +224,38 @@ bool	HttpRequest::_findLocation(void)
 	return (true);
 }
 
+// Resolve the path with alias, root, index, etc...
+bool	HttpRequest::_resolveLocation(void)
+{
+	const std::string&			alias = this->_matching_location->getAlias();
+	std::vector<std::string>	indexes = this->_matching_location->getIndexes();
+
+	this->_resolved_path = joinPath(this->_matching_location->getRoot(), this->_path);
+	if (!alias.empty())
+		this->_resolved_path.replace(this->_resolved_path.find(this->_config_location_str), this->_config_location_str.length(), alias);
+
+	// know test for multiples index if there is
+	std::string	full_path;
+	if (this->_method == "GET") {
+		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++) {
+			full_path = joinPath(this->_resolved_path, *it);
+			if (::stat(full_path.c_str(), &this->_path_stat) == -1) {
+				::memset(&this->_path_stat, 0, sizeof(this->_path_stat));
+				continue;
+			} else {
+				std::cout << "full_path! " << full_path;
+				this->_resolved_path = full_path;
+				return (true);
+			}
+		}
+	}
+
+	// else take the path as final try
+	if (::stat(this->_resolved_path.c_str(), &this->_path_stat) == -1)
+		return (false);
+	return (true);
+}
+
 // Check if the asked location is found and if mandatory options are ok.
 handler_state_t	HttpRequest::validateAndInitLocation(void)
 {
@@ -231,6 +274,14 @@ handler_state_t	HttpRequest::validateAndInitLocation(void)
 		DEBUG("Method not allowed !");
 		return (this->error(405));
 	}
+
+	if (!this->_resolveLocation()) {
+		DEBUG("location could not be resolved!");
+		return (this->error(404));
+	}
+
+	DEBUG("path to search on disk: " << this->_resolved_path);
+
 	return (handler_state_t(NEED_UPGRADE, true));
 }
 

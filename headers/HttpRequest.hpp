@@ -1,9 +1,9 @@
 #ifndef HTTP_REQUEST_HPP
 # define HTTP_REQUEST_HPP
 
+#include <fcntl.h>
 class HttpResponse;
 
-# include "../headers/CommonDefinitions.hpp"
 # include "Location.hpp"
 # include "ServerConfig.hpp"
 # include "HttpMessage.hpp"
@@ -22,10 +22,11 @@ class HttpRequest : public HttpMessage {
 		const std::string&	getPath(void) const;
 		const Location&		getMatchingLocation(void) const;
 		const uint32_t&		getEvents(void);
-
-		void				setEvents(const uint32_t events);
+		const std::string&	getResolvedPath(void) const;
 
 		bool				hasEventsChanged(void) const;
+
+		void				setEvents(const uint32_t events);
 
 		handler_state_t		bufferHeaders(const uint8_t* packet, size_t packet_len);
 		handler_state_t		parseHeaders(void);
@@ -39,8 +40,10 @@ class HttpRequest : public HttpMessage {
 		BytesBuffer			_header_buff;
 		StreamBuffer		_body;
 
+		std::string			_resolved_path;
 		std::string			_config_location_str;
 		Location*			_matching_location;
+		struct stat			_path_stat;
 
 		const ServerConfig&	_config_reference;
 		const HttpResponse&	_response;
@@ -53,6 +56,7 @@ class HttpRequest : public HttpMessage {
 
 		bool				_checkHeaderSyntax(const std::string& key, const std::string& value) const;
 		bool				_findLocation(void);
+		bool				_resolveLocation(void);
 };
 
 #endif

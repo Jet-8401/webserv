@@ -1,7 +1,7 @@
 #ifndef HTTP_MESSAGE_HPP
 # define HTTP_MESSAGE_HPP
 
-#include "CommonDefinitions.hpp"
+# include "CommonDefinitions.hpp"
 # include <string>
 # include <map>
 # include <stdint.h>
@@ -25,9 +25,11 @@ class HttpMessage {
 		typedef short unsigned int									status_code_t;
 
 		const status_code_t&	getStatusCode(void) const;
+		bool					isError(void) const;
+		bool					isRedirection(void) const;
 
-		void					setHeader(const std::string key, const std::string value);
-		handler_state_t			error(status_code_t status_code);
+		virtual void			setHeader(const std::string key, const std::string value);
+		virtual handler_state_t	error(status_code_t status_code);
 
 	protected:
 		headers_t					_headers;
