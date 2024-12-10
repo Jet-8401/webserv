@@ -42,11 +42,11 @@ ssize_t HttpGetDirectory::write(const uint8_t* io_buffer, const size_t buff_leng
 	static bool	   headers_sent = false;
 
 	if (this->_state.flag != SENDING_BODY)
-	return (this->HttpParser::write(io_buffer, buff_length));
+		return (this->HttpParser::write(io_buffer, buff_length));
 
 	if (_dir == NULL) {
-	this->_state = handler_state_t(ERROR, true);
-	return (-1);
+		this->_state = handler_state_t(ERROR, true);
+		return (-1);
 	}
 
 	if (!headers_sent) {

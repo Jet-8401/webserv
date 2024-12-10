@@ -2,6 +2,7 @@
 #include "../headers/HttpParser.hpp"
 #include "../headers/HttpGetStaticFile.hpp"
 #include "../headers/HttpGetDirectory.hpp"
+#include "../headers/HttpGetCGI.hpp"
 #include <cstddef>
 #include <cstring>
 #include <sys/epoll.h>
@@ -129,10 +130,13 @@ HttpParser*	HttpParser::upgrade(void)
 
 	this->_need_upgrade = false;
 	if (method == "GET") {
-		// std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
-		// if (this->_request.getMatchingLocation().getCGIs().find(extension)
-		//!= this->_request.getMatchingLocation().getCGIs().end()) {
-		//retrun new HttpGetCGI(*this);
+		std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
+		std::cout << "EXTENXion: " << extension << std::endl;
+		std::cout << "EXT ITERATOR: " << this->_request.getMatchingLocation().getCGIs().begin()->first << std::endl;
+		if (this->_request.getMatchingLocation().getCGIs().find(extension) != this->_request.getMatchingLocation().getCGIs().end())
+		{
+			return new HttpGetCGI(*this);
+		}
 		struct stat path_stat;
 		if (::stat(this->_request.getResolvedPath().c_str(), &path_stat) == 0) {
 		if (S_ISDIR(path_stat.st_mode)) {

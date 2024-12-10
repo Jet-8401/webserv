@@ -148,6 +148,7 @@ void	Connection::onEvent(::uint32_t events)
 	}
 
 	if (events & EPOLLOUT) {
+		DEBUG("Connection EPOLLOUT event");
 		bytes = this->handler->write(io_buffer, sizeof(io_buffer));
 		DEBUG("Outgoing data (" << bytes << " bytes)");
 		if (bytes == -1) {
@@ -166,7 +167,6 @@ void	Connection::onEvent(::uint32_t events)
 		{
 			delete this->handler;
 			this->handler = newUpgrade;
-			DEBUG("Handler address after upgrade: " << (void*)this->handler);
 		}
 	}
 	if (this->handler && this->handler->getRequest().hasEventsChanged()) {

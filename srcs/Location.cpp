@@ -128,9 +128,9 @@ void Location::setCgis(const std::string& value)
 	std::string ext;
 	std::string path;
 	if (!(iss >> ext >> path) || !iss.eof())
-	throw std::runtime_error("Invalid CGI format");
+		throw std::runtime_error("Invalid CGI format");
 	if (ext[0] != '.')
-	throw std::runtime_error("CGI extension must be valid");
+		throw std::runtime_error("CGI extension must be valid");
 	_cgis[ext] = path;
 }
 
