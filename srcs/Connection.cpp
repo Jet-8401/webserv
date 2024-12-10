@@ -169,7 +169,7 @@ void	Connection::onEvent(::uint32_t events)
 		this->changeEvents(this->handler->getRequest().getEvents());
 	}
 
-	if (this->handler->state.flag == DONE) {
+	if (this->handler->getState() == DONE) {
 		DEBUG("Connection done !");
 		this->_server_referer.deleteConnection(this);
 	}

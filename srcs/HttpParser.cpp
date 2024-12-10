@@ -13,14 +13,14 @@ HttpParser::HttpParser(const ServerConfig& config):
 	_need_upgrade(false),
 	_request(config, _response),
 	_response(_request),
-	state(READING_HEADERS, false)
+	_state(READING_HEADERS, false)
 {}
 
 HttpParser::HttpParser(const HttpParser& parser):
 	_need_upgrade(parser._need_upgrade),
 	_request(parser._request),
 	_response(parser._request),
-	state(parser.state)
+	_state(parser._state)
 {}
 
 HttpParser::~HttpParser(void)
@@ -51,37 +51,32 @@ bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
 {
 	do {
 		DEBUG("entering the switch in HttpParser::parse with code: " << this->state.flag);
-		switch (this->state.flag) {
+		switch (this->_state.flag) {
 			case READING_HEADERS:
-				this->state = this->_request.bufferHeaders(packet, packet_len);
+				this->_state = this->_request.bufferHeaders(packet, packet_len);
 				break;
 			case PARSE_HEADERS:
-				this->state = this->_request.parseHeaders();
+				this->_state = this->_request.parseHeaders();
 				break;
 			case VALIDATE_REQUEST:
-				this->state = this->_request.validateAndInitLocation();
+				this->_state = this->_request.validateAndInitLocation();
 				break;
 			case NEED_UPGRADE:
 				// NEED_UPGRADE is the last state before giving the responsability to the upgraded class to handle
 				// the rest of the request because we its not mandatory to wait for a body depending on the method.
 				// Expl: If a POST request, its the its responsability to make the state.flag = READING_BODY in its constructor
-				this->state = handler_state_t(READY_TO_SEND, false);
+				this->_state = handler_state_t(READY_TO_SEND, false);
 				this->_need_upgrade = true;
 				break;
 			case ERROR:
 				DEBUG("error handling not supported");
 				// fallthrough
 			default:
-				this->state.continue_loop = false;
+				this->_state.continue_loop = false;
 				break;
 		}
-	} while (this->state.continue_loop);
+	} while (this->_state.continue_loop);
 
-	// if (iterations >= MAX_ITERATIONS) {
-	// 	this->state = handler_state_t(ERROR, false);
-	// 	DEBUG("Max iterations reach for HttpParser::parse!");
-	// 	return (false);
-	// }
 	return (true);
 }
 
@@ -91,37 +86,30 @@ ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
 {
 	std::streamsize	bytes_written = -1;
 
+	// check if an error previously occured into the request, if so the response inherit its status_code
 	if (this->_request.isError() && !this->_response.isError())
-		this->state = this->_response.error(this->_request.getStatusCode());
+		this->_state = this->_response.error(this->_request.getStatusCode());
+
+	if (this->_has_error)
+		return (this->_response.handleError());
 
 	do {
 		DEBUG("entering the switch in HttpParser::write with code: " << this->state.flag);
-		switch (this->state.flag) {
-			case ERROR:
-				this->state = this->_response.handleError();
-				break;
-			// case REDIRECTION:
-			// 	this->state = this->_response.handleRedirection();
-			// 	break;
+		switch (this->_state.flag) {
 			case READY_TO_SEND:
 				// fallthrough
 			case BUILD_HEADERS:
-				this->state = this->_response.buildHeaders();
+				this->_state = this->_response.buildHeaders();
 				break;
 			case SENDING_HEADERS:
-				this->state = this->_response.sendHeaders(io_buffer, buff_len, bytes_written);
+				this->_state = this->_response.sendHeaders(io_buffer, buff_len, bytes_written);
 				break;
 			default:
-				this->state.continue_loop = false;
+				this->_state.continue_loop = false;
 				break;
 		}
-	} while (this->state.continue_loop);
+	} while (this->_state.continue_loop);
 
-	// if (iterations >= MAX_ITERATIONS) {
-	// 	this->state = handler_state_t(ERROR, false);
-	// 	DEBUG("Max iterations reach for HttpParser::parse!");
-	// 	return (-1);
-	// }
 	return (bytes_written);
 }
 
