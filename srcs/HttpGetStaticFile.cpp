@@ -16,7 +16,7 @@ HttpGetStaticFile::HttpGetStaticFile(const HttpParser& parser):
 	this->_file_fd = open(this->_request.getResolvedPath().c_str(), O_RDONLY);
 	if (this->_file_fd == -1) {
 		std::cerr << "could not open file" << std::endl;
-		this->state = this->_request.error(404);
+		this->_state = this->_request.error(404);
 	}
 }
 
@@ -39,16 +39,16 @@ ssize_t HttpGetStaticFile::write(const uint8_t* io_buffer, const size_t buff_len
 {
 	std::streamsize	bytes_read;
 
-	if (this->state.flag != SENDING_BODY)
+	if (this->_state.flag != SENDING_BODY)
 		return (this->HttpParser::write(io_buffer, buff_length));
 
 	if (_file_fd == -1) {
-		this->state = handler_state_t(ERROR, true);
+		this->_state = handler_state_t(ERROR, true);
 		return (-1);
 	}
 	bytes_read = read(_file_fd, const_cast<uint8_t*>(io_buffer), buff_length);
 	if (bytes_read == 0) {
-		this->state = handler_state_t(DONE, true);
+		this->_state = handler_state_t(DONE, true);
 		return (0);
 	}
 	return (bytes_read);
