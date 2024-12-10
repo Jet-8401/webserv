@@ -22,35 +22,35 @@ bool	HttpHandler::_validateAndInitMethod(void)
 
 	// based onto the headers check which extanded method to get
 	if (this->_method == "GET") {
-        // Vérifie d'abord si c'est un CGI
-        std::string extension = this->_path.substr(this->_path.find_last_of("."));
-        if (this->_matching_location->getCGIs().find(extension)
-            != this->_matching_location->getCGIs().end()) {
-            // this->_extanded_method = new HttpGetCGIMethod(*this);
-            return true;
-        }
+	// Vérifie d'abord si c'est un CGI
+	std::string extension = this->_path.substr(this->_path.find_last_of("."));
+	if (this->_matching_location->getCGIs().find(extension)
+	!= this->_matching_location->getCGIs().end()) {
+	// this->_extanded_method = new HttpGetCGIMethod(*this);
+	return true;
+	}
 
-        // Vérifie si c'est un répertoire
-        if (this->_path[this->_path.length() - 1] == '/') {
-            // if (this->_matching_location->getAutoIndex())
-                // this->_extanded_method = new HttpGetDirectoryMethod(*this);
-            // else
-            //     this->_extanded_method = new HttpGetStaticMethod(*this); // cherchera index
-            return true;
-        }
+	// Vérifie si c'est un répertoire
+	if (this->_path[this->_path.length() - 1] == '/') {
+	// if (this->_matching_location->getAutoIndex())
+	// this->_extanded_method = new HttpGetDirectoryMethod(*this);
+	// else
+	//	 this->_extanded_method = new HttpGetStaticMethod(*this); // cherchera index
+	return true;
+	}
 
-        // Fichier statique par défaut
-        this->_extanded_method = new HttpGetStaticMethod(*this);
-    } else if (this->_method == "POST") {
-    	std::cout << "POST" << std::endl;
-        // this->_extanded_method = new HttpPostMethod(*this);
-    } else if (this->_method == "DELETE") {
+	// Fichier statique par défaut
+	this->_extanded_method = new HttpGetStaticMethod(*this);
+	} else if (this->_method == "POST") {
+		std::cout << "POST" << std::endl;
+	// this->_extanded_method = new HttpPostMethod(*this);
+	} else if (this->_method == "DELETE") {
    	std::cout << "DELETE" << std::endl;
-        // this->_extanded_method = new HttpDeleteMethod(*this);
-    } else {
-    	std::cout << "DELETE" << std::endl;
-        this->_status_code = 501; // Not Implemented
-        return false;
-    }
+	// this->_extanded_method = new HttpDeleteMethod(*this);
+	} else {
+		std::cout << "DELETE" << std::endl;
+	this->_status_code = 501; // Not Implemented
+	return false;
+	}
 	return (true);
 }

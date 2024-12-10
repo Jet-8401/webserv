@@ -48,6 +48,7 @@ bool	Connection::isWritable(void) const
 
 int	Connection::changeEvents(::uint32_t events)
 {
+	DEBUG("Handler address at start: " << (void*)this->handler);
 	DEBUG("changing connection event to: "
 		<< (events & EPOLLIN ? "[EPOLLIN] " : "")
 		<< (events & EPOLLOUT ? "[EPOLLOUT] ": "")
@@ -59,7 +60,7 @@ int	Connection::changeEvents(::uint32_t events)
 	return (0);
 }
 
-// timespec    Connection::getTimeout(void)
+// timespec	Connection::getTimeout(void)
 // {
 // 	struct timespec	now;
 // 	clock_gettime(CLOCK_MONOTONIC, &now);
@@ -105,8 +106,8 @@ void	Connection::onOutEvent(void)
 			}
 			this->response.sendMedia(this->_socket);
 		} else if (bits & HttpResponse::DIRECTORY_LISTING) {
-            this->response._generateAutoIndex(this->_socket, this->request.getLocation());
-        }
+	this->response._generateAutoIndex(this->_socket, this->request.getLocation());
+	}
 	} else if (bits & HttpResponse::ACCEPTING_MEDIA) {
 		DEBUG("accepting media");
 		std::cout << "are media written to disk ? " << (this->response.areMediaWrittenToDisk() ? "yes" : "no") << std::endl;
@@ -161,15 +162,18 @@ void	Connection::onEvent(::uint32_t events)
 
 	if (this->handler->checkUpgrade()) {
 		HttpParser*	newUpgrade = this->handler->upgrade();
-		delete this->handler;
-		this->handler = newUpgrade;
+		if (newUpgrade != NULL)
+		{
+			delete this->handler;
+			this->handler = newUpgrade;
+			DEBUG("Handler address after upgrade: " << (void*)this->handler);
+		}
 	}
-
-	if (this->handler->getRequest().hasEventsChanged()) {
+	if (this->handler && this->handler->getRequest().hasEventsChanged()) {
 		this->changeEvents(this->handler->getRequest().getEvents());
 	}
 
-	if (this->handler->getState() == DONE) {
+	if (this->handler && this->handler->getState() == DONE) {
 		DEBUG("Connection done !");
 		this->_server_referer.deleteConnection(this);
 	}

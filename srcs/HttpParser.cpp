@@ -1,10 +1,12 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/HttpParser.hpp"
 #include "../headers/HttpGetStaticFile.hpp"
+#include "../headers/HttpGetDirectory.hpp"
 #include <cstddef>
 #include <cstring>
 #include <sys/epoll.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -44,13 +46,18 @@ const bool&	HttpParser::checkUpgrade(void) const
 	return (this->_need_upgrade);
 }
 
+enum handler_state_e HttpParser::getState(void) const
+{
+	return (this->_state.flag);
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
 {
 	do {
-		DEBUG("entering the switch in HttpParser::parse with code: " << this->state.flag);
+		DEBUG("entering the switch in HttpParser::parse with code: " << this->_state.flag);
 		switch (this->_state.flag) {
 			case READING_HEADERS:
 				this->_state = this->_request.bufferHeaders(packet, packet_len);
@@ -90,11 +97,11 @@ ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
 	if (this->_request.isError() && !this->_response.isError())
 		this->_state = this->_response.error(this->_request.getStatusCode());
 
-	if (this->_has_error)
-		return (this->_response.handleError());
+	// if (this->_has_error)
+	// 	return (this->_response.handleError());
 
 	do {
-		DEBUG("entering the switch in HttpParser::write with code: " << this->state.flag);
+		DEBUG("entering the switch in HttpParser::write with code: " << this->_state.flag);
 		switch (this->_state.flag) {
 			case READY_TO_SEND:
 				// fallthrough
@@ -122,7 +129,24 @@ HttpParser*	HttpParser::upgrade(void)
 
 	this->_need_upgrade = false;
 	if (method == "GET") {
-		return new HttpGetStaticFile(*this);
+		// std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
+		// if (this->_request.getMatchingLocation().getCGIs().find(extension)
+		//!= this->_request.getMatchingLocation().getCGIs().end()) {
+		//retrun new HttpGetCGI(*this);
+		struct stat path_stat;
+		if (::stat(this->_request.getResolvedPath().c_str(), &path_stat) == 0) {
+		if (S_ISDIR(path_stat.st_mode)) {
+				// If it's a directory
+				if (this->_request.getMatchingLocation().getAutoIndex()) {
+					return new HttpGetDirectory(*this);
+				}
+				return new HttpGetStaticFile(*this);
+			} else if (S_ISREG(path_stat.st_mode)) {
+				// If it's a regular file
+				return new HttpGetStaticFile(*this);
+			}
+		}
+		DEBUG("Path does not exist or is not accessible: " << this->_request.getResolvedPath());
 	}
-	return (0);
+	return NULL;
 }

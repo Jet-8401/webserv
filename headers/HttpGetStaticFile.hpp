@@ -4,15 +4,15 @@
 # include "HttpParser.hpp"
 
 class HttpGetStaticFile : public HttpParser {
-    private:
-        int			_file_fd;
+	private:
+	int			_file_fd;
 
-    public:
-        HttpGetStaticFile(const HttpParser& parser);
-        virtual ~HttpGetStaticFile(void);
+	public:
+	HttpGetStaticFile(const HttpParser& parser);
+	virtual ~HttpGetStaticFile(void);
 
-        bool	parse(const uint8_t* packet, const size_t packet_size);
-        ssize_t write(const uint8_t* io_buffer, const size_t buff_length);
+	bool	parse(const uint8_t* packet, const size_t packet_size);
+	ssize_t write(const uint8_t* io_buffer, const size_t buff_length);
 };
 
 #endif

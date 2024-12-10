@@ -26,9 +26,9 @@ class ServerConfig {
 
 		// Setters
 		void	setAdress(const std::string& value);
-        void	setServerName(const std::string& value);
-        void	addLocation(const std::string& path, Location* location);
-        void	setMaxConnections(const std::string& value);
+	void	setServerName(const std::string& value);
+	void	addLocation(const std::string& path, Location* location);
+	void	setMaxConnections(const std::string& value);
 
 	protected:
 		std::vector<std::string>	_server_names;

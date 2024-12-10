@@ -30,7 +30,7 @@ class HttpParser {
 		HttpResponse&				getResponse(void);
 		HttpRequest&				getRequest(void);
 		const bool&					checkUpgrade(void) const;
-		const enum handler_state_e	getState(void) const;
+		enum handler_state_e		getState(void) const;
 
 		HttpParser*					upgrade(void);
 };

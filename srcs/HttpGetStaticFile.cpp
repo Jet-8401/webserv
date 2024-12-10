@@ -23,9 +23,9 @@ HttpGetStaticFile::HttpGetStaticFile(const HttpParser& parser):
 HttpGetStaticFile::~HttpGetStaticFile()
 {
 	if (_file_fd != -1) {
-        close(_file_fd);
-        _file_fd = -1;
-    }
+	close(_file_fd);
+	_file_fd = -1;
+	}
 }
 
 bool HttpGetStaticFile::parse(const uint8_t* packet, const size_t packet_size)

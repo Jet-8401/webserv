@@ -85,47 +85,47 @@ int ServerCluster::importConfig(const std::string& config_path)
 {
 	std::ifstream file(config_path.c_str());
 	if (!file.is_open())
-    	return (error(ERR_FILE_OPEN + config_path, true), -1);
+		return (error(ERR_FILE_OPEN + config_path, true), -1);
 
 	std::stringstream ss;
 	ss << file.rdbuf();
 	file.close();
 
-    std::string token;
-    while (ss >> token)
-    {
-        if (token == "http")
-        {
-            if (parseHttpBlock(ss) < 0)
-                return (-1);
-        }
-    }
-    return (0);
+	std::string token;
+	while (ss >> token)
+	{
+	if (token == "http")
+	{
+	if (parseHttpBlock(ss) < 0)
+	return (-1);
+	}
+	}
+	return (0);
 }
 
 int ServerCluster::parseHttpBlock(std::stringstream& ss)
 {
-    std::string token;
-    ss >> token;
-    if (token != "{")
-        return (error("Expected '{' after http", true), -1);
+	std::string token;
+	ss >> token;
+	if (token != "{")
+	return (error("Expected '{' after http", true), -1);
 
-    Location http_location;
-    parseHttpBlockDefault(ss, &http_location);
+	Location http_location;
+	parseHttpBlockDefault(ss, &http_location);
 
-    while (ss >> token)
-    {
-        if (token == "}")
-            return (0);
-        else if (token == "server")
-        {
-            ServerConfig config;
-            if (parseServerBlock(ss, config, &http_location) < 0)
-                return (-1);
-        }
-    }
-    std::cout << "FUCK"<< ss.eof() << std::endl;
-    return (error("Unexpected end of http block", true), -1);
+	while (ss >> token)
+	{
+	if (token == "}")
+	return (0);
+	else if (token == "server")
+	{
+	ServerConfig config;
+	if (parseServerBlock(ss, config, &http_location) < 0)
+	return (-1);
+	}
+	}
+	std::cout << "FUCK"<< ss.eof() << std::endl;
+	return (error("Unexpected end of http block", true), -1);
 }
 
 int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_location)
