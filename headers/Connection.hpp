@@ -9,7 +9,7 @@ class Connection;
 # include "HttpServer.hpp"
 # include "HttpParser.hpp"
 
-# define PACKETS_SIZE 32
+# define PACKETS_SIZE 2048
 
 class Connection {
 	private:

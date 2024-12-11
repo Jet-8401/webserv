@@ -28,6 +28,7 @@
 # define ERR_WRITING_FILE "An error occured while writing a file"
 # define ERR_DIR_OPENING "An error occured while opening a directory"
 # define ERR_SOCKET_WRITE "An error occured while writing to a socket"
+# define ERR_STAT "Cannot get a file status"
 
 # ifdef DEBUGGER
 
