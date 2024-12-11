@@ -23,7 +23,7 @@ class HttpParser {
 		handler_state_t				_sendingErrorPage(const uint8_t* io_buffer, const size_t buff_len,
 										std::streamsize& bytes_written);
 		bool						_has_error;
-		std::string					_error_page_name;
+		std::string					_error_page_path;
 		int							_error_page_fd;
 
 	public:

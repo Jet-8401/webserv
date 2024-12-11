@@ -11,6 +11,7 @@ HttpGetStaticFile::HttpGetStaticFile(const HttpParser& parser):
 {
 	// switching directly to EPOLLOUT
 	this->_request.setEvents(EPOLLOUT);
+	this->_state = handler_state_t(READY_TO_SEND, true);
 
 	std::cout << "{" << this->_request.getResolvedPath().c_str() << "}" << std::endl;
 	this->_file_fd = open(this->_request.getResolvedPath().c_str(), O_RDONLY);

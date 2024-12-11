@@ -21,16 +21,19 @@ class HttpRequest : public HttpMessage {
 		const std::string&	getMethod(void) const;
 		const std::string&	getPath(void) const;
 		const Location&		getMatchingLocation(void) const;
+		const bool&			hasEventsChanged(void) const;
 		const uint32_t&		getEvents(void);
 		const std::string&	getResolvedPath(void) const;
-
-		bool				hasEventsChanged(void) const;
+		const std::string&	getConfigLocationStr(void) const;
+		StreamBuffer&		getBody(void);
 
 		void				setEvents(const uint32_t events);
 
 		handler_state_t		bufferHeaders(const uint8_t* packet, size_t packet_len);
 		handler_state_t		parseHeaders(void);
 		handler_state_t		validateAndInitLocation(void);
+
+		const static char 	END_SEQUENCE[4];
 
 	protected:
 		std::string			_method;

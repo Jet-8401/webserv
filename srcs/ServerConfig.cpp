@@ -125,3 +125,21 @@ void	ServerConfig::setMaxConnections(const std::string& value)
 
 	iss >> _max_connections;
 }
+
+// Try to check for a matching location.
+// Will never return false unless one the pointer is null, therefore an error occured previously.
+ServerConfig::locations_t::const_iterator ServerConfig::findLocation(const std::string& path) const
+{
+	ServerConfig::locations_t::const_iterator	it;
+	ServerConfig::locations_t::const_iterator	matching = this->_locations.end();
+
+	// Take the matching location/route
+	for (it = this->_locations.begin(); it != this->_locations.end(); it++) {
+		if (path.find(it->first) == 0 &&
+			(matching == this->_locations.end() || it->first.length() >= matching->first.length()))
+			matching = it;
+	}
+	if (!matching->second)
+		return (this->_locations.end());
+	return (matching);
+}

@@ -144,5 +144,5 @@ ssize_t	StreamBuffer::consume_until(void* dest, void* key, size_t key_length)
 			return bytes_to_copy;
 		}
 	}
-	return -1;
+	return 0;
 }

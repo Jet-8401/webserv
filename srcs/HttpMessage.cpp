@@ -50,7 +50,28 @@ bool	HttpMessage::isRedirection(void) const
 	return (this->_status_code >= 300 && this->_status_code < 400);
 }
 
-// Function memebers
+std::string	HttpMessage::getHeader(const std::string key)
+{
+	headers_t::const_iterator	it = this->_headers.find(key);
+	if (it == this->_headers.end())
+		return ("");
+	return (it->second);
+}
+
+// Setters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+void	HttpMessage::setStatusCode(const status_code_t code)
+{
+	this->_status_code = code;
+}
+
+void	HttpMessage::setHeader(const std::string key, const std::string value)
+{
+	this->_headers.insert(std::pair<const std::string, const std::string>(key, value));
+}
+
+// Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 handler_state_t	HttpMessage::error(status_code_t status_code)
@@ -58,9 +79,4 @@ handler_state_t	HttpMessage::error(status_code_t status_code)
 	this->_status_code = status_code;
 	DEBUG("changed status code to -> " << status_code);
 	return (handler_state_t(ERROR, true));
-}
-
-void	HttpMessage::setHeader(const std::string key, const std::string value)
-{
-	this->_headers.insert(std::pair<const std::string, const std::string>(key, value));
 }

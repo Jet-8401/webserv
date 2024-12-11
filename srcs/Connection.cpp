@@ -66,67 +66,6 @@ int	Connection::changeEvents(::uint32_t events)
 // 	return (now);
 // }
 
-/*
-void	Connection::onInEvent(void)
-{
-	if (this->request.getStatusCode() >= 400) {
-		this->changeEvents(EPOLLOUT);
-		return ;
-	}
-
-	this->request.bufferIncomingData(this->_socket);
-
-	// If headers are received, parse them and prepare the response.
-	if (this->request.headersReceived() && this->isWritable()) {
-		this->changeEvents(EPOLLIN | EPOLLOUT);
-		this->response.handleRequest(this->_server_referer.getConfig(), this->request);
-		if (this->response.status_code >= 400)
-			this->response.handleError();
-	}
-
-	if (this->response.getActionBits() & HttpResponse::ACCEPTING_MEDIA)
-		this->response.writeMediaToDisk(request);
-}
-
-void	Connection::onOutEvent(void)
-{
-	std::cout << "request status code: " << this->request.getStatusCode() << std::endl;
-	std::cout << "response status code: " << this->response.status_code << std::endl;
-
-	// Do the action specified by the bitflag.
-	// Taking in consideration that errors are already handled at this point
-	const ::uint8_t	bits = this->response.getActionBits();
-	if (bits & HttpResponse::SENDING_MEDIA) {
-		if (bits & HttpResponse::STATIC_FILE) {
-			if (!this->response.areHeadersSent()) {
-				this->response.setStaticMediaHeaders();
-				this->response.sendHeaders(this->_socket);
-				return ;
-			}
-			this->response.sendMedia(this->_socket);
-		} else if (bits & HttpResponse::DIRECTORY_LISTING) {
-            this->response._generateAutoIndex(this->_socket, this->request.getLocation());
-        }
-	} else if (bits & HttpResponse::ACCEPTING_MEDIA) {
-		DEBUG("accepting media");
-		std::cout << "are media written to disk ? " << (this->response.areMediaWrittenToDisk() ? "yes" : "no") << std::endl;
-		if (!this->response.areMediaWrittenToDisk())
-			return ;
-		this->response.sendHeaders(this->_socket);
-		this->_server_referer.deleteConnection(this);
-		return ;
-	} else if (bits & HttpResponse::DELETING_MEDIA) {
-
-	} else {
-		this->response.sendHeaders(this->_socket);
-		this->_server_referer.deleteConnection(this);
-		return ;
-	}
-
-	if (this->response.isDone())
-		this->_server_referer.deleteConnection(this);
-}
-*/
 void	Connection::onEvent(::uint32_t events)
 {
 	uint8_t	io_buffer[PACKETS_SIZE];
@@ -160,9 +99,14 @@ void	Connection::onEvent(::uint32_t events)
 	}
 
 	if (this->handler->checkUpgrade()) {
+		DEBUG("trying to upgrade");
 		HttpParser*	newUpgrade = this->handler->upgrade();
-		delete this->handler;
-		this->handler = newUpgrade;
+		if (newUpgrade) {
+			delete this->handler;
+			this->handler = newUpgrade;
+		} else {
+			DEBUG("Did not find any upgrades!");
+		}
 	}
 
 	if (this->handler->getRequest().hasEventsChanged()) {

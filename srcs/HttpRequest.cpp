@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <cstring>
 
-static const char END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
+const char HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 
 void	string_trim(std::string& str)
 {
@@ -80,7 +80,7 @@ const Location&	HttpRequest::getMatchingLocation(void) const
 	return (*this->_matching_location);
 }
 
-bool	HttpRequest::hasEventsChanged(void) const
+const bool&	HttpRequest::hasEventsChanged(void) const
 {
 	return (this->_has_events_changed);
 }
@@ -94,6 +94,16 @@ const uint32_t&	HttpRequest::getEvents(void)
 const std::string&	HttpRequest::getResolvedPath(void) const
 {
 	return (this->_resolved_path);
+}
+
+const std::string&	HttpRequest::getConfigLocationStr(void) const
+{
+	return (this->_config_location_str);
+}
+
+StreamBuffer&	HttpRequest::getBody(void)
+{
+	return (this->_body);
 }
 
 // Setters
@@ -203,27 +213,6 @@ handler_state_t	HttpRequest::parseHeaders(void)
 	return (handler_state_t(VALIDATE_REQUEST, true));
 }
 
-// Try to check for a matching location.
-// Will never return false unless one the pointer is null, therefore an error occured previously.
-bool	HttpRequest::_findLocation(void)
-{
-	ServerConfig::locations_t					server_locations = _config_reference.getLocations();
-	ServerConfig::locations_t::const_iterator	it;
-	ServerConfig::locations_t::const_iterator	matching = server_locations.end();
-
-	// Take the matching location/route
-	for (it = server_locations.begin(); it != server_locations.end(); it++) {
-		if (this->_path.find(it->first) == 0 &&
-			(matching == server_locations.end() || it->first.length() >= matching->first.length()))
-			matching = it;
-	}
-	if (!matching->second)
-		return (false);
-	this->_config_location_str = matching->first;
-	this->_matching_location = matching->second;
-	return (true);
-}
-
 // Resolve the path with alias, root, index, etc...
 bool	HttpRequest::_resolveLocation(void)
 {
@@ -259,14 +248,18 @@ bool	HttpRequest::_resolveLocation(void)
 // Check if the asked location is found and if mandatory options are ok.
 handler_state_t	HttpRequest::validateAndInitLocation(void)
 {
+	ServerConfig::locations_t::const_iterator	matching;
 	DEBUG("_validateAndInitMethod called");
 
 	// try to match a location
-	if (!this->_findLocation()) {
+	matching = this->_config_reference.findLocation(this->_path);
+	if (matching == this->_config_reference.getLocations().end()) {
 		DEBUG("didn't find any locations");
 		return (this->error(500));
 	}
 
+	this->_config_location_str = matching->first;
+	this->_matching_location = matching->second;
 	DEBUG(this->_config_location_str << " found!");
 
 	// check if method is allowed

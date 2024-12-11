@@ -1,6 +1,7 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/HttpParser.hpp"
 #include "../headers/HttpGetStaticFile.hpp"
+#include "../headers/HttpPost.hpp"
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
@@ -65,7 +66,7 @@ const enum handler_state_e&	HttpParser::getState(void) const
 handler_state_t	HttpParser::_sendingErrorPage(const uint8_t* io_buffer, const size_t buff_len,
 	std::streamsize& bytes_written)
 {
-	if (this->_error_page_fd == -1)
+	if (this->_error_page_fd == -1 && this->_has_error)
 		return (handler_state_t(DONE, true));
 	return (this->_response.sendBody(io_buffer, buff_len, bytes_written, this->_error_page_fd));
 }
@@ -88,13 +89,13 @@ bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
 				// NEED_UPGRADE is the last state before giving the responsability to the upgraded class to handle
 				// the rest of the request because we its not mandatory to wait for a body depending on the method.
 				// Expl: If a POST request, its the its responsability to make the state.flag = READING_BODY in its constructor
-				this->_state = handler_state_t(READY_TO_SEND, false);
+				this->_state = handler_state_t(READING_BODY, false);
 				this->_need_upgrade = true;
 				break;
 			case ERROR:
-				this->_request.setEvents(EPOLLOUT);
 				// fallthrough
 			default:
+				this->_request.setEvents(EPOLLOUT);
 				this->_state.continue_loop = false;
 				break;
 		}
@@ -156,8 +157,10 @@ handler_state_t	HttpParser::handleError(void)
 			return (handler_state_t(BUILD_HEADERS, true));
 		}
 
-		this->_error_page_name = *err_page->second;
-		if (::stat(this->_error_page_name.c_str(), &file_stats) == -1) {
+		this->_error_page_path = joinPath(location.getRoot(), *err_page->second);
+		DEBUG("error page paht: " << this->_error_page_path);
+
+		if (::stat(this->_error_page_path.c_str(), &file_stats) == -1) {
 			error(ERR_STAT, true);
 			return (handler_state_t(BUILD_HEADERS, true));
 		}
@@ -165,13 +168,13 @@ handler_state_t	HttpParser::handleError(void)
 		if (S_ISDIR(file_stats.st_mode))
 			return (handler_state_t(BUILD_HEADERS, true));
 
-		this->_error_page_fd = ::open(this->_error_page_name.c_str(), O_RDONLY);
+		this->_error_page_fd = ::open(this->_error_page_path.c_str(), O_RDONLY);
 		if (this->_error_page_fd == -1) {
 			error(ERR_READING_FILE, true);
 			return (handler_state_t(BUILD_HEADERS, true));
 		}
 
-		DEBUG("an error occured, the path to file is: " << this->_error_page_name);
+		DEBUG("an error occured, the path to file is: " << this->_error_page_path);
 	}
 
 	return (handler_state_t(BUILD_HEADERS, true));
@@ -187,6 +190,8 @@ HttpParser*	HttpParser::upgrade(void)
 	this->_need_upgrade = false;
 	if (method == "GET") {
 		return new HttpGetStaticFile(*this);
+	} else if (method == "POST") {
+		return new HttpPost(*this);
 	}
 	return (0);
 }
