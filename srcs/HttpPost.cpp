@@ -58,13 +58,13 @@ bool	HttpPost::parse(const uint8_t* packet, const size_t packet_size)
 				break;
 			case UP_HEADER_RECEIVED:
 				DEBUG("file headers received");
-				std::exit(0);
+				this->_uploading_state = this->_setupAndCheckFile();
+				break;
+			case UP_FILE_CREATE:
+				this->_uploading_state = this->_createFile();
 				break;
 			case UP_ERROR:
-				this->_state = this->_request.error(500);
-				this->_uploading_state.continue_loop = false;
 				return (this->HttpParser::parse(packet, 0));
-				break;
 			default:
 				DEBUG("default handling of HttoPost::parse switch with flag -> " << this->_uploading_state.flag);
 				this->_uploading_state.continue_loop = false;
@@ -83,6 +83,12 @@ ssize_t HttpPost::write(const uint8_t* io_buffer, const size_t buff_len)
 	return (0);
 }
 
+uploading_state_t	HttpPost::_error(const short unsigned int status_code)
+{
+	this->_request.error(status_code);
+	return (uploading_state_t(UP_ERROR, false));
+}
+
 uploading_state_t	HttpPost::_bufferHeaders(const uint8_t* packet, const size_t packet_size)
 {
 	StreamBuffer&	body = this->_request.getBody();
@@ -95,7 +101,12 @@ uploading_state_t	HttpPost::_bufferHeaders(const uint8_t* packet, const size_t p
 	}
 
 	// search for the end sequence
-	bytes = body.consume_until(file_headers_buff, (char*) HttpRequest::END_SEQUENCE, sizeof(HttpRequest::END_SEQUENCE));
+	bytes = body.consume_until(
+		(void**) &file_headers_buff,
+		(char*) HttpRequest::END_SEQUENCE,
+		sizeof(HttpRequest::END_SEQUENCE)
+	);
+	DEBUG("bytes consumed -> " << bytes);
 	if (bytes == -1) {
 		error("Error while consuming the stream buffer", false);
 		return uploading_state_t(UP_ERROR, true);
@@ -103,9 +114,51 @@ uploading_state_t	HttpPost::_bufferHeaders(const uint8_t* packet, const size_t p
 
 	if (bytes > 0) {
 		this->_headers_content.write(reinterpret_cast<char*>(file_headers_buff), bytes);
-		std::cout << "header file content" << std::endl;
-		std::cout << this->_headers_content.str() << std::endl;
+		delete [] file_headers_buff;
 		return (uploading_state_t(UP_HEADER_RECEIVED, true));
 	}
 	return (uploading_state_t(UP_BUFFER_HEADERS, false));
+}
+
+uploading_state_t	HttpPost::_setupAndCheckFile(void)
+{
+	std::string	str;
+
+	// first check if the key match
+	this->_headers_content >> str;
+	std::cout << str << std::endl;
+	std::cout << this->_multipart_key << std::endl;
+	if (str != this->_multipart_key)
+		return (this->_error(400));
+
+	std::string	key, value;
+	this->_headers_content.ignore();
+	while (std::getline(this->_headers_content, str)) {
+		if (str.empty())
+			continue;
+		size_t	colon_pos = str.find(':');
+		if (colon_pos == std::string::npos)
+			continue;
+
+		// separate the key and value, then triming them
+		key = str.substr(0, colon_pos);
+		string_trim(key);
+		value = str.substr(colon_pos + 1);
+		string_trim(value);
+		this->_file_headers.insert(std::pair<const std::string, const std::string>(key, value));
+	}
+	return (uploading_state_t(UP_FILE_CREATE, true));
+}
+
+uploading_state_t	HttpPost::_createFile(void)
+{
+	DEBUG("create file");
+	HttpMessage::headers_t::const_iterator	it;
+
+	for (it = this->_file_headers.begin(); it != this->_file_headers.end(); it++) {
+		std::cout << "key: " << it->first << " value: " << it->second << std::endl;
+	}
+
+	std::exit(0);
+	return (uploading_state_t(UP_WRITING_FILE, false));
 }

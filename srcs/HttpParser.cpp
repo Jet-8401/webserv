@@ -66,7 +66,7 @@ const enum handler_state_e&	HttpParser::getState(void) const
 handler_state_t	HttpParser::_sendingErrorPage(const uint8_t* io_buffer, const size_t buff_len,
 	std::streamsize& bytes_written)
 {
-	if (this->_error_page_fd == -1 && this->_has_error)
+	if (this->_error_page_fd == -1)
 		return (handler_state_t(DONE, true));
 	return (this->_response.sendBody(io_buffer, buff_len, bytes_written, this->_error_page_fd));
 }
@@ -111,7 +111,7 @@ ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
 	std::streamsize	bytes_written = -1;
 
 	do {
-		DEBUG("entering the switch in HttpParser::write with code: " << this->_state.flag);
+		DEBUG("entering the switch in HttpParser::write with code -> " << this->_state.flag);
 		switch (this->_state.flag) {
 			case READY_TO_SEND:
 				// fallthrough

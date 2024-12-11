@@ -15,7 +15,7 @@ class StreamBuffer {
 		uint8_t*	_intern_buffer;
 
 	public:
-		StreamBuffer(void); // default size at 0
+		StreamBuffer(void);
 		StreamBuffer(const size_t buffer_size);
 		StreamBuffer(const StreamBuffer& src, bool takeOwnership);
 		virtual ~StreamBuffer(void);
@@ -26,7 +26,7 @@ class StreamBuffer {
 		// I/O opearations
 		ssize_t	write(const void* data, const size_t size);
 		ssize_t	consume(void* dest, size_t chunk_size);
-		ssize_t	consume_until(void* dest, void* key, size_t key_lenght);
+		ssize_t	consume_until(void** dest, void* key, size_t key_lenght);
 };
 
 #endif

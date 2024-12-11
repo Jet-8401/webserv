@@ -15,25 +15,12 @@
 
 const char HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 
-void	string_trim(std::string& str)
-{
-	size_t	i;
-
-	i = str.find_first_not_of(" \t");
-	if (i != std::string::npos)
-		str.erase(0, i);
-	i = str.find_last_not_of(" \t");
-	if (i != std::string::npos)
-		str.erase(i + 1);
-	return ;
-}
-
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpRequest::HttpRequest(const ServerConfig& config, const HttpResponse& response):
 	HttpMessage(),
-	_body(64000),
+	_body(),
 	_matching_location(0),
 	_config_reference(config),
 	_response(response),
@@ -147,7 +134,6 @@ handler_state_t	HttpRequest::bufferHeaders(const uint8_t* packet, size_t packet_
 	std::cout << "buffer size: " << this->_header_buff.size() << std::endl;
 	std::cout << (char*) buffer;
 	if (this->_end_header_index != this->_header_buff.size()) {
-		std::cout << "body is inside the packet" << std::endl;
 		this->_body.write(buffer + this->_end_header_index, this->_header_buff.size() - this->_end_header_index);
 	}
 	return (handler_state_t(PARSE_HEADERS, true));
@@ -198,7 +184,7 @@ handler_state_t	HttpRequest::parseHeaders(void)
 			continue;
 		size_t	colon_pos = str.find(':');
 		if (colon_pos == std::string::npos)
-			continue ;
+			continue;
 
 		// separate the key and value, then triming them
 		key = str.substr(0, colon_pos);
