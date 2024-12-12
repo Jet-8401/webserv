@@ -15,3 +15,4 @@
 - refactor Connection::onEvent logic ✓
 - check for safety reason the POST method
 - add proper log message for StreamBuffer errors
+- bug when not puting ';' at the end of the .conf file
