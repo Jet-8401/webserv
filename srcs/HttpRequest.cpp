@@ -13,14 +13,14 @@
 #include <sys/stat.h>
 #include <cstring>
 
-const char HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
+const uint8_t HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpRequest::HttpRequest(const ServerConfig& config, const HttpResponse& response):
 	HttpMessage(),
-	_body(),
+	_body(64000),
 	_matching_location(0),
 	_config_reference(config),
 	_response(response),

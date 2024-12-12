@@ -29,6 +29,9 @@
 # define ERR_DIR_OPENING "An error occured while opening a directory"
 # define ERR_SOCKET_WRITE "An error occured while writing to a socket"
 # define ERR_STAT "Cannot get a file status"
+# define ERR_FILE_CREATION "Cannot create a file"
+# define ERR_BUFF_WRITING "Error while writing in the stream buffer"
+# define ERR_BUFF_CONSUME "Error while consuming the stream buffer"
 
 # ifdef DEBUGGER
 

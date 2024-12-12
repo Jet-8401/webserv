@@ -18,7 +18,7 @@ StreamBuffer::StreamBuffer(void):
 	_head(0),
 	_tail(0)
 {
-	this->_intern_buffer = new uint8_t[this->_allocated_size];
+	this->_intern_buffer = new uint8_t[this->_allocated_size]();
 }
 
 StreamBuffer::StreamBuffer(const size_t buffer_size):
@@ -27,7 +27,7 @@ StreamBuffer::StreamBuffer(const size_t buffer_size):
 	_head(0),
 	_tail(0)
 {
-	this->_intern_buffer = new uint8_t[this->_allocated_size];
+	this->_intern_buffer = new uint8_t[this->_allocated_size]();
 }
 
 StreamBuffer::StreamBuffer(const StreamBuffer& src, bool takeOwnership):
@@ -75,11 +75,6 @@ ssize_t StreamBuffer::write(const void* data, const size_t size)
 	const uint8_t* src = static_cast<const uint8_t*>(data);
 	size_t bytes_until_end = this->_allocated_size - this->_tail;
 
-	std::cout << "size to write: " << size << std::endl;
-
-	std::cout << "At the begining ->" << std::endl;
-	std::cout << "this->_tail: " << this->_tail << std::endl;
-
 	if (size > bytes_until_end) {
 		::memcpy(this->_intern_buffer + this->_tail, src, bytes_until_end);
 		::memcpy(this->_intern_buffer, src + bytes_until_end, size - bytes_until_end);
@@ -89,11 +84,8 @@ ssize_t StreamBuffer::write(const void* data, const size_t size)
 		this->_tail = (this->_tail + size) % this->_allocated_size;
 	}
 
-	std::cout << "At the end ->" << std::endl;
-	std::cout << "this->_tail: " << this->_tail << std::endl;
-
 	this->_size += size;
-	return size;
+	return (this->_size);
 }
 
 // Might return less that chunk_size
@@ -128,30 +120,21 @@ ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
     return bytes_copied;
 }
 
-ssize_t	StreamBuffer::consume_until(void** dest, void* key, size_t key_length)
+// Will try to consume everything until `key` is found.
+// Only it was found that the function will allocate a buffer and put into dest.
+// If not the function MUST NOT allocate anything !
+ssize_t	StreamBuffer::consume_until(void** dest, const void* key, const size_t key_length)
 {
 	if (!key || key_length == 0 || _size < key_length || !_intern_buffer)
 		return -1;
 
 	uint8_t** dest_ptr = reinterpret_cast<uint8_t**>(dest);
-	uint8_t* key_ptr = reinterpret_cast<uint8_t*>(key);
+	const uint8_t* key_ptr = reinterpret_cast<const uint8_t*>(key);
 	size_t pos = _head;
 
-	std::cout << "array size: " << this->_size << std::endl;
-	std::cout << "key length: " << key_length << std::endl;
-	std::cout << "allocated size: " << this->_allocated_size << std::endl;
-
-	std::cout << "Starting consume_until with: " << std::endl
-          << "pos: " << pos << std::endl
-          << "key_length: " << key_length << std::endl
-          << "allocated_size: " << _allocated_size << std::endl
-          << "size: " << _size << std::endl;
-
 	for (size_t remaining = _size; remaining >= key_length; pos = (pos + 1) % _allocated_size, remaining--) {
-		if (_intern_buffer[pos] == key_ptr[0])
-			continue;
-		size_t i;
-		for (i = 1; i < key_length; i++) {
+		size_t	i = 0;
+		for (; i < key_length; i++) {
 			if (_intern_buffer[(pos + i) % _allocated_size] != key_ptr[i])
 				break;
 		}

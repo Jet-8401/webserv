@@ -1,7 +1,6 @@
 #ifndef HTTP_REQUEST_HPP
 # define HTTP_REQUEST_HPP
 
-#include <fcntl.h>
 class HttpResponse;
 
 # include "Location.hpp"
@@ -11,6 +10,7 @@ class HttpResponse;
 # include "StreamBuffer.hpp"
 # include <string>
 # include <stdint.h>
+# include <fcntl.h>
 
 class HttpRequest : public HttpMessage {
 	public:
@@ -33,7 +33,7 @@ class HttpRequest : public HttpMessage {
 		handler_state_t		parseHeaders(void);
 		handler_state_t		validateAndInitLocation(void);
 
-		const static char 	END_SEQUENCE[4];
+		const static uint8_t	END_SEQUENCE[4];
 
 	protected:
 		std::string			_method;

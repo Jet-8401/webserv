@@ -47,14 +47,16 @@ std::string	joinPath(const std::string& path1, const std::string& path2)
 	}
 }
 
+#define NON_DESIRABLES_STR " \t\r\n"
+
 void	string_trim(std::string& str)
 {
 	size_t	i;
 
-	i = str.find_first_not_of(" \t");
+	i = str.find_first_not_of(NON_DESIRABLES_STR);
 	if (i != std::string::npos)
 		str.erase(0, i);
-	i = str.find_last_not_of(" \t");
+	i = str.find_last_not_of(NON_DESIRABLES_STR);
 	if (i != std::string::npos)
 		str.erase(i + 1);
 	return ;

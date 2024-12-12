@@ -128,5 +128,5 @@ int main(int argc, char* argv[]) {
 
     cluster.run();
 
-    return 0;
+    return (0);
 }
