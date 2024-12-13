@@ -20,6 +20,7 @@ static const std::string	BOUNDARY_KEY = "multipart/form-data; boundary=";
 
 HttpPost::HttpPost(const HttpParser& src):
 	HttpParser(src),
+	_file_fd(-1),
 	_uploading_state(UP_BUFFER_HEADERS, false)
 {
 	StreamBuffer&	body = this->_request.getBody();

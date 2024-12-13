@@ -14,7 +14,6 @@ HttpGetCGI::HttpGetCGI(const HttpParser& parser):
 	_cgi_pid(-1),
 	_headers("HTTP/1.1 200 OK\r\n"
 			"Content-Type: text/html\r\n"
-			"Connection: keep-alive\r\n"
 			"\r\n"),
 	_headers_pos(0)
 {
@@ -43,7 +42,7 @@ void	HttpGetCGI::executeCGI(void)
 {
 	this->_cgi_pid = fork();
 	if (this->_cgi_pid == -1) {
-		this->_request.error(500);
+		this->_state = this->_request.error(500);
 		return;
 	}
 
