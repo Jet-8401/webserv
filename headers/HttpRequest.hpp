@@ -26,6 +26,7 @@ class HttpRequest : public HttpMessage {
 		const std::string&	getResolvedPath(void) const;
 		const std::string&	getConfigLocationStr(void) const;
 		StreamBuffer&		getBody(void);
+		const struct stat&	getPathStat(void) const;
 
 		void				setEvents(const uint32_t events);
 

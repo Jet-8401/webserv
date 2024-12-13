@@ -32,6 +32,7 @@
 # define ERR_FILE_CREATION "Cannot create a file"
 # define ERR_BUFF_WRITING "Error while writing in the stream buffer"
 # define ERR_BUFF_CONSUME "Error while consuming the stream buffer"
+# define ERR_FILE_DELETION "Impossible to delete file"
 
 # ifdef DEBUGGER
 

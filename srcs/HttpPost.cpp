@@ -2,12 +2,14 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/CommonDefinitions.hpp"
 #include "../headers/Connection.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
 #include <string>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cstdio>
 
 #define MAX_ITERATIONS 100
 
@@ -35,7 +37,6 @@ HttpPost::HttpPost(const HttpParser& src):
 
 	this->_multipart_key = "--" + content_type.substr(pos + BOUNDARY_KEY.length());
 	DEBUG("multipart key=" << this->_multipart_key);
-
 	if (body.size() == 0)
 		return;
 
@@ -48,7 +49,10 @@ HttpPost::HttpPost(const HttpParser& src):
 }
 
 HttpPost::~HttpPost(void)
-{}
+{
+	if (this->_file_fd != -1)
+		close(this->_file_fd);
+}
 
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -96,8 +100,15 @@ ssize_t HttpPost::write(const uint8_t* io_buffer, const size_t buff_len)
 
 uploading_state_t	HttpPost::_error(const short unsigned int status_code)
 {
-	this->_request.error(status_code);
-	return (uploading_state_t(UP_ERROR, false));
+	this->_state = this->_request.error(status_code);
+
+	// if file has been created, delete it
+	if (this->_file_fd != -1 && std::remove(this->_full_path.c_str()) != 0)
+		error(ERR_FILE_DELETION, true);
+	else
+		DEBUG("File deleted at: " << this->_full_path);
+
+	return (uploading_state_t(UP_ERROR, true));
 }
 
 uploading_state_t	HttpPost::_bufferHeaders(const uint8_t* packet, const size_t packet_size)
@@ -185,7 +196,6 @@ uploading_state_t	HttpPost::_createFile(void)
 	uint8_t			packet[PACKETS_SIZE];
 	ssize_t			bytes = 0;
 
-	// Accept only if the ressource don't already exist, else its an error and it should be deleted first.
 	this->_full_path = joinPath(location.getRoot(), this->_request.getPath());
 	this->_full_path = joinPath(this->_full_path, this->_file_name);
 	DEBUG("trying to create file at: " << this->_full_path);
@@ -205,7 +215,6 @@ uploading_state_t	HttpPost::_createFile(void)
 		return (this->_writeToFile(packet, bytes));
 	} else if (bytes == -1)
 		return (this->_error(500));
-
 	return (uploading_state_t(UP_WRITING_FILE, false));
 }
 

@@ -48,7 +48,6 @@ bool	Connection::isWritable(void) const
 
 int	Connection::changeEvents(::uint32_t events)
 {
-	DEBUG("Handler address at start: " << (void*)this->handler);
 	DEBUG("changing connection event to: "
 		<< (events & EPOLLIN ? "[EPOLLIN] " : "")
 		<< (events & EPOLLOUT ? "[EPOLLOUT] ": "")
