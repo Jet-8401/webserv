@@ -1,6 +1,8 @@
 #ifndef WEBSERV_HPP
 # define WEBSERV_HPP
 
+extern bool is_done;
+
 # include <string>
 # include <iostream>
 # include <iomanip>

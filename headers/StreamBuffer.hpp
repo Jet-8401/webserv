@@ -21,7 +21,8 @@ class StreamBuffer {
 		virtual ~StreamBuffer(void);
 
 		// Getter
-		size_t	size(void) const;
+		const size_t&	size(void) const;
+		const size_t&	allocatedSize(void) const;
 
 		// I/O opearations
 		ssize_t	write(const void* data, const size_t size);
@@ -30,15 +31,3 @@ class StreamBuffer {
 };
 
 #endif
-
-/*/
-Content-Type: multiform-data; boundary=----WebKitFormDataskdfjazdazdz
-
-----WebKitFormDataskdfjazdazdz
-Content-Disposition: filename="ic65656165i.txt"
-Content-Type: "text/html"
-
-<!doctype html>
-</html>
-...
-*/

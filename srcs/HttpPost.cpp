@@ -2,7 +2,6 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/CommonDefinitions.hpp"
 #include "../headers/Connection.hpp"
-#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
@@ -222,36 +221,44 @@ uploading_state_t	HttpPost::_createFile(void)
 // For uploading a file using POST method we need to find the end key sequence to stop. Therefore we are using streams
 // to handle files so we have to buffer the received packet into our circular buffer/stream, search for the sequence.
 // If it has not been found, we can already write a part of our buffer while being sure that the key is not inside
-// what we'll write by only puting `packet_size` - `multipart_key.length()` bytes inside the file.
+// what we'll write by only puting `body.size()` - `multipart_key.length()` bytes inside the file.
 uploading_state_t	HttpPost::_writeToFile(const uint8_t* packet, const size_t packet_size)
 {
 	StreamBuffer&	body = this->_request.getBody();
-	uint8_t			tmp_buff[PACKETS_SIZE];
-	uint8_t*		buffer;
 	ssize_t			bytes = 0;
+	uint8_t*		buffer = 0;
 	bool			found = false;
 
+	// buffer the packet
 	if (body.write(packet, packet_size) == -1)
 		return (error(ERR_BUFF_WRITING, true), this->_error(500));
 
+	// search for the multipart_key
 	bytes = body.consume_until((void**) &buffer, this->_multipart_key.c_str(), this->_multipart_key.length());
-
-	if (bytes == 0) { // not found
-		bytes = body.consume(tmp_buff, packet_size - this->_multipart_key.length());
-		buffer = tmp_buff;
-	} else {
-		found = true;
-	}
-
-	if (bytes == -1) { // if an error append in any case
+	if (bytes == -1)
 		return (error(ERR_BUFF_CONSUME, true), this->_error(500));
+	else if (bytes > 0)
+		found = true;
+
+	if (!found) {
+		// `consumable` is the number of available bytes to consume from the buffer to prevent consuming
+		// a part of the multipart_key.
+		ssize_t	consumable = body.size() - this->_multipart_key.length();
+		buffer = new uint8_t[consumable];
+		bytes = body.consume(buffer, consumable);
+		if (bytes == -1) {
+			if (buffer) delete [] buffer;
+			return (error(ERR_BUFF_CONSUME, true), this->_error(500));
+		}
 	}
 
-	if (::write(this->_file_fd, buffer, bytes) == -1)
+	if (::write(this->_file_fd, buffer, bytes) == -1) {
+		if (buffer) delete [] buffer;
 		return (error(ERR_WRITING_FILE, true), this->_error(500));
+	}
 
-	if (!found)
-		return (uploading_state_t(UP_WRITING_FILE, false));
-	else
+	delete [] buffer;
+	if (found)
 		return (uploading_state_t(UP_DONE, true));
+	return (uploading_state_t(UP_WRITING_FILE, false));
 }

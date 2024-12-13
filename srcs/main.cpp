@@ -1,3 +1,5 @@
+bool is_done = false;
+
 #include "../headers/ServerCluster.hpp"
 #include "../headers/WebServ.hpp"
 #include <iostream>

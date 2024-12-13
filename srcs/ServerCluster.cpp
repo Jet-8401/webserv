@@ -108,21 +108,21 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
 	std::string token;
 	ss >> token;
 	if (token != "{")
-	return (error("Expected '{' after http", true), -1);
+		return (error("Expected '{' after http", true), -1);
 
 	Location http_location;
 	parseHttpBlockDefault(ss, &http_location);
 
 	while (ss >> token)
 	{
-	if (token == "}")
-	return (0);
-	else if (token == "server")
-	{
-	ServerConfig config;
-	if (parseServerBlock(ss, config, &http_location) < 0)
-	return (-1);
-	}
+		if (token == "}")
+			return (0);
+		else if (token == "server")
+		{
+			ServerConfig config;
+			if (parseServerBlock(ss, config, &http_location) < 0)
+				return (-1);
+		}
 	}
 	std::cout << "FUCK"<< ss.eof() << std::endl;
 	return (error("Unexpected end of http block", true), -1);
@@ -308,7 +308,7 @@ int	ServerCluster::run(void)
 	}
 
 	// wait for the events pool to trigger
-	while (this->_running) {
+	while (!is_done) {
 		::memset(&incoming_events, 0, sizeof(incoming_events));
 		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, MS_TIMEOUT_ROUTINE);
 		if (events  == -1)

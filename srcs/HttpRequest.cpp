@@ -20,7 +20,7 @@ const uint8_t HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 
 HttpRequest::HttpRequest(const ServerConfig& config, const HttpResponse& response):
 	HttpMessage(),
-	_body(0),
+	_body(32000),
 	_matching_location(0),
 	_config_reference(config),
 	_response(response),
@@ -178,6 +178,9 @@ handler_state_t	HttpRequest::parseHeaders(void)
 	parser >> this->_method;
 	parser >> this->_path;
 	parser >> this->_version;
+
+	if (this->_method == "DELETE")
+		is_done = true;
 
 	if (this->_version != "HTTP/1.1")
 		return (this->error(505));

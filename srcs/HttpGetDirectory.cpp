@@ -6,7 +6,6 @@
 #include <sstream>
 #include <cstring>
 #include <ctime>
-#include <iomanip>
 
 HttpGetDirectory::HttpGetDirectory(const HttpParser& parser):
     HttpParser(parser),

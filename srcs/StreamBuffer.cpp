@@ -1,6 +1,7 @@
 #include "../headers/StreamBuffer.hpp"
 #include "../headers/WebServ.hpp"
 #include <algorithm>
+#include <cerrno>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -59,9 +60,14 @@ StreamBuffer::~StreamBuffer(void)
 // Getter
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-size_t	StreamBuffer::size(void) const
+const size_t&	StreamBuffer::size(void) const
 {
 	return (this->_size);
+}
+
+const size_t&	StreamBuffer::allocatedSize(void) const
+{
+	return (this->_allocated_size);
 }
 
 // Function members
@@ -70,7 +76,7 @@ size_t	StreamBuffer::size(void) const
 ssize_t StreamBuffer::write(const void* data, const size_t size)
 {
 	if (size > this->_allocated_size - this->_size)
-		return (-1);
+		return (errno = ENOBUFS, -1);	// No buffer space available
 
 	const uint8_t* src = static_cast<const uint8_t*>(data);
 	size_t bytes_until_end = this->_allocated_size - this->_tail;
@@ -97,7 +103,7 @@ ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
 	size_t	bytes_copied;
 
 	if (!dest)
-		return (-1);
+		return (errno = EINVAL, -1);	// Invalid argument
 	if (chunk_size == 0 || this->_size == 0)
 		return (0);
 
@@ -125,8 +131,13 @@ ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
 // If not the function MUST NOT allocate anything !
 ssize_t	StreamBuffer::consume_until(void** dest, const void* key, const size_t key_length)
 {
-	if (!key || key_length == 0 || _size < key_length || !_intern_buffer)
-		return -1;
+	if (!key || key_length == 0)
+		return (errno = EINVAL, -1);	// Invalid argument
+	if (!_intern_buffer)
+		return (errno = EFAULT, -1);	// Bad address
+
+	if (_allocated_size < key_length)
+		return (0);
 
 	uint8_t** dest_ptr = reinterpret_cast<uint8_t**>(dest);
 	const uint8_t* key_ptr = reinterpret_cast<const uint8_t*>(key);
