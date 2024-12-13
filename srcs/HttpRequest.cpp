@@ -227,7 +227,10 @@ bool	HttpRequest::_resolveLocation(void)
 
 	// else take the path as final try
 	if (::stat(this->_resolved_path.c_str(), &this->_path_stat) == -1)
+	{
+		std::cout << "HERE! " << full_path;
 		return (false);
+	}
 	return (true);
 }
 

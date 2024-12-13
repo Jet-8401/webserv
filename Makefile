@@ -2,8 +2,39 @@ NAME = webserv
 CXXFLAGS =-Wall -Wextra -Werror -g -std=c++98
 SDIR = srcs
 HDIR = headers
-SRCS = $(addprefix ${SDIR}/, main.cpp HttpServer.cpp Location.cpp ServerCluster.cpp ServerConfig.cpp EventWrapper.cpp Connection.cpp HttpRequest.cpp HttpResponse.cpp HttpMessage.cpp HttpGetStaticFile.cpp HttpPost.cpp HttpParser.cpp BytesBuffer.cpp StreamBuffer.cpp utils.cpp)
-HDRS = $(addprefix ${HDIR}/, HttpRequest.hpp HttpResponse.hpp HttpServer.hpp Location.hpp ServerCluster.hpp ServerConfig.hpp EventWrapper.hpp WebServ.hpp)
+
+SRCS = $(addprefix ${SDIR}/, \
+	main.cpp \
+	utils.cpp \
+	HttpServer.cpp \
+	Location.cpp \
+	ServerCluster.cpp \
+	ServerConfig.cpp \
+	EventWrapper.cpp \
+	Connection.cpp \
+	HttpRequest.cpp \
+	HttpResponse.cpp \
+	HttpMessage.cpp \
+	HttpParser.cpp \
+	BytesBuffer.cpp \
+	StreamBuffer.cpp \
+	HttpGetStaticFile.cpp \
+	HttpGetDirectory.cpp \
+	HttpGetCGI.cpp \
+	HttpPost.cpp)
+
+HDRS = $(addprefix ${HDIR}/, \
+	HttpRequest.hpp \
+	HttpResponse.hpp \
+	HttpServer.hpp \
+	Location.hpp \
+	ServerCluster.hpp \
+	ServerConfig.hpp \
+	EventWrapper.hpp \
+	WebServ.hpp \
+	HttpGetDirectory.hpp \
+	HttpGetCGI.hpp)
+
 TPLS =
 ODIR = objs
 OBJS = $(SRCS:${SDIR}/%.cpp=${ODIR}/%.o)
@@ -30,9 +61,9 @@ re: fclean all
 
 help:
 	@echo "Targets:"
-	@echo "  all:    Build the program"
+	@echo "  all:	Build the program"
 	@echo "  clean:  Remove object files"
 	@echo "  fclean: Remove object files and executable"
-	@echo "  re:     Rebuild the program"
+	@echo "  re:	 Rebuild the program"
 
 .PHONY: all clean fclean re help

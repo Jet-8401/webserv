@@ -153,7 +153,7 @@
     </div>
 
     <div class="upload-container">
-        <form id="uploadForm" action="/file-uploads" method="post" enctype="multipart/form-data">
+        <form id="uploadForm" action="/files" method="post" enctype="multipart/form-data">
             <input type="file" id="fileInput" name="file">
             <label for="fileInput">
                 <i class="fas fa-upload"></i> Choose File
@@ -186,7 +186,7 @@
             const formData = new FormData(this);
             const xhr = new XMLHttpRequest();
 
-            xhr.open('POST', '/file-uploads', true);
+            xhr.open('POST', '/files', true);
 
             xhr.upload.addEventListener('progress', function(e) {
                 if (e.lengthComputable) {

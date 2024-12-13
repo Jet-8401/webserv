@@ -36,12 +36,12 @@
 # ifdef DEBUGGER
 
 #  define DEBUG(msg) do { \
-    time_t	now = time(0); \
-    tm*		ltm = localtime(&now); \
-    std::cout << "[" << std::setfill('0') << std::setw(2) << ltm->tm_hour << ":" \
-              << std::setfill('0') << std::setw(2) << ltm->tm_min << ":" \
-              << std::setfill('0') << std::setw(2) << ltm->tm_sec << "] " \
-              << msg << std::endl; \
+	time_t	now = time(0); \
+	tm*		ltm = localtime(&now); \
+	std::cout << "[" << std::setfill('0') << std::setw(2) << ltm->tm_hour << ":" \
+	  << std::setfill('0') << std::setw(2) << ltm->tm_min << ":" \
+	  << std::setfill('0') << std::setw(2) << ltm->tm_sec << "] " \
+	  << msg << std::endl; \
 } while(0)
 
 # else

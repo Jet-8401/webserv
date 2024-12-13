@@ -2,6 +2,8 @@
 #include "../headers/HttpParser.hpp"
 #include "../headers/HttpGetStaticFile.hpp"
 #include "../headers/HttpPost.hpp"
+#include "../headers/HttpGetDirectory.hpp"
+#include "../headers/HttpGetCGI.hpp"
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
@@ -9,6 +11,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -110,6 +113,11 @@ ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
 {
 	std::streamsize	bytes_written = -1;
 
+	// check if an error previously occured into the request, if so the response inherit its status_code
+	if (this->_request.isError() && !this->_response.isError())
+		this->_state = this->_response.error(this->_request.getStatusCode());
+
+
 	do {
 		DEBUG("entering the switch in HttpParser::write with code -> " << this->_state.flag);
 		switch (this->_state.flag) {
@@ -183,15 +191,37 @@ handler_state_t	HttpParser::handleError(void)
 HttpParser*	HttpParser::upgrade(void)
 {
 	const std::string&	method = this->_request.getMethod();
+	const std::string&	resolved_path = this->_request.getResolvedPath();
+	const std::map<std::string, std::string>&	cgis = this->_request.getMatchingLocation().getCGIs();
 
 	if (!this->_need_upgrade)
 		return (0);
-
 	this->_need_upgrade = false;
+
 	if (method == "GET") {
-		return new HttpGetStaticFile(*this);
+		size_t	ext_pos = resolved_path.rfind('.');
+		if (ext_pos != std::string::npos) {
+			std::string extension(resolved_path, ext_pos);
+			std::cout << "extension: " << extension << std::endl;
+			if (cgis.find(extension) != cgis.end())
+				return new HttpGetCGI(*this);
+		}
+		struct stat path_stat;
+		if (::stat(this->_request.getResolvedPath().c_str(), &path_stat) == 0) {
+			if (S_ISDIR(path_stat.st_mode)) {
+				// If it's a directory
+				if (this->_request.getMatchingLocation().getAutoIndex()) {
+					return new HttpGetDirectory(*this);
+				}
+				return new HttpGetStaticFile(*this);
+			} else if (S_ISREG(path_stat.st_mode)) {
+				// If it's a regular file
+				return new HttpGetStaticFile(*this);
+			}
+		}
+		DEBUG("Path does not exist or is not accessible: " << this->_request.getResolvedPath());
 	} else if (method == "POST") {
 		return new HttpPost(*this);
 	}
-	return (0);
+	return NULL;
 }

@@ -64,11 +64,11 @@ HttpResponse::~HttpResponse(void)
 handler_state_t	HttpResponse::buildHeaders()
 {
 	DEBUG("Building headers");
-    this->_header_content << "HTTP/1.1 " << this->_status_code << "\r\n";
-    for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
-        this->_header_content << it->first << ": " << it->second << "\r\n";
-    this->_header_content << "\r\n";
-    return (handler_state_t(SENDING_HEADERS, true));
+	this->_header_content << "HTTP/1.1 " << this->_status_code << "\r\n";
+	for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+	this->_header_content << it->first << ": " << it->second << "\r\n";
+	this->_header_content << "\r\n";
+	return (handler_state_t(SENDING_HEADERS, true));
 }
 
 handler_state_t	HttpResponse::sendHeaders(const uint8_t* io_buffer, const size_t buff_len,

@@ -25,10 +25,10 @@ const int	HttpServer::_backlog = 1024;
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 HttpServer::HttpServer(const ServerConfig& config):
-    _config(config),
-    _socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
-    _address(_config.getHost() + ':' + unsafe_itoa(_config.getPort())),
-    _max_connections(1024)
+	_config(config),
+	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
+	_address(_config.getHost() + ':' + unsafe_itoa(_config.getPort())),
+	_max_connections(1024)
 {
 	int	opt = 1;
 
@@ -49,7 +49,7 @@ HttpServer::HttpServer(const HttpServer& src):
 
 	if (this->_socket_fd == -1)
 		throw std::runtime_error(ERR_SOCKET_CREATION);
-    setsockopt(this->_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+	setsockopt(this->_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 }
 
 HttpServer::~HttpServer(void)

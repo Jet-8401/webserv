@@ -48,6 +48,7 @@ bool	Connection::isWritable(void) const
 
 int	Connection::changeEvents(::uint32_t events)
 {
+	DEBUG("Handler address at start: " << (void*)this->handler);
 	DEBUG("changing connection event to: "
 		<< (events & EPOLLIN ? "[EPOLLIN] " : "")
 		<< (events & EPOLLOUT ? "[EPOLLOUT] ": "")
@@ -59,7 +60,7 @@ int	Connection::changeEvents(::uint32_t events)
 	return (0);
 }
 
-// timespec    Connection::getTimeout(void)
+// timespec	Connection::getTimeout(void)
 // {
 // 	struct timespec	now;
 // 	clock_gettime(CLOCK_MONOTONIC, &now);
@@ -86,6 +87,7 @@ void	Connection::onEvent(::uint32_t events)
 	}
 
 	if (events & EPOLLOUT) {
+		DEBUG("Connection EPOLLOUT event");
 		bytes = this->handler->write(io_buffer, sizeof(io_buffer));
 		DEBUG("Outgoing data (" << bytes << " bytes)");
 		if (bytes == -1) {
@@ -108,12 +110,11 @@ void	Connection::onEvent(::uint32_t events)
 			DEBUG("Did not find any upgrades!");
 		}
 	}
-
-	if (this->handler->getRequest().hasEventsChanged()) {
+	if (this->handler && this->handler->getRequest().hasEventsChanged()) {
 		this->changeEvents(this->handler->getRequest().getEvents());
 	}
 
-	if (this->handler->getState() == DONE) {
+	if (this->handler && this->handler->getState() == DONE) {
 		DEBUG("Connection done !");
 		this->_server_referer.deleteConnection(this);
 	}

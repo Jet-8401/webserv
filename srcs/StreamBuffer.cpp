@@ -89,8 +89,8 @@ ssize_t StreamBuffer::write(const void* data, const size_t size)
 }
 
 // Might return less that chunk_size
-// [l] [r] [d]     [H] [e] [l] [l] [o] [ ] [W] [o]
-//          ^tail   ^head
+// [l] [r] [d]	 [H] [e] [l] [l] [o] [ ] [W] [o]
+//	  ^tail   ^head
 ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
 {
 	size_t	bytes_until_end;
@@ -102,22 +102,22 @@ ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
 		return (0);
 
 	chunk_size = std::min(chunk_size, this->_size);
-    bytes_until_end = this->_allocated_size - this->_head;
+	bytes_until_end = this->_allocated_size - this->_head;
 
-    if (chunk_size > bytes_until_end) {
-        ::memcpy(dest, this->_intern_buffer + this->_head, bytes_until_end);
-        ::memcpy(((uint8_t*)dest) + bytes_until_end, this->_intern_buffer,
-                 chunk_size - bytes_until_end);
-        this->_head = (chunk_size - bytes_until_end) % this->_allocated_size;
-        bytes_copied = chunk_size;
-    } else {
-        ::memcpy(dest, this->_intern_buffer + this->_head, chunk_size);
-        this->_head = (this->_head + chunk_size) % this->_allocated_size;
-        bytes_copied = chunk_size;
-    }
+	if (chunk_size > bytes_until_end) {
+	::memcpy(dest, this->_intern_buffer + this->_head, bytes_until_end);
+	::memcpy(((uint8_t*)dest) + bytes_until_end, this->_intern_buffer,
+	 chunk_size - bytes_until_end);
+	this->_head = (chunk_size - bytes_until_end) % this->_allocated_size;
+	bytes_copied = chunk_size;
+	} else {
+	::memcpy(dest, this->_intern_buffer + this->_head, chunk_size);
+	this->_head = (this->_head + chunk_size) % this->_allocated_size;
+	bytes_copied = chunk_size;
+	}
 
-    this->_size -= bytes_copied;
-    return bytes_copied;
+	this->_size -= bytes_copied;
+	return bytes_copied;
 }
 
 // Will try to consume everything until `key` is found.
