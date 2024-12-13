@@ -130,12 +130,14 @@ HttpParser*	HttpParser::upgrade(void)
 
 	this->_need_upgrade = false;
 	if (method == "GET") {
-		std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
-		std::cout << "EXTENXion: " << extension << std::endl;
-		std::cout << "EXT ITERATOR: " << this->_request.getMatchingLocation().getCGIs().begin()->first << std::endl;
-		if (this->_request.getMatchingLocation().getCGIs().find(extension) != this->_request.getMatchingLocation().getCGIs().end())
+		size_t position = this->_request.getResolvedPath().rfind('.');
+		if (position != std::string::npos)
 		{
-			return new HttpGetCGI(*this);
+			std::string extension = this->_request.getResolvedPath().substr(position);
+			std::cout << "EXTENXion: " << extension << std::endl;
+			std::cout << "EXT ITERATOR: " << this->_request.getMatchingLocation().getCGIs().begin()->first << std::endl;
+			if (this->_request.getMatchingLocation().getCGIs().find(extension) != this->_request.getMatchingLocation().getCGIs().end())
+				return new HttpGetCGI(*this);
 		}
 		struct stat path_stat;
 		if (::stat(this->_request.getResolvedPath().c_str(), &path_stat) == 0) {
