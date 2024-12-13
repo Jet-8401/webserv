@@ -186,7 +186,8 @@ uploading_state_t	HttpPost::_createFile(void)
 	ssize_t			bytes = 0;
 
 	// Accept only if the ressource don't already exist, else its an error and it should be deleted first.
-	this->_full_path = joinPath(location.getRoot(), this->_file_name);
+	this->_full_path = joinPath(location.getRoot(), this->_request.getPath());
+	this->_full_path = joinPath(this->_full_path, this->_file_name);
 	DEBUG("trying to create file at: " << this->_full_path);
 	this->_file_fd = ::open(this->_full_path.c_str(), O_WRONLY | O_CREAT, 0644);
 	if (this->_file_fd == -1)
