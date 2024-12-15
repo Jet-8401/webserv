@@ -14,5 +14,8 @@
 - resolve bug where /upload will be match but not /upload/
 - refactor Connection::onEvent logic ✓
 - check for safety reason the POST method
-- add proper log message for StreamBuffer errors
+- add proper errno on StreamBuffer failures ✓
 - bug when not puting ';' at the end of the .conf file
+- bug when reloading any HttpGetDirectory (static variables)
+
+Note: for stoping the server clean, send a DELETE request
