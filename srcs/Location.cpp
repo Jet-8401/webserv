@@ -1,4 +1,5 @@
 #include "../headers/Location.hpp"
+#include "../headers/WebServ.hpp"
 #include <iostream>
 #include <set>
 #include <sstream>
@@ -54,13 +55,14 @@ Location::~Location()
 		delete *pointer_it;
 }
 
-void Location::setAutoindex(const std::string& value)
+int Location::setAutoindex(const std::string& value)
 {
 	std::cout <<"autoindex value :"<< value << std::endl;
 	_autoindex = (value == "on" || value == "ON" || value == "true");
+	return (0);
 }
 
-void Location::setMethods(const std::string& value)
+int Location::setMethods(const std::string& value)
 {
 	std::istringstream iss(value);
 	std::string method;
@@ -71,9 +73,10 @@ void Location::setMethods(const std::string& value)
 			throw std::runtime_error("Method not supported");
 		_methods.insert(method);
 	}
+	return (0);
 }
 
-void Location::setReturn(const std::string& value)
+int Location::setReturn(const std::string& value)
 {
 	std::istringstream iss(value);
 	std::string first, second;
@@ -83,9 +86,10 @@ void Location::setReturn(const std::string& value)
 		_return = std::make_pair(first, second);
 	else
 		_return = std::make_pair("301", first);
+	return (0);
 }
 
-void Location::setIndex(const std::string& value)
+int Location::setIndex(const std::string& value)
 {
 	std::istringstream iss(value);
 	std::string index;
@@ -95,14 +99,16 @@ void Location::setIndex(const std::string& value)
 	{
 		_index.push_back(index);
 	}
+	return (0);
 }
 
-void Location::setAlias(const std::string& value)
+int Location::setAlias(const std::string& value)
 {
 	_alias = value;
+	return (0);
 }
 
-void Location::setRoot(const std::string& value)
+int Location::setRoot(const std::string& value)
 {
 	std::cout << "value :" << value << std::endl;
 	if (value[0] == '~') {
@@ -114,27 +120,28 @@ void Location::setRoot(const std::string& value)
 				_root = (*env + 5) + value.substr(1);
 
 				std::cout << "root :" << _root << std::endl;
-				return ;
+				return (0);
 			}
 		}
 	}
 	_root = value;
-
+	return (0);
 }
 
-void Location::setCgis(const std::string& value)
+int Location::setCgis(const std::string& value)
 {
 	std::istringstream iss(value);
 	std::string ext;
 	std::string path;
 	if (!(iss >> ext >> path) || !iss.eof())
-		throw std::runtime_error("Invalid CGI format");
+		return (error("Invalid CGI format", false), -1);
 	if (ext[0] != '.')
-		throw std::runtime_error("CGI extension must be valid");
+		return (error("CGI extension must be valid", false), -1);
 	_cgis[ext] = path;
+	return (0);
 }
 
-void Location::setErrorPage(const std::string& value)
+int Location::setErrorPage(const std::string& value)
 {
 	std::istringstream iss(value);
 	std::vector<std::string> words;
@@ -142,35 +149,36 @@ void Location::setErrorPage(const std::string& value)
 
 	while (iss >> word)
 	{
-	words.push_back(word);
+		words.push_back(word);
 	}
 
 	if (words.size() < 2)
-	{
-	throw std::runtime_error("Error page configuration needs at least 2 values");
-	}
+		return (error("Error page configuration needs at least 2 values", false), -1);
 
 	std::string* errorPathPtr = new std::string(words[words.size() - 1]);
 	for (size_t i = 0; i < words.size() - 1; ++i)
 	{
-	std::istringstream converter(words[i]);
-	int errorCode;
+		std::istringstream converter(words[i]);
+		int errorCode;
 
-	if (!(converter >> errorCode) || !converter.eof())
-	{
-	throw std::runtime_error("Invalid error code: " + words[i]);
-	}
+		if (!(converter >> errorCode) || !converter.eof())
+		{
+			delete errorPathPtr;
+			return (error("Invalid error code: " + words[i], false), -1);
+		}
 
-	if (errorCode < 100 || errorCode > 599)
-	{
-	throw std::runtime_error("Error code out of range: " + words[i]);
-	}
+		if (errorCode < 100 || errorCode > 599)
+		{
+			delete errorPathPtr;
+			return (error("Error code out of range: " + words[i], false), -1);
+		}
 
-	_error_pages[errorCode] = errorPathPtr;
+		_error_pages[errorCode] = errorPathPtr;
 	}
+	return (0);
 }
 
-void Location::setClientMaxBodySize(const std::string& value)
+int Location::setClientMaxBodySize(const std::string& value)
 {
 	std::string size = value;
 	long multiplier = 1;
@@ -187,6 +195,7 @@ void Location::setClientMaxBodySize(const std::string& value)
 	}
 	char* endptr;
 	_client_max_body_size = std::strtol(size.c_str(), &endptr, 10) * multiplier;
+	return (0);
 }
 
 // Getters

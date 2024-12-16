@@ -17,15 +17,15 @@
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 std::map<std::string, void (ServerConfig::*)(const std::string&)>	ServerCluster::serverSetters;
-std::map<std::string, void (Location::*)(const std::string&)>		ServerCluster::locationSetters;
+std::map<std::string, int (Location::*)(const std::string&)>		ServerCluster::locationSetters;
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 std::map<std::string, void (ServerConfig::*)(const std::string&)> ServerCluster::_server_setters;
-std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::_location_setters;
-std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::_http_location_setters;
-std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::_serv_location_setters;
+std::map<std::string, int (Location::*)(const std::string&)> ServerCluster::_location_setters;
+std::map<std::string, int (Location::*)(const std::string&)> ServerCluster::_http_location_setters;
+std::map<std::string, int (Location::*)(const std::string&)> ServerCluster::_serv_location_setters;
 
 void ServerCluster::initDirectives()
 {
@@ -94,11 +94,11 @@ int ServerCluster::importConfig(const std::string& config_path)
 	std::string token;
 	while (ss >> token)
 	{
-	if (token == "http")
-	{
-	if (parseHttpBlock(ss) < 0)
-	return (-1);
-	}
+		if (token == "http")
+		{
+			if (parseHttpBlock(ss) < 0)
+				return (-1);
+		}
 	}
 	return (0);
 }
@@ -148,18 +148,19 @@ int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_l
 		}
 		else
 		{
-			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _http_location_setters.find(token);
+			std::map<std::string, int (Location::*)(const std::string&)>::iterator it = _http_location_setters.find(token);
 			if (it != _http_location_setters.end())
 			{
 				std::cout << "#####################################################" << std::endl;
 				std::string value;
 				std::getline(ss, value, ';'); // Read until semicolon
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
-				(http_location->*(it->second))(value);
+				if ((http_location->*(it->second))(value) < 0)
+					return (-1);
 			}
 		}
 	}
-	return (error("Unexpected end of http block", true), -1);
+	return (error("Unexpected end of http block", false), -1);
 }
 
 int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv_location)
@@ -180,17 +181,18 @@ int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv
 		}
 		else
 		{
-			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _serv_location_setters.find(token);
+			std::map<std::string, int (Location::*)(const std::string&)>::iterator it = _serv_location_setters.find(token);
 			if (it != _serv_location_setters.end())
 			{
 				std::string value;
 				std::getline(ss, value, ';');
 				value = value.substr(value.find_first_not_of(" \t"));
-				(serv_location->*(it->second))(value);
+				if ((serv_location->*(it->second))(value) < 0)
+					return (-1);
 			}
 		}
 	}
-	return (error("Unexpected end of server block", true), -1);
+	return (error("Unexpected end of server block", false), -1);
 }
 
 int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location)
@@ -198,7 +200,7 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 	std::string token;
 	ss >> token;
 	if (token != "{")
-		return (error("Expected '{' after server", true), -1);
+		return (error("Expected '{' after server", false), -1);
 
 	std::cout << "Parsing server block..." << std::endl; // Debug
 
@@ -243,7 +245,7 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 			}
 		}
 	}
-	return (error("Unexpected end of server block", true), -1);
+	return (error("Unexpected end of server block", false), -1);
 }
 
 int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
@@ -252,7 +254,7 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 	ss >> token;
 	std::cout << "LE token : " << token << std::endl;
 	if (token != "{")
-		return (error("Expected '{' after location", true), -1);
+		return (error("Expected '{' after location", false), -1);
 
 	while (ss >> token)
 	{
@@ -260,17 +262,18 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 			return (0);
 		else
 		{
-			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _location_setters.find(token);
+			std::map<std::string, int (Location::*)(const std::string&)>::iterator it = _location_setters.find(token);
 			if (it != _location_setters.end())
 			{
 				std::string value;
 				std::getline(ss, value, ';'); // Read until semicolon
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
-				(location->*(it->second))(value);
+				if ((location->*(it->second))(value) < 0)
+					return (-1);
 			}
 		}
 	}
-	return (error("Unexpected end of location block", true), -1);
+	return (error("Unexpected end of location block", false), -1);
 }
 
 // Make all virtual server listen on their sockets and check for conncetions with epoll.

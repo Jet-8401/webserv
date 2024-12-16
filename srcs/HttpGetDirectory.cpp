@@ -9,6 +9,7 @@
 
 HttpGetDirectory::HttpGetDirectory(const HttpParser& parser):
     HttpParser(parser),
+    _headers_sent(false),
     _dir(NULL)
 {
     this->_request.setEvents(EPOLLOUT);
@@ -17,7 +18,6 @@ HttpGetDirectory::HttpGetDirectory(const HttpParser& parser):
         std::cerr << "could not open directory" << std::endl;
         this->_state = this->_request.error(404);
     }
-
 	this->_request.setEvents(EPOLLOUT);
 	this->_state = handler_state_t(READY_TO_SEND, false);
 }

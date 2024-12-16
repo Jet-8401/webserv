@@ -26,15 +26,15 @@ class Location {
 		const std::map<std::string, std::string>&	getCGIs() const;
 		const std::pair<std::string, std::string>&	getRedirection() const;
 
-	void setMethods(const std::string& value);
-	void setRoot(const std::string& value);
-	void setAlias(const std::string& value);
-	void setErrorPage(const std::string& value);
-	void setAutoindex(const std::string& value);
-	void setClientMaxBodySize(const std::string& value);
-	void setCgis(const std::string& value);
-	void setIndex(const std::string& value);
-	void setReturn(const std::string& value);
+		int setMethods(const std::string& value);
+		int setRoot(const std::string& value);
+		int setAlias(const std::string& value);
+		int setErrorPage(const std::string& value);
+		int setAutoindex(const std::string& value);
+		int setClientMaxBodySize(const std::string& value);
+		int setCgis(const std::string& value);
+		int setIndex(const std::string& value);
+		int setReturn(const std::string& value);
 
 	protected:
 		methods_t							_methods;
