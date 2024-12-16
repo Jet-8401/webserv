@@ -17,27 +17,33 @@ StreamBuffer::StreamBuffer(void):
 	_allocated_size(DEFAULT_CHUNK_BYTES_SIZE),
 	_size(0),
 	_head(0),
-	_tail(0)
+	_tail(0),
+	_bytes_passed_through(0),
+	_max_bytes_passed_through(-1)
 {
 	this->_intern_buffer = new uint8_t[this->_allocated_size]();
 }
 
-StreamBuffer::StreamBuffer(const size_t buffer_size):
+StreamBuffer::StreamBuffer(const size_t buffer_size, const size_t max_bytes_through):
 	_allocated_size(buffer_size),
 	_size(0),
 	_head(0),
-	_tail(0)
+	_tail(0),
+	_bytes_passed_through(0),
+	_max_bytes_passed_through(max_bytes_through)
 {
 	this->_intern_buffer = new uint8_t[this->_allocated_size]();
 }
 
-StreamBuffer::StreamBuffer(const StreamBuffer& src, bool takeOwnership):
+StreamBuffer::StreamBuffer(const StreamBuffer& src, bool take_ownership):
 	_allocated_size(src._allocated_size),
 	_size(src._size),
 	_head(src._head),
-	_tail(src._tail)
+	_tail(src._tail),
+	_bytes_passed_through(src._bytes_passed_through),
+	_max_bytes_passed_through(src._max_bytes_passed_through)
 {
-	if (takeOwnership) {
+	if (take_ownership) {
 		DEBUG("taking ownership");
 		this->_intern_buffer = src._intern_buffer;
 
@@ -55,6 +61,11 @@ StreamBuffer::~StreamBuffer(void)
 {
 	if (this->_intern_buffer)
 		delete [] this->_intern_buffer;
+}
+
+void	StreamBuffer::setMaxBytesThrough(size_t bytes)
+{
+	this->_max_bytes_passed_through = bytes;
 }
 
 // Getter
@@ -75,7 +86,12 @@ const size_t&	StreamBuffer::allocatedSize(void) const
 
 ssize_t StreamBuffer::write(const void* data, const size_t size)
 {
-	if (size > this->_allocated_size - this->_size)
+	DEBUG("bytes passed through -> " << this->_bytes_passed_through);
+	DEBUG("MAX bytes passed through -> " << this->_max_bytes_passed_through);
+	DEBUG("size: " << size);
+
+	if (size > this->_allocated_size - this->_size ||
+		this->_bytes_passed_through + size > this->_max_bytes_passed_through)
 		return (errno = ENOBUFS, -1);	// No buffer space available
 
 	const uint8_t* src = static_cast<const uint8_t*>(data);
@@ -90,6 +106,7 @@ ssize_t StreamBuffer::write(const void* data, const size_t size)
 		this->_tail = (this->_tail + size) % this->_allocated_size;
 	}
 
+	this->_bytes_passed_through += size;
 	this->_size += size;
 	return (this->_size);
 }

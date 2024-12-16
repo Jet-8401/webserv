@@ -2,7 +2,6 @@
 - handle maximum connections in HttpServer::acceptConnection
 - adding a StreamBuffer to HttpRequest for the request body ✓
 - add proper address support for HttpServer ✓
-- handle SIG operations for clean exit
 - add checks for unset properties in ServerConfig
 - delete allocated Location in ServerConfig destructors ✓
 - do deep copy of Locations in ServerConfig ✓
@@ -11,11 +10,13 @@
 - handle connections timeout
 - handle POST method ✓
 - handle DELETE method
-- resolve bug where /upload will be match but not /upload/
+- resolve bug where /upload will be match but not /upload/ ✓
 - refactor Connection::onEvent logic ✓
 - check for safety reason the POST method
 - add proper errno on StreamBuffer failures ✓
 - bug when not puting ';' at the end of the .conf file
-- bug when reloading any HttpGetDirectory (static variables)
+- bug when reloading any HttpGetDirectory (static variables) ✓
+- listen to multiples port
+- listen to the same host:port
 
 Note: for stoping the server clean, send a DELETE request

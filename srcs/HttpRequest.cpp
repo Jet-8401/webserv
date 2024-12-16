@@ -20,7 +20,7 @@ const uint8_t HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 
 HttpRequest::HttpRequest(const ServerConfig& config, const HttpResponse& response):
 	HttpMessage(),
-	_body(32000),
+	_body(32000, -1),
 	_matching_location(0),
 	_config_reference(config),
 	_response(response),

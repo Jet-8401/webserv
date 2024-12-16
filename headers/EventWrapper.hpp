@@ -2,6 +2,7 @@
 # define EVENT_WRAPPER_HPP
 
 # include <list>
+# include <stdint.h>
 
 enum socket_type_e {
 	REQUEST,
@@ -9,8 +10,9 @@ enum socket_type_e {
 };
 
 typedef struct event_wrapper_s {
-	void*	casted_value;
+	void*				casted_value;
 	enum socket_type_e	socket_type;
+	int16_t				fd;
 }	event_wrapper_t;
 
 // EventWrapper is a class that is used just for casting the type of socket epoll will return.

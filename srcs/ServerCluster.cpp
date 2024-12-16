@@ -27,7 +27,9 @@ std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::_lo
 std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::_http_location_setters;
 std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::_serv_location_setters;
 
-void ServerCluster::initDirectives()
+ServerCluster::ServerCluster(void):
+	_epoll_fd(-1),
+	_running(1)
 {
 	// http
 	_http_location_setters["root"] = &Location::setRoot;
@@ -55,13 +57,6 @@ void ServerCluster::initDirectives()
 	_location_setters["index"] = &Location::setIndex;
 	_location_setters["client_max_body_size"] = &Location::setClientMaxBodySize;
 	_location_setters["error_page"] = &Location::setErrorPage;
-}
-
-ServerCluster::ServerCluster(void):
-	_epoll_fd(-1),
-	_running(1)
-{
-	this->initDirectives();
 }
 
 ServerCluster::~ServerCluster(void)
@@ -94,11 +89,8 @@ int ServerCluster::importConfig(const std::string& config_path)
 	std::string token;
 	while (ss >> token)
 	{
-	if (token == "http")
-	{
-	if (parseHttpBlock(ss) < 0)
-	return (-1);
-	}
+		if (token == "http" && parseHttpBlock(ss) < 0)
+			return (-1);
 	}
 	return (0);
 }
@@ -213,7 +205,6 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 				config.addLocation("/", new Location(serv_location));
 			HttpServer server(config);
 			_servers.push_back(server); // Use size as key instead of invalid socket fd
-			std::cout << "Added server with port: " << config.getPort() << std::endl; // Debug
 			return (0);
 		}
 		else if (token == "location")

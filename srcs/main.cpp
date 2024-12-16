@@ -48,8 +48,13 @@ void displayRedirection(const std::pair<std::string, std::string>& redirection) 
 }
 
 void displayServerInfo(const ServerConfig& config) {
-	std::cout << "\033[1;34m│   Port:\033[0m " << config.getPort() << std::endl;
-	std::cout << "\033[1;34m│   Host:\033[0m " << config.getHost() << std::endl;
+	// Replace the current port and host display with:
+    std::cout << "\033[1;34m│   Listening on:\033[0m" << std::endl;
+    const ServerConfig::address_type& addresses = config.getAddresses();
+    for (ServerConfig::address_type::const_iterator it = addresses.begin();
+         it != addresses.end(); ++it) {
+        std::cout << "\033[1;34m│   ├─\033[0m " << it->first << ":" << it->second << std::endl;
+    }
 
 	std::cout << "\033[1;34m│   Server Names:\033[0m ";
 	const std::vector<std::string>& names = config.getServerNames();

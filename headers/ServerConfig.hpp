@@ -6,6 +6,7 @@
 # include <string>
 # include <map>
 # include <vector>
+# include <list>
 
 class ServerConfig {
 	public:
@@ -15,27 +16,31 @@ class ServerConfig {
 
 		ServerConfig&	operator=(const ServerConfig& rhs);
 
+		typedef std::list<std::pair<std::string, uint16_t> > address_type;
 		typedef std::map<std::string, Location*> locations_t;
 
 		// Getters
 		const std::vector<std::string>&	getServerNames(void) const;
-		const std::string&				getHost(void) const;
-		const uint16_t&					getPort(void) const;
+		// const std::string&				getHost(void) const;
+		// const uint16_t&					getPort(void) const;
+		const address_type&				getAddresses(void) const;
 		const locations_t&				getLocations(void) const;
 		const unsigned int&				getMaxConnections(void) const;
 
 		// Setters
 		void	setAdress(const std::string& value);
-	void	setServerName(const std::string& value);
-	void	addLocation(const std::string& path, Location* location);
-	void	setMaxConnections(const std::string& value);
+		void	setServerName(const std::string& value);
+		void	addLocation(const std::string& path, Location* location);
+		void	setMaxConnections(const std::string& value);
 
         ServerConfig::locations_t::const_iterator findLocation(const std::string& path) const;
 
 	protected:
+
 		std::vector<std::string>	_server_names;
-		std::string					_host;
-		uint16_t					_port;
+		address_type				_addresses;
+		// std::string					_host;
+		// uint16_t					_port;
 		locations_t					_locations;
 		unsigned int				_max_connections;
 };
