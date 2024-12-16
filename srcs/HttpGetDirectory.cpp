@@ -51,7 +51,6 @@ ssize_t HttpGetDirectory::write(const uint8_t* io_buffer, const size_t buff_leng
 {
 	static std::string		current_entry;
 	static struct dirent* 	entry;
-	static bool				headers_sent = false;
 
     if (this->_state.flag != SENDING_BODY)
         return (this->HttpParser::write(io_buffer, buff_length));
@@ -61,7 +60,7 @@ ssize_t HttpGetDirectory::write(const uint8_t* io_buffer, const size_t buff_leng
         return (-1);
     }
 
-    if (!headers_sent) {
+    if (!_headers_sent) {
         std::stringstream html;
         html << "<!DOCTYPE html>\r\n<html>\r\n<head>\r\n"
              << "<title>Index of " << this->_request.getPath() << "</title>\r\n"
@@ -83,7 +82,7 @@ ssize_t HttpGetDirectory::write(const uint8_t* io_buffer, const size_t buff_leng
         }
 
         current_entry = html.str();
-        headers_sent = true;
+        _headers_sent = true;
     }
 
     if (current_entry.empty()) {

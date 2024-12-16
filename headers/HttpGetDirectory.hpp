@@ -6,6 +6,7 @@
 
 class HttpGetDirectory : public HttpParser {
 	private:
+		bool	_headers_sent;
 		DIR*	_dir;
 
 	public:
