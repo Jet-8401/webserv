@@ -61,16 +61,6 @@ const std::vector<std::string>&	ServerConfig::getServerNames(void) const
 	return (this->_server_names);
 }
 
-// const std::string&	ServerConfig::getHost(void) const
-// {
-// 	return (this->_host);
-// }
-
-// const uint16_t&	ServerConfig::getPort(void) const
-// {
-// 	return (this->_port);
-// }
-
 const ServerConfig::address_type&	ServerConfig::getAddresses(void) const
 {
 	return (this->_addresses);
@@ -89,20 +79,18 @@ const unsigned int&	ServerConfig::getMaxConnections(void) const
 // Setters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-#include <iostream>
-
 void	ServerConfig::setAdress(const std::string& value)
 {
 	size_t		colonPos = value.find(':');
 	std::string	host("0.0.0.0");
 	uint16_t	port;
 
-	if (colonPos != std::string::npos)
-	{
+	if (colonPos != std::string::npos) {
 		host = value.substr(0, colonPos);
 		port = static_cast<uint16_t>(atoi(value.c_str() + colonPos + 1));
+	} else {
+		port = static_cast<uint16_t>(atoi(value.c_str()));
 	}
-	port = static_cast<uint16_t>(atoi(value.c_str()));
 	this->_addresses.push_back(std::pair<std::string, uint16_t>(host, port));
 }
 

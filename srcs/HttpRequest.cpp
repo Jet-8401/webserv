@@ -18,11 +18,10 @@ const uint8_t HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpRequest::HttpRequest(const ServerConfig& config, const HttpResponse& response):
+HttpRequest::HttpRequest(const HttpResponse& response):
 	HttpMessage(),
 	_body(32000, -1),
 	_matching_location(0),
-	_config_reference(config),
 	_response(response),
 	_events(0),
 	_has_events_changed(false)
@@ -39,7 +38,6 @@ HttpRequest::HttpRequest(const HttpRequest& src):
 	_config_location_str(src._config_location_str),
 	_matching_location(src._matching_location),
 	_path_stat(src._path_stat),
-	_config_reference(src._config_reference),
 	_response(src._response),
 	_events(src._events),
 	_has_events_changed(src._has_events_changed),
@@ -242,19 +240,19 @@ bool	HttpRequest::_resolveLocation(void)
 // Check if the asked location is found and if mandatory options are ok.
 handler_state_t	HttpRequest::validateAndInitLocation(void)
 {
-	ServerConfig::locations_t::const_iterator	matching;
 	DEBUG("_validateAndInitMethod called");
+	// ServerConfig::locations_t::const_iterator	matching;
 
-	// try to match a location
-	matching = this->_config_reference.findLocation(this->_path);
-	if (matching == this->_config_reference.getLocations().end()) {
-		DEBUG("didn't find any locations");
-		return (this->error(500));
-	}
+	// // try to match a location
+	// matching = this->_config_reference.findLocation(this->_path);
+	// if (matching == this->_config_reference.getLocations().end()) {
+	// 	DEBUG("didn't find any locations");
+	// 	return (this->error(500));
+	// }
 
-	this->_config_location_str = matching->first;
-	this->_matching_location = matching->second;
-	DEBUG(this->_config_location_str << " found!");
+	// this->_config_location_str = matching->first;
+	// this->_matching_location = matching->second;
+	// DEBUG(this->_config_location_str << " found!");
 
 	// check if method is allowed
 	if (this->_matching_location->getMethods().find(this->_method) == this->_matching_location->getMethods().end()) {

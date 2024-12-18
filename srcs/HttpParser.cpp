@@ -1,5 +1,5 @@
-#include "../headers/WebServ.hpp"
 #include "../headers/HttpParser.hpp"
+#include "../headers/WebServ.hpp"
 #include "../headers/HttpGetStaticFile.hpp"
 #include "../headers/HttpPost.hpp"
 #include "../headers/HttpGetDirectory.hpp"
@@ -16,9 +16,9 @@
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpParser::HttpParser(const ServerConfig& config):
+HttpParser::HttpParser():
 	_need_upgrade(false),
-	_request(config, _response),
+	_request(_response),
 	_response(_request),
 	_state(READING_HEADERS, false),
 	_has_error(false),

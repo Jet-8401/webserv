@@ -1,4 +1,3 @@
-#include "../headers/HttpServer.hpp"
 #include "../headers/WebServ.hpp"
 #include "../headers/EventWrapper.hpp"
 #include "../headers/Connection.hpp"

@@ -4,7 +4,6 @@
 class HttpResponse;
 
 # include "Location.hpp"
-# include "ServerConfig.hpp"
 # include "HttpMessage.hpp"
 # include "BytesBuffer.hpp"
 # include "StreamBuffer.hpp"
@@ -14,7 +13,7 @@ class HttpResponse;
 
 class HttpRequest : public HttpMessage {
 	public:
-		HttpRequest(const ServerConfig& config, const HttpResponse& response);
+		HttpRequest(const HttpResponse& response);
 		HttpRequest(const HttpRequest& src);
 		virtual ~HttpRequest(void);
 
@@ -49,7 +48,6 @@ class HttpRequest : public HttpMessage {
 		Location*			_matching_location;
 		struct stat			_path_stat;
 
-		const ServerConfig&	_config_reference;
 		const HttpResponse&	_response;
 
 		uint32_t			_events;

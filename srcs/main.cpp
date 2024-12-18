@@ -119,19 +119,18 @@ int main(int argc, char* argv[]) {
 	std::cout << "\033[1;32m├── Config imported successfully\033[0m" << std::endl;
 	std::cout << "\033[1;32m└── Server Configuration Details:\033[0m" << std::endl;
 
-	const std::vector<HttpServer>& servers = cluster.getServers();
+	// const std::vector<HttpServer>& servers = cluster.getServers();
 
-	if (servers.empty()) {
-	std::cout << "\033[1;31m	No servers configured!\033[0m" << std::endl;
-	return 1;
-	}
+	// if (servers.empty()) {
+	// 	std::cout << "\033[1;31m	No servers configured!\033[0m" << std::endl;
+	// 	return 1;
+	// }
 
-	int count = 1;
-	for (std::vector<HttpServer>::const_iterator it = servers.begin();
-	 it != servers.end(); ++it, ++count) {
-	std::cout << "\033[1;33m┌── Server #" << count << "\033[0m" << std::endl;
-	displayServerInfo(it->getConfig());
-	}
+	// int count = 1;
+	// for (std::vector<HttpServer>::const_iterator it = servers.begin(); it != servers.end(); ++it, ++count) {
+	// 	std::cout << "\033[1;33m┌── Server #" << count << "\033[0m" << std::endl;
+	// 	displayServerInfo(it->getConfig());
+	// }
 
 	cluster.run();
 

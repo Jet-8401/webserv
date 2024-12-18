@@ -13,13 +13,12 @@
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-Connection::Connection(const int client_socket_fd, HttpServer& server_referrer):
+Connection::Connection(const int client_socket_fd):
 	_socket(client_socket_fd),
-	_server_referer(server_referrer),
 	_timed_out(false),
 	_created_at(0),
 	_ms_timeout_value(MS_TIMEOUT_ROUTINE),
-	handler(new HttpParser(server_referrer.getConfig()))
+	handler(new HttpParser())
 {
 	::memset(&this->event, 0, sizeof(this->event));
 }
@@ -54,8 +53,8 @@ int	Connection::changeEvents(::uint32_t events)
 		<< (events & EPOLLHUP ? "[EPOLLHUP] ": "")
 	);
 	this->event.events = events;
-	if (::epoll_ctl(this->_server_referer.getEpollFD(), EPOLL_CTL_MOD, this->_socket, &this->event) == -1)
-		return (error(ERR_EPOLL_MOD, true), -1);
+	// if (::epoll_ctl(this->_server_referer.getEpollFD(), EPOLL_CTL_MOD, this->_socket, &this->event) == -1)
+	// 	return (error(ERR_EPOLL_MOD, true), -1);
 	return (0);
 }
 
@@ -72,7 +71,7 @@ void	Connection::onEvent(::uint32_t events)
 	ssize_t bytes;
 
 	if (events & EPOLLHUP) {
-		this->_server_referer.deleteConnection(this);
+		// this->_server_referer.deleteConnection(this);
 		return;
 	}
 
@@ -90,7 +89,7 @@ void	Connection::onEvent(::uint32_t events)
 		bytes = this->handler->write(io_buffer, sizeof(io_buffer));
 		DEBUG("Outgoing data (" << bytes << " bytes)");
 		if (bytes == -1) {
-			this->_server_referer.deleteConnection(this);
+			// this->_server_referer.deleteConnection(this);
 			return;
 		} if (bytes > 0) {
 			std::cout.write((char*) io_buffer, bytes);
@@ -115,6 +114,6 @@ void	Connection::onEvent(::uint32_t events)
 
 	if (this->handler && this->handler->getState() == DONE) {
 		DEBUG("Connection done !");
-		this->_server_referer.deleteConnection(this);
+		// this->_server_referer.deleteConnection(this);
 	}
 }
