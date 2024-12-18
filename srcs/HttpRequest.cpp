@@ -1,6 +1,8 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/HttpRequest.hpp"
 #include "../headers/HttpResponse.hpp"
+#include "../headers/ServerConfig.hpp"
+#include "../headers/Socket.hpp"
 #include <fcntl.h>
 #include <iostream>
 #include <algorithm>
@@ -18,11 +20,12 @@ const uint8_t HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpRequest::HttpRequest(const HttpResponse& response):
+HttpRequest::HttpRequest(const HttpResponse& response, const Socket& socket_referer):
 	HttpMessage(),
 	_body(32000, -1),
 	_matching_location(0),
 	_response(response),
+	_socket_referer(socket_referer),
 	_events(0),
 	_has_events_changed(false)
 {}
@@ -39,6 +42,7 @@ HttpRequest::HttpRequest(const HttpRequest& src):
 	_matching_location(src._matching_location),
 	_path_stat(src._path_stat),
 	_response(src._response),
+	_socket_referer(src._socket_referer),
 	_events(src._events),
 	_has_events_changed(src._has_events_changed),
 	_end_header_index(src._end_header_index)
@@ -241,18 +245,28 @@ bool	HttpRequest::_resolveLocation(void)
 handler_state_t	HttpRequest::validateAndInitLocation(void)
 {
 	DEBUG("_validateAndInitMethod called");
-	// ServerConfig::locations_t::const_iterator	matching;
 
-	// // try to match a location
-	// matching = this->_config_reference.findLocation(this->_path);
-	// if (matching == this->_config_reference.getLocations().end()) {
-	// 	DEBUG("didn't find any locations");
-	// 	return (this->error(500));
-	// }
+	std::string									conf_name;
+	headers_t::const_iterator					host = this->_headers.find("Host");
+	const ServerConfig*							config;
+	ServerConfig::locations_t::const_iterator	matching;
 
-	// this->_config_location_str = matching->first;
-	// this->_matching_location = matching->second;
-	// DEBUG(this->_config_location_str << " found!");
+	if (host != this->_headers.end())
+		conf_name = host->second;
+	config = this->_socket_referer.getConfig(conf_name);
+	if (!config)
+		return (this->error(500));
+
+	// try to match a location
+	matching = config->findLocation(this->_path);
+	if (matching == config->getLocations().end()) {
+		DEBUG("didn't find any locations");
+		return (this->error(500));
+	}
+
+	this->_config_location_str = matching->first;
+	this->_matching_location = matching->second;
+	DEBUG(this->_config_location_str << " found!");
 
 	// check if method is allowed
 	if (this->_matching_location->getMethods().find(this->_method) == this->_matching_location->getMethods().end()) {

@@ -3,6 +3,7 @@
 
 # include "EventWrapper.hpp"
 # include "ServerConfig.hpp"
+# include "Socket.hpp"
 
 # define MAX_EPOLL_EVENTS 2048
 # define MS_TIMEOUT_ROUTINE 5000
@@ -14,8 +15,10 @@ class ServerCluster {
 		ServerCluster(const ServerCluster& src);
 		ServerCluster&	operator=(const ServerCluster& rhs);
 
+		typedef std::list<Socket> socket_t;
+
 		std::list<ServerConfig>	_configs;
-		// std::list<Socket>		_socket;
+		socket_t				_sockets;
 		int						_epoll_fd;
 		bool					_running;
 		EventWrapper			_events_wrapper;
@@ -34,6 +37,8 @@ class ServerCluster {
 		static std::map<std::string, void (Location::*)(const std::string&)>		_serv_location_setters;
 
 		void	_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_EVENTS], int events);
+		void	_addAddress(std::list<ServerConfig>::const_iterator& conf_it,
+					ServerConfig::address_type::const_iterator& addr_it);
 
 	public:
 		ServerCluster(void);

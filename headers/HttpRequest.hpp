@@ -2,6 +2,7 @@
 # define HTTP_REQUEST_HPP
 
 class HttpResponse;
+class Socket;
 
 # include "Location.hpp"
 # include "HttpMessage.hpp"
@@ -13,7 +14,7 @@ class HttpResponse;
 
 class HttpRequest : public HttpMessage {
 	public:
-		HttpRequest(const HttpResponse& response);
+		HttpRequest(const HttpResponse& response, const Socket& socket_referer);
 		HttpRequest(const HttpRequest& src);
 		virtual ~HttpRequest(void);
 
@@ -49,6 +50,7 @@ class HttpRequest : public HttpMessage {
 		struct stat			_path_stat;
 
 		const HttpResponse&	_response;
+		const Socket&		_socket_referer;
 
 		uint32_t			_events;
 

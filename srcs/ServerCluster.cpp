@@ -1,6 +1,6 @@
 #include "../headers/ServerCluster.hpp"
 #include "../headers/WebServ.hpp"
-#include <cstddef>
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <map>
@@ -14,6 +14,7 @@
 #include <iostream>
 #include <sys/epoll.h>
 #include <fcntl.h>
+#include <utility>
 
 // Static variables
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -75,60 +76,31 @@ const std::list<ServerConfig>	ServerCluster::getConfigs(void) const
 	return (this->_configs);
 }
 
-
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-// size_t	count = sockets.count(addr_it->second);
-// 	std::cout << count << " founds for port " << addr_it->second << std::endl;
+struct SocketComparer {
+	ServerConfig::address_type::const_iterator _addr_it;
 
-// 	if (count == 0 || (addr_it->first != "127.0.0.1" && addr_it->first != "0.0.0.0")) {
-// 		std::cout << "added: " << addr_it->first << ':' << addr_it->second << std::endl;
-// 		sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
-// 		return;
-// 	}
+	SocketComparer(ServerConfig::address_type::const_iterator addr_it): _addr_it(addr_it) {}
 
-// 	// if same port found check the precedence of 0.0.0.0 and 127.0.0.1
-// 	std::pair< std::multimap<uint16_t, std::string>::iterator, std::multimap<uint16_t, std::string>::iterator > ret;
-// 	ret = sockets.equal_range(addr_it->second);
-// 	for (std::multimap<uint16_t, std::string>::iterator it = ret.first; it != ret.second; it++) {
-// 		if (it->second != "0.0.0.0" && it->second != "127.0.0.1") {
-// 			std::cout << "ignoring: " << it->second << ':' << it->first << std::endl;
-// 			continue;
-// 		}
+	bool	operator()(const Socket& socket) const {
+		return (socket.getIPV4() == _addr_it->first && socket.getPort() == _addr_it->second);
+	}
+};
 
-// 		if (it->second == "0.0.0.0") {
-// 			std::cerr << "\033[31mWARNING: address (" << addr_it->first
-// 				<< ':' << addr_it->second << ") will be ignored (already selected)\033[0m" << std::endl;
-// 		} else {
-// 			// delete the 127.0.0.1 to make a socket listening on 0.0.0.0
-// 			std::cerr << "\033[31mWARNING: address (" <<  it->second
-// 				<< ':' << it->first << ") will be deleted (0.0.0.0 precedence)\033[0m" << std::endl;
-// 			sockets.erase(it);
-// 			sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
-// 			break;
-// 		}
-// 	}
-
-void	addAddress(ServerConfig::address_type::const_iterator& addr_it, std::multimap<uint16_t, std::string>& sockets)
+void	ServerCluster::_addAddress(std::list<ServerConfig>::const_iterator& conf_it,
+	ServerConfig::address_type::const_iterator& addr_it)
 {
-	size_t	count = sockets.count(addr_it->second);
-	std::cout << count << " founds for port " << addr_it->second << std::endl;
+	socket_t::iterator					it;
 
-	if (count == 0) {
-		std::cout << "added: " << addr_it->first << ':' << addr_it->second << std::endl;
-		sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
-		return;
+	it = std::find_if(this->_sockets.begin(), this->_sockets.end(), SocketComparer(addr_it));
+	if (it == this->_sockets.end()) {
+		this->_sockets.push_front(Socket(addr_it->first, addr_it->second));
+		it = this->_sockets.begin();
 	}
 
-	// if same port found check that they are the same
-	std::pair< std::multimap<uint16_t, std::string>::iterator, std::multimap<uint16_t, std::string>::iterator > ret;
-	ret = sockets.equal_range(addr_it->second);
-	for (std::multimap<uint16_t, std::string>::iterator it = ret.first; it != ret.second; it++) {
-		if (it->second == addr_it->first)
-			continue;
-		sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
-	}
+	it->addConfig(&(*conf_it));
 }
 
 int ServerCluster::importConfig(const std::string& config_path)
@@ -149,20 +121,21 @@ int ServerCluster::importConfig(const std::string& config_path)
 	}
 
 	// iterate through configurations for setting the sockets
-	std::multimap<uint16_t, std::string>		sockets; // possible sockets (post, host)
+	std::map<std::pair<std::string, uint16_t>, std::list<ServerConfig*> >	sockets; // socket ip:port, list of configs for that socket
 	std::list<ServerConfig>::const_iterator 	conf_it;
 	ServerConfig::address_type::const_iterator	addr_it;
+
 	for (conf_it = this->_configs.begin(); conf_it != this->_configs.end(); conf_it++) {
 		const ServerConfig::address_type& addresses = conf_it->getAddresses();
 		for (addr_it = addresses.begin(); addr_it != addresses.end(); addr_it++) {
-			addAddress(addr_it, sockets);
+			this->_addAddress(conf_it, addr_it);
 		}
 	}
 
-	std::cout << "At end there is " << sockets.size() << " sockets" << std::endl;
-	std::multimap<uint16_t, std::string>::const_iterator it;
-	for (it = sockets.begin(); it != sockets.end(); it++) {
-		std::cout << it->second << ':' << it->first << std::endl;
+	std::list<Socket>::iterator	it;
+
+	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++) {
+		std::cout << it->getIPV4() << ':' << it->getPort() << std::endl;
 	}
 	return (0);
 }
@@ -349,38 +322,38 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 // on that instance.
 int	ServerCluster::run(void)
 {
-	// servers_type_t::iterator	it;
-	// struct epoll_event			incoming_events[MAX_EPOLL_EVENTS];
-	// event_wrapper_t*			event_wrapper;
-	// int							events;
+	socket_t::iterator	it;
+	struct epoll_event			incoming_events[MAX_EPOLL_EVENTS];
+	event_wrapper_t*			event_wrapper;
+	int							events;
 
-	// this->_epoll_fd = ::epoll_create(this->_servers.size());
-	// if (this->_epoll_fd == -1)
-	// 	return (error(ERR_EPOLL_CREATION, false), -1);
+	this->_epoll_fd = ::epoll_create(this->_sockets.size());
+	if (this->_epoll_fd == -1)
+		return (error(ERR_EPOLL_CREATION, false), -1);
 
-	// for (it = this->_servers.begin(); it != this->_servers.end(); it++)
-	// {
-	// 	struct epoll_event	ep_event;
+	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++)
+	{
+		struct epoll_event	ep_event;
 
-	// 	if (it->listen() == -1)
-	// 		return (-1);
-	// 	it->setEpollFD(this->_epoll_fd);
-	// 	event_wrapper = this->_events_wrapper.create(REQUEST);
-	// 	event_wrapper->casted_value = &(*it);
-	// 	ep_event.events = EPOLLIN;
-	// 	ep_event.data.ptr = static_cast<void*>( event_wrapper );
-	// 	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, it->getSocketFD(), &ep_event) == -1)
-	// 		return (error(ERR_EPOLL_ADD, true), -1);
-	// }
+		if (it->listen() == -1)
+			return (-1);
+		it->setEpollFD(this->_epoll_fd);
+		event_wrapper = this->_events_wrapper.create(REQUEST);
+		event_wrapper->casted_value = &(*it);
+		ep_event.events = EPOLLIN;
+		ep_event.data.ptr = static_cast<void*>( event_wrapper );
+		if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_ADD, it->getSocketFD(), &ep_event) == -1)
+			return (error(ERR_EPOLL_ADD, true), -1);
+	}
 
-	// // wait for the events pool to trigger
-	// while (!is_done) {
-	// 	::memset(&incoming_events, 0, sizeof(incoming_events));
-	// 	events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, MS_TIMEOUT_ROUTINE);
-	// 	if (events  == -1)
-	// 		return (error(ERR_EPOLL_WAIT, true), -1);
-	// 	this->_resolveEvents(incoming_events, events);
-	// }
+	// wait for the events pool to trigger
+	while (!is_done) {
+		::memset(&incoming_events, 0, sizeof(incoming_events));
+		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, MS_TIMEOUT_ROUTINE);
+		if (events  == -1)
+			return (error(ERR_EPOLL_WAIT, true), -1);
+		this->_resolveEvents(incoming_events, events);
+	}
 	return (0);
 }
 
@@ -400,16 +373,16 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 		event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
 		switch (event_wrapper->socket_type)
 		{
-			// case REQUEST:
-			// 	DEBUG("event[" << i << "]: connection request");
-			// 	static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-			// 	break ;
-			// case CLIENT:
-			// 	DEBUG("event[" << i << "]: client package");
-			// 	static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-			// 	break ;
-			// default:
-			// 	break;
+			case REQUEST:
+				DEBUG("event[" << i << "]: connection request");
+				static_cast<Socket*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+				break ;
+			case CLIENT:
+				DEBUG("event[" << i << "]: client package");
+				static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+				break ;
+			default:
+				break;
 		}
 	}
 }

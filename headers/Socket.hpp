@@ -5,20 +5,28 @@
 # include "Connection.hpp"
 # include "ServerConfig.hpp"
 # include <list>
+# include <string>
 
 class Socket {
 	private:
-		static const int						_backlog;
+		const int									_backlog;
 
-		std::map<std::string, ServerConfig*>	_configs;
-		const int								_socket_fd;
-		int										_epoll_fd;
-		std::list<Connection*>					_connections;
-		EventWrapper							_event_wrapper;
-		unsigned int							_max_connections;
+		const std::string							_ip;
+		const uint16_t								_port;
+		const std::string							_address;
+
+		const int									_socket_fd;
+		int											_epoll_fd;
+
+		std::map<const std::string, const ServerConfig*>	_configs;
+
+		std::list<Connection*>						_connections;
+		unsigned int								_max_connections;
+
+		EventWrapper								_event_wrapper;
 
 	public:
-		Socket(const ServerConfig& config);
+		Socket(const std::string host, const uint16_t port);
 		Socket(const Socket& src);
 		virtual ~Socket(void);
 
@@ -26,10 +34,15 @@ class Socket {
 		void	setEpollFD(const int epoll_fd);
 
 		// Getters
-		const int&	getSocketFD(void) const;
-		const int&	getEpollFD(void) const;
+		const int&			getSocketFD(void) const;
+		const int&			getEpollFD(void) const;
+		const uint16_t&		getPort(void) const;
+		const std::string	getIPV4(void) const;
+		const std::string	getAddress(void) const;
+		const ServerConfig*	getConfig(const std::string& server_name) const;
 
 		// Functions
+		bool	addConfig(const ServerConfig* config);
 		int		listen(void) const;
 		void	onEvent(::uint32_t events);
 		int		acceptConnection(void);

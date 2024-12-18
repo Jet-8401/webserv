@@ -12,6 +12,7 @@ class Connection;
 
 class Connection {
 	private:
+		Socket&				_socket_referer;
 		const int			_socket;
 		bool				_timed_out;
 		const ::uint64_t	_created_at;
@@ -20,7 +21,7 @@ class Connection {
 		bool				_checkTimeout(void);
 
 	public:
-		Connection(const int client_socket_fd);
+		Connection(const int client_socket_fd, Socket& socket_referer);
 		virtual ~Connection(void);
 
 		// Getters

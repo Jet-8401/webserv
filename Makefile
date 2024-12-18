@@ -10,6 +10,7 @@ SRCS = $(addprefix ${SDIR}/, \
 	ServerCluster.cpp \
 	ServerConfig.cpp \
 	EventWrapper.cpp \
+	Socket.cpp \
 	Connection.cpp \
 	HttpRequest.cpp \
 	HttpResponse.cpp \
@@ -44,7 +45,7 @@ ${NAME}: ${OBJS}
 	c++ ${CXXFLAGS} $^ -o $@
 
 ${ODIR}/%.o: ${SDIR}/%.cpp ${HDRS} ${TPLS} | ${ODIR}
-	c++ ${DEFINES} ${CXXFLAGS} -I${HDIR} -c $< -o $@
+	c++ ${DEFINES} ${CXXFLAG} -I${HDIR} -c $< -o $@
 
 ${ODIR}:
 	mkdir -p ${ODIR}

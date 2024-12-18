@@ -16,9 +16,9 @@
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpParser::HttpParser():
+HttpParser::HttpParser(const Socket& socket_referer):
 	_need_upgrade(false),
-	_request(_response),
+	_request(_response, socket_referer),
 	_response(_request),
 	_state(READING_HEADERS, false),
 	_has_error(false),

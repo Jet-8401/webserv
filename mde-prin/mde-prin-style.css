@@ -1,0 +1,91 @@
+/* MDE-PRIN Stylesheet */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Helvetica Neue', sans-serif;
+    background-color: #ffffff;
+    color: #1a1a1a;
+}
+
+.top-bar {
+    background-color: #004d99;
+    color: white;
+    padding: 0.5rem;
+    text-align: right;
+}
+
+.contact-info span {
+    margin-left: 2rem;
+}
+
+.main-nav {
+    background-color: #ffffff;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.logo {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #004d99;
+}
+
+.menu a {
+    color: #004d99;
+    text-decoration: none;
+    margin-left: 2rem;
+    font-weight: 500;
+}
+
+.hero-section {
+    background-color: #f8f9fa;
+    text-align: center;
+    padding: 5rem 2rem;
+}
+
+.primary-btn {
+    padding: 1rem 2.5rem;
+    background-color: #004d99;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    margin-top: 2rem;
+    cursor: pointer;
+}
+
+.service-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.service-card {
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.footer-content {
+    background-color: #004d99;
+    color: white;
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footer-links a {
+    color: white;
+    text-decoration: none;
+    margin-left: 1rem;
+}

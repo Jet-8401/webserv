@@ -27,7 +27,7 @@ class HttpParser {
 		int							_error_page_fd;
 
 	public:
-		HttpParser(void);
+		HttpParser(const Socket& socket_referer);
 		virtual ~HttpParser(void);
 
 		virtual bool				parse(const uint8_t* packet, const size_t packet_len);
