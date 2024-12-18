@@ -99,6 +99,8 @@ const ServerConfig*	Socket::getConfig(const std::string& server_name) const
 		return (NULL);
 	}
 	it = this->_configs.begin();
+
+	DEBUG("HEEEEERERERERERERER");
 	return (it->second);
 }
 
@@ -121,8 +123,8 @@ bool	Socket::addConfig(const ServerConfig* config)
 	// else add all the server names with that config
 	for (std::vector<std::string>::const_iterator it = server_names.begin(); it != server_names.end(); it++) {
 		if (this->_configs.find(*it) != this->_configs.end())
-			return (false);
-		this->_configs[*it] = config;
+			continue;
+		this->_configs[*it + ":" + unsafe_itoa(this->_port)] = config;
 	}
 	return (true);
 }
