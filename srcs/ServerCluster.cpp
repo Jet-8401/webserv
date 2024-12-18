@@ -67,8 +67,69 @@ ServerCluster::~ServerCluster(void)
 		close(this->_epoll_fd);
 }
 
+// Getters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+const std::list<ServerConfig>	ServerCluster::getConfigs(void) const
+{
+	return (this->_configs);
+}
+
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+// size_t	count = sockets.count(addr_it->second);
+// 	std::cout << count << " founds for port " << addr_it->second << std::endl;
+
+// 	if (count == 0 || (addr_it->first != "127.0.0.1" && addr_it->first != "0.0.0.0")) {
+// 		std::cout << "added: " << addr_it->first << ':' << addr_it->second << std::endl;
+// 		sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
+// 		return;
+// 	}
+
+// 	// if same port found check the precedence of 0.0.0.0 and 127.0.0.1
+// 	std::pair< std::multimap<uint16_t, std::string>::iterator, std::multimap<uint16_t, std::string>::iterator > ret;
+// 	ret = sockets.equal_range(addr_it->second);
+// 	for (std::multimap<uint16_t, std::string>::iterator it = ret.first; it != ret.second; it++) {
+// 		if (it->second != "0.0.0.0" && it->second != "127.0.0.1") {
+// 			std::cout << "ignoring: " << it->second << ':' << it->first << std::endl;
+// 			continue;
+// 		}
+
+// 		if (it->second == "0.0.0.0") {
+// 			std::cerr << "\033[31mWARNING: address (" << addr_it->first
+// 				<< ':' << addr_it->second << ") will be ignored (already selected)\033[0m" << std::endl;
+// 		} else {
+// 			// delete the 127.0.0.1 to make a socket listening on 0.0.0.0
+// 			std::cerr << "\033[31mWARNING: address (" <<  it->second
+// 				<< ':' << it->first << ") will be deleted (0.0.0.0 precedence)\033[0m" << std::endl;
+// 			sockets.erase(it);
+// 			sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
+// 			break;
+// 		}
+// 	}
+
+void	addAddress(ServerConfig::address_type::const_iterator& addr_it, std::multimap<uint16_t, std::string>& sockets)
+{
+	size_t	count = sockets.count(addr_it->second);
+	std::cout << count << " founds for port " << addr_it->second << std::endl;
+
+	if (count == 0) {
+		std::cout << "added: " << addr_it->first << ':' << addr_it->second << std::endl;
+		sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
+		return;
+	}
+
+	// if same port found check that they are the same
+	std::pair< std::multimap<uint16_t, std::string>::iterator, std::multimap<uint16_t, std::string>::iterator > ret;
+	ret = sockets.equal_range(addr_it->second);
+	for (std::multimap<uint16_t, std::string>::iterator it = ret.first; it != ret.second; it++) {
+		if (it->second == addr_it->first)
+			continue;
+		sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
+	}
+}
 
 int ServerCluster::importConfig(const std::string& config_path)
 {
@@ -88,50 +149,20 @@ int ServerCluster::importConfig(const std::string& config_path)
 	}
 
 	// iterate through configurations for setting the sockets
-	std::multimap<uint16_t, std::string>		_sockets; // possible sockets (post, host)
+	std::multimap<uint16_t, std::string>		sockets; // possible sockets (post, host)
 	std::list<ServerConfig>::const_iterator 	conf_it;
 	ServerConfig::address_type::const_iterator	addr_it;
 	for (conf_it = this->_configs.begin(); conf_it != this->_configs.end(); conf_it++) {
 		const ServerConfig::address_type& addresses = conf_it->getAddresses();
 		for (addr_it = addresses.begin(); addr_it != addresses.end(); addr_it++) {
-			size_t	count = _sockets.count(addr_it->second);
-			std::cout << count << " founds for port " << addr_it->second << std::endl;
-
-			if (count == 0 || (addr_it->first != "127.0.0.1" && addr_it->first != "0.0.0.0")) {
-				std::cout << "added: " << addr_it->first << ':' << addr_it->second << std::endl;
-				_sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
-				continue;
-			}
-
-			// if same port found check the precedence of 0.0.0.0 and 127.0.0.1
-			std::pair< std::multimap<uint16_t, std::string>::iterator, std::multimap<uint16_t, std::string>::iterator > ret;
-			ret = _sockets.equal_range(addr_it->second);
-			// std::multimap<uint16_t, std::string>::iterator to_delete = _sockets.end();
-			for (std::multimap<uint16_t, std::string>::iterator it = ret.first; it != ret.second; it++) {
-				if (it->second != "0.0.0.0" && it->second != "127.0.0.1") {
-					std::cout << "ignoring: " << it->second << ':' << it->first << std::endl;
-					continue;
-				}
-
-				if (it->second == "0.0.0.0") {
-					std::cerr << "\033[31mWARNING: address (" << (addr_it->first.empty() ? "0.0.0.0" : addr_it->first)
-						<< ':' << addr_it->second << ") will be ignored (already selected)\033[0m" << std::endl;
-				} else {
-					// delete the 127.0.0.1 to make a socket listening on 0.0.0.0
-					std::cerr << "\033[31mWARNING: address (" << (it->second.empty() ? "0.0.0.0" : it->second)
-						<< ':' << it->first << ") will be deleted (0.0.0.0 precedence)\033[0m" << std::endl;
-					_sockets.erase(it);
-					_sockets.insert(std::pair<uint16_t, std::string>(addr_it->second, addr_it->first));
-					it = _sockets.end(); // end of loop
-				}
-			}
+			addAddress(addr_it, sockets);
 		}
 	}
 
-	std::cout << "At end there is " << _sockets.size() << " sockets" << std::endl;
+	std::cout << "At end there is " << sockets.size() << " sockets" << std::endl;
 	std::multimap<uint16_t, std::string>::const_iterator it;
-	for (it = _sockets.begin(); it != _sockets.end(); it++) {
-		std::cout << (it->second.empty() ? "0.0.0.0" : it->second) << ':' << it->first << std::endl;
+	for (it = sockets.begin(); it != sockets.end(); it++) {
+		std::cout << it->second << ':' << it->first << std::endl;
 	}
 	return (0);
 }
@@ -373,12 +404,12 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 			// 	DEBUG("event[" << i << "]: connection request");
 			// 	static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
 			// 	break ;
-			case CLIENT:
-				DEBUG("event[" << i << "]: client package");
-				static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-				break ;
-			default:
-				break;
+			// case CLIENT:
+			// 	DEBUG("event[" << i << "]: client package");
+			// 	static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+			// 	break ;
+			// default:
+			// 	break;
 		}
 	}
 }

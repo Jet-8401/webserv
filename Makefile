@@ -1,5 +1,5 @@
 NAME = webserv
-CXXFLAGS =-Wall -Wextra -g -std=c++98
+CXXFLAG = -Wall -Werror -Wextra -g -std=c++98
 SDIR = srcs
 HDIR = headers
 

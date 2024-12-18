@@ -3,7 +3,6 @@
 
 # include "EventWrapper.hpp"
 # include "ServerConfig.hpp"
-# include "Connection.hpp"
 
 # define MAX_EPOLL_EVENTS 2048
 # define MS_TIMEOUT_ROUTINE 5000
@@ -16,7 +15,7 @@ class ServerCluster {
 		ServerCluster&	operator=(const ServerCluster& rhs);
 
 		std::list<ServerConfig>	_configs;
-		std::list<Connection*>	_connections;
+		// std::list<Socket>		_socket;
 		int						_epoll_fd;
 		bool					_running;
 		EventWrapper			_events_wrapper;
@@ -39,6 +38,8 @@ class ServerCluster {
 	public:
 		ServerCluster(void);
 		virtual	~ServerCluster(void);
+
+		const std::list<ServerConfig>	getConfigs(void) const;
 
 		int	importConfig(const std::string& config_path);
 		int	run(void);

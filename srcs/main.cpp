@@ -112,8 +112,13 @@ int main(int argc, char* argv[]) {
 	std::cout << "\033[1;32m┌── Starting config import from: \033[0m" << argv[1] << std::endl;
 
 	if (cluster.importConfig(argv[1]) == -1) {
-	std::cout << "\033[1;31m└── Failed to import config\033[0m" << std::endl;
-	return 1;
+		std::cout << "\033[1;31m└── Failed to import config\033[0m" << std::endl;
+		return 1;
+	}
+
+	const std::list<ServerConfig>&	configs = cluster.getConfigs();
+	for (std::list<ServerConfig>::const_iterator it = configs.begin(); it != configs.end(); it++) {
+		displayServerInfo(*it);
 	}
 
 	std::cout << "\033[1;32m├── Config imported successfully\033[0m" << std::endl;
