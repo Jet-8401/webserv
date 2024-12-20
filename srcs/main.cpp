@@ -40,10 +40,10 @@ void displayIndexes(const std::vector<std::string>& indexes) {
 	}
 }
 
-void displayRedirection(const std::pair<std::string, std::string>& redirection) {
-	if (!redirection.first.empty() && !redirection.second.empty()) {
-	std::cout << "\033[1;34m│   │  Redirection:\033[0m "
-	 << redirection.first << " → " << redirection.second << std::endl;
+void displayRedirection(const std::pair<int, std::string>& redirection) {
+	if (redirection.first != 0 && !redirection.second.empty()) {
+		std::cout << "\033[1;34m│   │  Redirection:\033[0m "
+	 		<< redirection.first << " → " << redirection.second << std::endl;
 	}
 }
 

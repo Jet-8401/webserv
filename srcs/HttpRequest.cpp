@@ -268,11 +268,22 @@ handler_state_t	HttpRequest::validateAndInitLocation(void)
 	this->_config_location_str = matching->first;
 	this->_matching_location = matching->second;
 	DEBUG(this->_config_location_str << " found!");
+	if (this->_matching_location == 0) {
+		DEBUG("NULL POINTER CATCHED !");
+		return (this->error(500));
+	}
 
 	// check if method is allowed
 	if (this->_matching_location->getMethods().find(this->_method) == this->_matching_location->getMethods().end()) {
 		DEBUG("Method not allowed !");
 		return (this->error(405));
+	}
+
+	const std::pair<int, std::string>& redirection = this->_matching_location->getRedirection();
+	if (redirection.first) {
+		DEBUG("Redirection found !");
+		this->_status_code = redirection.first;
+		return (handler_state_t(READY_TO_SEND, true));
 	}
 
 	if (!this->_resolveLocation()) {
@@ -284,34 +295,3 @@ handler_state_t	HttpRequest::validateAndInitLocation(void)
 
 	return (handler_state_t(NEED_UPGRADE, true));
 }
-
-/*
-bool	HttpRequest::parse(const uint8_t* packet, const size_t packet_size)
-{
-	switch (this->state) {
-		case READING_HEADERS:
-			if (!this->_bufferHeaders(packet, packet_size)) return (false);
-			if (this->state == READING_HEADERS)
-				break;
-		case CHECK_METHOD:
-			if (!this->_validateAndInitMethod()) return (false);
-			this->state = READING_BODY;
-		case READING_BODY:
-			if (this->_extanded_method)
-				this->_extanded_method->parse(packet, packet_size);
-			else
-				this->state = DONE;
-			if (this->state == READING_BODY)
-				break;
-		case DONE:
-			this->_has_events_changed = true;
-			this->events = EPOLLOUT;
-			break;
-		default:
-			std::cout << "state n°" << this->state << " not supported!" << std::endl;
-			break;
-	}
-	std::cout << "REQUEST PARSING !!" << std::endl;
-	return (true);
-}
-*/

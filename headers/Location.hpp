@@ -24,17 +24,17 @@ class Location {
 		const std::string&							getAlias() const;
 		const std::vector<std::string>&				getIndexes() const;
 		const std::map<std::string, std::string>&	getCGIs() const;
-		const std::pair<std::string, std::string>&	getRedirection() const;
+		const std::pair<int, std::string>&			getRedirection() const;
 
-	void setMethods(const std::string& value);
-	void setRoot(const std::string& value);
-	void setAlias(const std::string& value);
-	void setErrorPage(const std::string& value);
-	void setAutoindex(const std::string& value);
-	void setClientMaxBodySize(const std::string& value);
-	void setCgis(const std::string& value);
-	void setIndex(const std::string& value);
-	void setReturn(const std::string& value);
+		void setMethods(const std::string& value);
+		void setRoot(const std::string& value);
+		void setAlias(const std::string& value);
+		void setErrorPage(const std::string& value);
+		void setAutoindex(const std::string& value);
+		void setClientMaxBodySize(const std::string& value);
+		void setCgis(const std::string& value);
+		void setIndex(const std::string& value);
+		void setReturn(const std::string& value);
 
 	protected:
 		methods_t							_methods;
@@ -44,7 +44,7 @@ class Location {
 		long								_client_max_body_size;
 		std::map<std::string, std::string>	_cgis;
 		std::vector<std::string>			_index;
-		std::pair<std::string, std::string>	_return;
+		std::pair<int, std::string>			_return;
 		std::string							_alias;
 };
 

@@ -118,6 +118,11 @@ ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
 	if (this->_request.isError() && !this->_response.isError())
 		this->_state = this->_response.error(this->_request.getStatusCode());
 
+	// check for redirections
+	if (this->_request.isRedirection() && !this->_response.isRedirection()) {
+		this->_response.setStatusCode(this->_request.getStatusCode());
+		this->_response.setHeader("Location", this->_request.getMatchingLocation().getRedirection().second);
+	}
 
 	do {
 		DEBUG("entering the switch in HttpParser::write with code -> " << this->_state.flag);

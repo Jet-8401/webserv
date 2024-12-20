@@ -21,8 +21,6 @@ class ServerConfig {
 
 		// Getters
 		const std::vector<std::string>&	getServerNames(void) const;
-		// const std::string&				getHost(void) const;
-		// const uint16_t&					getPort(void) const;
 		const address_type&				getAddresses(void) const;
 		const locations_t&				getLocations(void) const;
 		const unsigned int&				getMaxConnections(void) const;
@@ -39,8 +37,6 @@ class ServerConfig {
 
 		std::vector<std::string>	_server_names;
 		address_type				_addresses;
-		// std::string					_host;
-		// uint16_t					_port;
 		locations_t					_locations;
 		unsigned int				_max_connections;
 };

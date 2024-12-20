@@ -11,7 +11,8 @@ Location::Location(void):
 	_autoindex(false),
 	_client_max_body_size(32768)
 {
-	_methods.insert("GET");
+	this->_return.first = 0;
+	this->_methods.insert("GET");
 	std::cout << "Location constructor called" << std::endl;
 }
 
@@ -26,7 +27,7 @@ Location::Location(const Location& src):
 	_alias(src._alias)
 {
 	// do deep copy
-	std::map<std::string*, std::string*>				ptr_copy;
+	std::map<std::string*, std::string*>		ptr_copy;
 	std::map<int, std::string*>::const_iterator	it;
 
 	for (it = src._error_pages.begin(); it != src._error_pages.end(); it++) {
@@ -43,8 +44,8 @@ Location::Location(const Location& src):
 Location::~Location()
 {
 	std::map<int, std::string*>::iterator	it;
-	std::set<std::string*>							pointers;
-	std::set<std::string*>::iterator				pointer_it;
+	std::set<std::string*>					pointers;
+	std::set<std::string*>::iterator		pointer_it;
 
 	for (it = this->_error_pages.begin(); it != this->_error_pages.end(); it++) {
 		pointers.insert(it->second);
@@ -80,9 +81,9 @@ void Location::setReturn(const std::string& value)
 
 	iss >> first;
 	if (iss >> second)
-		_return = std::make_pair(first, second);
+		_return = std::make_pair(std::atoi(first.c_str()), second);
 	else
-		_return = std::make_pair("301", first);
+		_return = std::make_pair(301, first);
 }
 
 void Location::setIndex(const std::string& value)
@@ -227,6 +228,6 @@ const std::map<std::string, std::string>& Location::getCGIs() const {
 	return _cgis;
 }
 
-const std::pair<std::string, std::string>& Location::getRedirection() const {
+const std::pair<int, std::string>& Location::getRedirection() const {
 	return _return;
 }
