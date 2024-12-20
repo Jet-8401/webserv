@@ -10,18 +10,25 @@ DONE:
 - handle DELETE method ✓
 - resolve bug where /upload will be match but not /upload/ ✓
 - refactor Connection::onEvent logic ✓
-- check for safety reason the POST method
 - add proper errno on StreamBuffer failures ✓
 - bug when reloading any HttpGetDirectory (static variables) ✓
 - listen to multiples port ✓
 - listen to the same host:port ✓
 - check for 0 sized bytes packet for closing the connection ✓
+- make redirections ✓
 
 TODO:
+- check for safety reason the POST method
 - bug when not puting ';' at the end of the .conf file
 - add checks for unset properties in ServerConfig
 - handle connections timeout
-- make redirections
-- handle maximum connection per servers
+- handle maximum connection per virtual servers
+- make warning or error when two servers have same server_name
+- catch EVERY throw into the parsing
+- faire en sorte que la premiere configuration pour hot:port soit celui choisit
+	par défaut (voir sujet)
+- faire marcher les cookies
+- checker les différents CGI
+- mettre des headers plus précis (pas obligatoire) comme Content-Length etc...
 
 Note: for stoping the server clean, send a STOP request
