@@ -4,6 +4,7 @@
 #include "../headers/HttpPost.hpp"
 #include "../headers/HttpGetDirectory.hpp"
 #include "../headers/HttpGetCGI.hpp"
+#include "../headers/HttpDelete.hpp"
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
@@ -215,6 +216,8 @@ HttpParser*	HttpParser::upgrade(void)
 		}
 	} else if (method == "POST") {
 		return new HttpPost(*this);
+	} else if (method == "DELETE") {
+		return new HttpDelete(*this);
 	}
 	return NULL;
 }

@@ -1,22 +1,27 @@
+DONE:
 - handle max_connections in config file ✓
-- handle maximum connections in HttpServer::acceptConnection
 - adding a StreamBuffer to HttpRequest for the request body ✓
 - add proper address support for HttpServer ✓
-- add checks for unset properties in ServerConfig
 - delete allocated Location in ServerConfig destructors ✓
 - do deep copy of Locations in ServerConfig ✓
 - delete allocated ErrorPages in Location ✓
 - do deep copy of ErrorPages in Location ✓
-- handle connections timeout
 - handle POST method ✓
-- handle DELETE method
+- handle DELETE method ✓
 - resolve bug where /upload will be match but not /upload/ ✓
 - refactor Connection::onEvent logic ✓
 - check for safety reason the POST method
 - add proper errno on StreamBuffer failures ✓
-- bug when not puting ';' at the end of the .conf file
 - bug when reloading any HttpGetDirectory (static variables) ✓
-- listen to multiples port
-- listen to the same host:port
+- listen to multiples port ✓
+- listen to the same host:port ✓
+- check for 0 sized bytes packet for closing the connection ✓
 
-Note: for stoping the server clean, send a DELETE request
+TODO:
+- bug when not puting ';' at the end of the .conf file
+- add checks for unset properties in ServerConfig
+- handle connections timeout
+- make redirections
+- handle maximum connection per servers
+
+Note: for stoping the server clean, send a STOP request

@@ -81,6 +81,9 @@ void	Connection::onEvent(::uint32_t events)
 		if (bytes == -1) {
 			error(ERR_ACCEPT_REQUEST, true);
 			return;
+		} else if (bytes == 0) {
+			this->_socket_referer.deleteConnection(this);
+			return;
 		}
 		this->handler->parse(io_buffer, bytes);
 	}

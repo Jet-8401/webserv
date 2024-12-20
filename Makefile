@@ -21,7 +21,8 @@ SRCS = $(addprefix ${SDIR}/, \
 	HttpGetStaticFile.cpp \
 	HttpGetDirectory.cpp \
 	HttpGetCGI.cpp \
-	HttpPost.cpp)
+	HttpPost.cpp \
+	HttpDelete.cpp)
 
 HDRS = $(addprefix ${HDIR}/, \
 	HttpRequest.hpp \

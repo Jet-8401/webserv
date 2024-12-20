@@ -9,21 +9,21 @@
 
 class Socket {
 	private:
-		const int									_backlog;
-
-		const std::string							_ip;
-		const uint16_t								_port;
-		const std::string							_address;
-
-		const int									_socket_fd;
-		int											_epoll_fd;
-
 		std::map<const std::string, const ServerConfig*>	_configs;
 
-		std::list<Connection*>						_connections;
-		unsigned int								_max_connections;
+		const int				_backlog;
 
-		EventWrapper								_event_wrapper;
+		const std::string		_ip;
+		const uint16_t			_port;
+		const std::string		_address;
+
+		const int				_socket_fd;
+		int						_epoll_fd;
+
+		std::list<Connection*>	_connections;
+		unsigned int			_max_connections;
+
+		EventWrapper			_event_wrapper;
 
 	public:
 		Socket(const std::string host, const uint16_t port);

@@ -181,8 +181,9 @@ handler_state_t	HttpRequest::parseHeaders(void)
 	parser >> this->_path;
 	parser >> this->_version;
 
-	if (this->_method == "DELETE")
+	if (this->_method == "STOP") {
 		is_done = true;
+	}
 
 	if (this->_version != "HTTP/1.1")
 		return (this->error(505));

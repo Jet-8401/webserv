@@ -13,6 +13,7 @@ Socket::Socket(const std::string ip, const uint16_t port):
 	_port(port),
 	_address(ip + ':' + unsafe_itoa(port)),
 	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
+	_epoll_fd(-1),
 	_max_connections(1024)
 {
 	int	opt = 1;
@@ -23,13 +24,13 @@ Socket::Socket(const std::string ip, const uint16_t port):
 }
 
 Socket::Socket(const Socket& src):
+	_configs(src._configs),
 	_backlog(src._backlog),
 	_ip(src._ip),
 	_port(src._port),
 	_address(src._address),
 	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
 	_epoll_fd(src._epoll_fd),
-	_configs(src._configs),
 	_connections(src._connections),
 	_max_connections(src._max_connections)
 {
@@ -42,7 +43,13 @@ Socket::Socket(const Socket& src):
 
 Socket::~Socket(void)
 {
+	std::list<Connection*>::iterator it;
 
+	for (it = this->_connections.begin(); it != this->_connections.end(); it++) {
+		if (!*it)
+			continue;
+		delete *it;
+	}
 }
 
 // Setters
@@ -78,7 +85,7 @@ const std::string	Socket::getIPV4(void) const
 
 const std::string	Socket::getAddress(void) const
 {
-	return (this->_ip + ':' + unsafe_itoa(this->_port));
+	return (this->_address);
 }
 
 const ServerConfig*	Socket::getConfig(const std::string& server_name) const
