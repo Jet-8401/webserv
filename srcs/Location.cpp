@@ -114,7 +114,6 @@ void Location::setRoot(const std::string& value)
 		}
 	}
 	_root = value;
-
 }
 
 void Location::setCgis(const std::string& value)

@@ -94,15 +94,18 @@ const ServerConfig*	Socket::getConfig(const std::string& server_name) const
 {
 	std::map<const std::string, const ServerConfig*>::const_iterator	it;
 
+	std::map<const std::string, const ServerConfig*>::const_iterator debug_it;
+	for (debug_it = this->_configs.begin(); debug_it != this->_configs.end(); debug_it++)
+		DEBUG("Config server_name: " << debug_it->first);
+
 	it = this->_configs.find(server_name);
 	if (it != this->_configs.end())
 		return (it->second);
 	if (this->_configs.size() == 0) {
 		DEBUG("NULL POINTER DETECTED");
 		return (NULL);
-	}
-	it = this->_configs.begin();
-	return (it->second);
+	};
+	return (this->_default_config);
 }
 
 const Socket::connections_t&	Socket::getConnections(void) const

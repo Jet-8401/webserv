@@ -8,7 +8,7 @@ class Connection;
 # include <sys/epoll.h>
 # include "HttpParser.hpp"
 
-# define PACKETS_SIZE 8192
+# define PACKETS_SIZE 32768
 
 class Connection {
 	private:
@@ -16,9 +16,9 @@ class Connection {
 		const int			_socket;
 		bool				_timed_out;
 		const time_t		_created_at;
-		time_t				_ms_timeout_value;
+		time_t				_s_timeout_value;
 
-		bool				_checkTimeout(void);
+		bool				_isTimedout(void);
 
 	public:
 		Connection(const int client_socket_fd, Socket& socket_referer);

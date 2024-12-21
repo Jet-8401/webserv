@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
-#include <iostream>	// To remove
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -22,7 +21,8 @@ const uint8_t HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 
 HttpRequest::HttpRequest(const HttpResponse& response, const Socket& socket_referer):
 	HttpMessage(),
-	_body(32000, -1),
+	_header_buff(65536),
+	_body(65536, -1),
 	_matching_location(0),
 	_response(response),
 	_socket_referer(socket_referer),

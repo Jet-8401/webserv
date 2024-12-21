@@ -30,5 +30,6 @@ TODO:
 - faire marcher les cookies
 - checker les différents CGI
 - mettre des headers plus précis (pas obligatoire) comme Content-Length etc...
+- change write by send to avoid SIGPIPE
 
 Note: for stoping the server clean, send a STOP request
