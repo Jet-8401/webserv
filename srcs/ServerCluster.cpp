@@ -145,10 +145,12 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
 	std::string token;
 	ss >> token;
 	if (token != "{")
-		return (error("Expected '{' after http", true), -1);
+		return (error("Expected '{' after http", false), -1);
 
 	Location http_location;
-	parseHttpBlockDefault(ss, &http_location);
+
+	if (parseHttpBlockDefault(ss, &http_location) < 0)
+		return (-1);
 
 	while (ss >> token)
 	{
@@ -161,8 +163,7 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
 				return (-1);
 		}
 	}
-	std::cout << "FUCK"<< ss.eof() << std::endl;
-	return (error("Unexpected end of http block", true), -1);
+	return (error("Unexpected end of http block", false), -1);
 }
 
 int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_location)
@@ -188,15 +189,16 @@ int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_l
 			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _http_location_setters.find(token);
 			if (it != _http_location_setters.end())
 			{
-				std::cout << "#####################################################" << std::endl;
 				std::string value;
 				std::getline(ss, value, ';'); // Read until semicolon
+				if (value.find('\n') != std::string::npos)
+					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
 				(http_location->*(it->second))(value);
 			}
 		}
 	}
-	return (error("Unexpected end of http block", true), -1);
+	return (error("Unexpected end of http block", false), -1);
 }
 
 int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv_location)
@@ -222,12 +224,14 @@ int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv
 			{
 				std::string value;
 				std::getline(ss, value, ';');
+				if (value.find('\n') != std::string::npos)
+					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t"));
 				(serv_location->*(it->second))(value);
 			}
 		}
 	}
-	return (error("Unexpected end of server block", true), -1);
+	return (error("Unexpected end of server block", false), -1);
 }
 
 int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location)
@@ -237,13 +241,11 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 	if (token != "{")
 		return (error("Expected '{' after server", true), -1);
 
-	std::cout << "Parsing server block..." << std::endl; // Debug
-
 	Location serv_location(*http_location);
-	parseServerBlockDefault(ss, &serv_location);
+	if (parseServerBlockDefault(ss, &serv_location) < 0)
+		return (-1);
 	while (ss >> token)
 	{
-		std::cout << "Token: " << token << std::endl; // Debug
 		if (token == "}")
 		{
 			if (config.getLocations().empty())
@@ -257,7 +259,6 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 		{
 			std::string paths;
 			std::getline(ss, paths);
-			std::cout << "Parsing location: " << paths  << "|" << std::endl; // Debug
 			Location *location = new Location(serv_location);
 			if (parseLocationBlock(ss, location) < 0)
 				return (-1);
@@ -274,22 +275,22 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 			{
 				std::string value;
 				std::getline(ss, value, ';'); // Read until semicolon
+				if (value.find('\n') != std::string::npos)
+					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
-				//std::cout << "Setting " << token << " to " << value << std::endl; // Debug
 				(config.*(it->second))(value);
 			}
 		}
 	}
-	return (error("Unexpected end of server block", true), -1);
+	return (error("Unexpected end of server block", false), -1);
 }
 
 int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 {
 	std::string token;
 	ss >> token;
-	std::cout << "LE token : " << token << std::endl;
 	if (token != "{")
-		return (error("Expected '{' after location", true), -1);
+		return (error("Expected '{' after location", false), -1);
 
 	while (ss >> token)
 	{
@@ -302,12 +303,14 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 			{
 				std::string value;
 				std::getline(ss, value, ';'); // Read until semicolon
+				if (value.find('\n') != std::string::npos)
+					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
 				(location->*(it->second))(value);
 			}
 		}
 	}
-	return (error("Unexpected end of location block", true), -1);
+	return (error("Unexpected end of location block", false), -1);
 }
 
 // First check if the port exist.
@@ -329,7 +332,7 @@ int	ServerCluster::run(void)
 
 	this->_epoll_fd = ::epoll_create(this->_sockets.size());
 	if (this->_epoll_fd == -1)
-		return (error(ERR_EPOLL_CREATION, false), -1);
+		return (error(ERR_EPOLL_CREATION, true), -1);
 
 	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++)
 	{

@@ -92,12 +92,6 @@ const ServerConfig*	Socket::getConfig(const std::string& server_name) const
 {
 	std::map<const std::string, const ServerConfig*>::const_iterator	it;
 
-	for (std::map<const std::string, const ServerConfig*>::const_iterator iter = this->_configs.begin(); iter != this->_configs.end(); ++iter) {
-		std::cout << "config key: " << iter->first << std::endl;
-	}
-
-	std::cout << "taking config with server_name: " << server_name << std::endl;
-
 	it = this->_configs.find(server_name);
 	if (it != this->_configs.end())
 		return (it->second);

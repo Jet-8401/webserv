@@ -13,7 +13,6 @@ Location::Location(void):
 {
 	this->_return.first = 0;
 	this->_methods.insert("GET");
-	std::cout << "Location constructor called" << std::endl;
 }
 
 Location::Location(const Location& src):
@@ -57,7 +56,6 @@ Location::~Location()
 
 void Location::setAutoindex(const std::string& value)
 {
-	std::cout <<"autoindex value :"<< value << std::endl;
 	_autoindex = (value == "on" || value == "ON" || value == "true");
 }
 
@@ -105,16 +103,12 @@ void Location::setAlias(const std::string& value)
 
 void Location::setRoot(const std::string& value)
 {
-	std::cout << "value :" << value << std::endl;
 	if (value[0] == '~') {
-		std::cout << "value[0] :" << value[0] << std::endl;
 		extern char** environ;
 		for (char** env = environ; *env; ++env)
 		{
 			if (strncmp(*env, "HOME=", 5) == 0) {
 				_root = (*env + 5) + value.substr(1);
-
-				std::cout << "root :" << _root << std::endl;
 				return ;
 			}
 		}
