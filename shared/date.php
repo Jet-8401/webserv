@@ -25,7 +25,7 @@
 
         <?php
         // Get current server time
-        date_default_timezone_set("UTC"); // Set timezone to UTC
+        date_default_timezone_set("UTC+1"); // Set timezone to UTC
         $current_time = date("Y-m-d H:i:s");
         ?>
 

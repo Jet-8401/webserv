@@ -12,8 +12,8 @@ Location::Location(void):
 	_autoindex(false),
 	_client_max_body_size(32768)
 {
-	_methods.insert("GET");
-	std::cout << "Location constructor called" << std::endl;
+	this->_return.first = 0;
+	this->_methods.insert("GET");
 }
 
 Location::Location(const Location& src):
@@ -27,7 +27,7 @@ Location::Location(const Location& src):
 	_alias(src._alias)
 {
 	// do deep copy
-	std::map<std::string*, std::string*>				ptr_copy;
+	std::map<std::string*, std::string*>		ptr_copy;
 	std::map<int, std::string*>::const_iterator	it;
 
 	for (it = src._error_pages.begin(); it != src._error_pages.end(); it++) {
@@ -44,8 +44,8 @@ Location::Location(const Location& src):
 Location::~Location()
 {
 	std::map<int, std::string*>::iterator	it;
-	std::set<std::string*>							pointers;
-	std::set<std::string*>::iterator				pointer_it;
+	std::set<std::string*>					pointers;
+	std::set<std::string*>::iterator		pointer_it;
 
 	for (it = this->_error_pages.begin(); it != this->_error_pages.end(); it++) {
 		pointers.insert(it->second);
@@ -57,7 +57,6 @@ Location::~Location()
 
 int Location::setAutoindex(const std::string& value)
 {
-	std::cout <<"autoindex value :"<< value << std::endl;
 	_autoindex = (value == "on" || value == "ON" || value == "true");
 	return (0);
 }
@@ -83,9 +82,9 @@ int Location::setReturn(const std::string& value)
 
 	iss >> first;
 	if (iss >> second)
-		_return = std::make_pair(first, second);
+		_return = std::make_pair(std::atoi(first.c_str()), second);
 	else
-		_return = std::make_pair("301", first);
+		_return = std::make_pair(301, first);
 	return (0);
 }
 
@@ -110,15 +109,12 @@ int Location::setAlias(const std::string& value)
 
 int Location::setRoot(const std::string& value)
 {
-	std::cout << "value :" << value << std::endl;
 	if (value[0] == '~') {
-		std::cout << "value[0] :" << value[0] << std::endl;
 		extern char** environ;
 		for (char** env = environ; *env; ++env)
 		{
 			if (strncmp(*env, "HOME=", 5) == 0) {
 				_root = (*env + 5) + value.substr(1);
-
 				std::cout << "root :" << _root << std::endl;
 				return (0);
 			}
@@ -183,7 +179,12 @@ int Location::setClientMaxBodySize(const std::string& value)
 	std::string size = value;
 	long multiplier = 1;
 
-	if (size[size.length() - 1] == 'M' || size[size.length() - 1] == 'm')
+	if (size[size.length() - 1] == 'G' || size[size.length() - 1] == 'g')
+	{
+	multiplier = 1024 * 1024 * 1024;
+	size.erase(size.size() - 1);
+	}
+	else if (size[size.length() - 1] == 'M' || size[size.length() - 1] == 'm')
 	{
 	multiplier = 1024 * 1024;
 	size.erase(size.size() - 1);
@@ -236,6 +237,6 @@ const std::map<std::string, std::string>& Location::getCGIs() const {
 	return _cgis;
 }
 
-const std::pair<std::string, std::string>& Location::getRedirection() const {
+const std::pair<int, std::string>& Location::getRedirection() const {
 	return _return;
 }

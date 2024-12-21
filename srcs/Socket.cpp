@@ -1,31 +1,20 @@
 #include "../headers/WebServ.hpp"
-#include "../headers/EventWrapper.hpp"
+#include "../headers/Socket.hpp"
 #include "../headers/Connection.hpp"
-#include <asm-generic/socket.h>
-#include <cstring>
-#include <netinet/in.h>
-#include <stdexcept>
-#include <string>
-#include <sys/epoll.h>
-#include <unistd.h>
 #include <sys/socket.h>
-#include <netinet/ip.h>
+#include <string.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <cstdlib>
+#include <unistd.h>
 
-// Static variables
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-const int	HttpServer::_backlog = 1024;
-
-// Constructors / Desctructors
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-HttpServer::HttpServer(const ServerConfig& config):
-	_config(config),
+Socket::Socket(const std::string ip, const uint16_t port):
+	_backlog(1024),
+	_ip(ip),
+	_port(port),
+	_address(ip + ':' + unsafe_itoa(port)),
 	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
+	_epoll_fd(-1),
+	_default_config(0),
 	_max_connections(1024)
 {
 	int	opt = 1;
@@ -35,11 +24,15 @@ HttpServer::HttpServer(const ServerConfig& config):
 	setsockopt(this->_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 }
 
-HttpServer::HttpServer(const HttpServer& src):
-	_config(src._config),
+Socket::Socket(const Socket& src):
+	_backlog(src._backlog),
+	_ip(src._ip),
+	_port(src._port),
+	_address(src._address),
 	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
 	_epoll_fd(src._epoll_fd),
-	_address(src._address),
+	_configs(src._configs),
+	_default_config(src._default_config),
 	_connections(src._connections),
 	_max_connections(src._max_connections)
 {
@@ -50,22 +43,21 @@ HttpServer::HttpServer(const HttpServer& src):
 	setsockopt(this->_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 }
 
-HttpServer::~HttpServer(void)
+Socket::~Socket(void)
 {
-	std::list<Connection*>::iterator	it;
+	std::list<Connection*>::iterator it;
 
 	for (it = this->_connections.begin(); it != this->_connections.end(); it++) {
+		if (!*it)
+			continue;
 		delete *it;
-		*it = 0;
 	}
-
-	close(this->_socket_fd);
 }
 
 // Setters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-void	HttpServer::setEpollFD(const int epoll_fd)
+void	Socket::setEpollFD(const int epoll_fd)
 {
 	this->_epoll_fd = epoll_fd;
 }
@@ -73,52 +65,114 @@ void	HttpServer::setEpollFD(const int epoll_fd)
 // Getters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-const ServerConfig& HttpServer::getConfig(void) const
-{
-	return (this->_config);
-}
-
-const std::string&	HttpServer::getAddress(void) const
-{
-	return (this->_address);
-}
-
-const int&	HttpServer::getSocketFD(void) const
+const int&			Socket::getSocketFD(void) const
 {
 	return (this->_socket_fd);
 }
 
-const int&	HttpServer::getEpollFD(void) const
+const int&			Socket::getEpollFD(void) const
 {
 	return (this->_epoll_fd);
 }
 
-// Function members
+const uint16_t&		Socket::getPort(void) const
+{
+	return (this->_port);
+}
+
+const std::string	Socket::getIPV4(void) const
+{
+	return (this->_ip);
+}
+
+const std::string	Socket::getAddress(void) const
+{
+	return (this->_address);
+}
+
+const ServerConfig*	Socket::getConfig(const std::string& server_name) const
+{
+	std::map<const std::string, const ServerConfig*>::const_iterator	it;
+
+	it = this->_configs.find(server_name);
+	if (it != this->_configs.end())
+		return (it->second);
+	if (this->_configs.size() == 0) {
+		DEBUG("NULL POINTER DETECTED");
+		return (NULL);
+	}
+	it = this->_configs.begin();
+	return (it->second);
+}
+
+const Socket::connections_t&	Socket::getConnections(void) const
+{
+	return (this->_connections);
+}
+
+// Functions
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-// Bind a name to a socket and listen for connections.
-// for further informations see `man 7 ip`
-int	HttpServer::listen(void) const
+bool	Socket::addConfig(const ServerConfig* config)
+{
+	const std::vector<std::string>&	server_names = config->getServerNames();
+
+	// if there is not server names add the address as the default config name
+	if (server_names.empty()) {
+		// if there is already a default discard this one
+		if (this->_configs.find(this->_address) != this->_configs.end())
+			return (false);
+		if (!this->_default_config)
+			this->_default_config = config;
+		this->_configs[this->_address] = config;
+		return (true);
+	}
+
+	// else add all the server names with that config
+	for (std::vector<std::string>::const_iterator it = server_names.begin(); it != server_names.end(); it++) {
+		if (this->_configs.find(*it) == this->_configs.end())
+			continue;
+		if (!this->_default_config)
+			this->_default_config = config;
+		this->_configs[*it] = config;
+	}
+	return (true);
+}
+
+int		Socket::listen(void) const
 {
 	sockaddr_in	addr;
 
 	::memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = ::htons(this->_config.getPort());
-	if (::inet_pton(AF_INET, this->_config.getHost().c_str(), &addr.sin_addr) != 1)
+	addr.sin_port = ::htons(this->_port);
+	if (::inet_pton(AF_INET, this->_ip.c_str(), &addr.sin_addr) != 1)
 		return (error(ERR_ADDR_VALUE, true), -1);
 
 	if (::bind(this->_socket_fd, (sockaddr*) &addr, sizeof(addr)) == -1)
 		return (error(ERR_BINDING_SOCKET, true), -1);
 	DEBUG("Binding socket for " << this->getAddress());
 
-	if (::listen(this->_socket_fd, HttpServer::_backlog) == -1)
+	if (::listen(this->_socket_fd, this->_backlog) == -1)
 		return (error(ERR_LISTENING, true), -1);
 	DEBUG("Listening on " << this->getAddress());
 	return (0);
 }
 
-int	HttpServer::acceptConnection(void)
+void	Socket::onEvent(::uint32_t events)
+{
+	if (events & EPOLLHUP) {
+		// handle socket hang-up
+		return ;
+	}
+
+	if (events & EPOLLIN) {
+		this->acceptConnection();
+		// handle client errors
+	}
+}
+
+int		Socket::acceptConnection(void)
 {
 	int					client_fd;
 	Connection*			client_connection;
@@ -148,23 +202,7 @@ int	HttpServer::acceptConnection(void)
 	return (0);
 }
 
-// TODO: handle
-// EPOLLIN	x
-// EPOLLHUP	x
-void	HttpServer::onEvent(::uint32_t events)
-{
-	if (events & EPOLLHUP) {
-		// handle socket hang-up
-		return ;
-	}
-
-	if (events & EPOLLIN) {
-		this->acceptConnection();
-		// handle client errors
-	}
-}
-
-int	HttpServer::deleteConnection(Connection* connection)
+int		Socket::deleteConnection(Connection* connection)
 {
 	DEBUG("deleting connection");
 	if (!connection)

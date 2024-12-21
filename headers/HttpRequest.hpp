@@ -2,9 +2,9 @@
 # define HTTP_REQUEST_HPP
 
 class HttpResponse;
+class Socket;
 
 # include "Location.hpp"
-# include "ServerConfig.hpp"
 # include "HttpMessage.hpp"
 # include "BytesBuffer.hpp"
 # include "StreamBuffer.hpp"
@@ -14,7 +14,7 @@ class HttpResponse;
 
 class HttpRequest : public HttpMessage {
 	public:
-		HttpRequest(const ServerConfig& config, const HttpResponse& response);
+		HttpRequest(const HttpResponse& response, const Socket& socket_referer);
 		HttpRequest(const HttpRequest& src);
 		virtual ~HttpRequest(void);
 
@@ -49,8 +49,8 @@ class HttpRequest : public HttpMessage {
 		Location*			_matching_location;
 		struct stat			_path_stat;
 
-		const ServerConfig&	_config_reference;
 		const HttpResponse&	_response;
+		const Socket&		_socket_referer;
 
 		uint32_t			_events;
 

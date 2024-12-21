@@ -1,6 +1,8 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/HttpRequest.hpp"
 #include "../headers/HttpResponse.hpp"
+#include "../headers/ServerConfig.hpp"
+#include "../headers/Socket.hpp"
 #include <fcntl.h>
 #include <iostream>
 #include <algorithm>
@@ -18,12 +20,12 @@ const uint8_t HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpRequest::HttpRequest(const ServerConfig& config, const HttpResponse& response):
+HttpRequest::HttpRequest(const HttpResponse& response, const Socket& socket_referer):
 	HttpMessage(),
-	_body(32000),
+	_body(32000, -1),
 	_matching_location(0),
-	_config_reference(config),
 	_response(response),
+	_socket_referer(socket_referer),
 	_events(0),
 	_has_events_changed(false)
 {}
@@ -39,8 +41,8 @@ HttpRequest::HttpRequest(const HttpRequest& src):
 	_config_location_str(src._config_location_str),
 	_matching_location(src._matching_location),
 	_path_stat(src._path_stat),
-	_config_reference(src._config_reference),
 	_response(src._response),
+	_socket_referer(src._socket_referer),
 	_events(src._events),
 	_has_events_changed(src._has_events_changed),
 	_end_header_index(src._end_header_index)
@@ -179,8 +181,9 @@ handler_state_t	HttpRequest::parseHeaders(void)
 	parser >> this->_path;
 	parser >> this->_version;
 
-	if (this->_method == "DELETE")
+	if (this->_method == "STOP") {
 		is_done = true;
+	}
 
 	if (this->_version != "HTTP/1.1")
 		return (this->error(505));
@@ -217,11 +220,14 @@ bool	HttpRequest::_resolveLocation(void)
 	if (!alias.empty())
 		this->_resolved_path.replace(this->_resolved_path.find(this->_config_location_str), this->_config_location_str.length(), alias);
 
+	DEBUG(this->_resolved_path);
+
 	// test for multiples index if there is
 	std::string	full_path;
 	if (this->_method == "GET") {
 		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++) {
 			full_path = joinPath(this->_resolved_path, *it);
+			DEBUG(full_path);
 			if (::stat(full_path.c_str(), &this->_path_stat) == -1) {
 				::memset(&this->_path_stat, 0, sizeof(this->_path_stat));
 				continue;
@@ -234,6 +240,7 @@ bool	HttpRequest::_resolveLocation(void)
 	}
 
 	// else take the path as final try
+	DEBUG("taking the final path");
 	if (::stat(this->_resolved_path.c_str(), &this->_path_stat) == -1)
 		return (false);
 	return (true);
@@ -242,12 +249,22 @@ bool	HttpRequest::_resolveLocation(void)
 // Check if the asked location is found and if mandatory options are ok.
 handler_state_t	HttpRequest::validateAndInitLocation(void)
 {
-	ServerConfig::locations_t::const_iterator	matching;
 	DEBUG("_validateAndInitMethod called");
 
+	std::string									conf_name;
+	headers_t::const_iterator					host = this->_headers.find("Host");
+	const ServerConfig*							config;
+	ServerConfig::locations_t::const_iterator	matching;
+
+	if (host != this->_headers.end())
+		conf_name = host->second;
+	config = this->_socket_referer.getConfig(conf_name);
+	if (!config)
+		return (this->error(500));
+
 	// try to match a location
-	matching = this->_config_reference.findLocation(this->_path);
-	if (matching == this->_config_reference.getLocations().end()) {
+	matching = config->findLocation(this->_path);
+	if (matching == config->getLocations().end()) {
 		DEBUG("didn't find any locations");
 		return (this->error(500));
 	}
@@ -255,11 +272,22 @@ handler_state_t	HttpRequest::validateAndInitLocation(void)
 	this->_config_location_str = matching->first;
 	this->_matching_location = matching->second;
 	DEBUG(this->_config_location_str << " found!");
+	if (this->_matching_location == 0) {
+		DEBUG("NULL POINTER CATCHED !");
+		return (this->error(500));
+	}
 
 	// check if method is allowed
 	if (this->_matching_location->getMethods().find(this->_method) == this->_matching_location->getMethods().end()) {
 		DEBUG("Method not allowed !");
 		return (this->error(405));
+	}
+
+	const std::pair<int, std::string>& redirection = this->_matching_location->getRedirection();
+	if (redirection.first) {
+		DEBUG("Redirection found !");
+		this->_status_code = redirection.first;
+		return (handler_state_t(READY_TO_SEND, true));
 	}
 
 	if (!this->_resolveLocation()) {
@@ -271,34 +299,3 @@ handler_state_t	HttpRequest::validateAndInitLocation(void)
 
 	return (handler_state_t(NEED_UPGRADE, true));
 }
-
-/*
-bool	HttpRequest::parse(const uint8_t* packet, const size_t packet_size)
-{
-	switch (this->state) {
-		case READING_HEADERS:
-			if (!this->_bufferHeaders(packet, packet_size)) return (false);
-			if (this->state == READING_HEADERS)
-				break;
-		case CHECK_METHOD:
-			if (!this->_validateAndInitMethod()) return (false);
-			this->state = READING_BODY;
-		case READING_BODY:
-			if (this->_extanded_method)
-				this->_extanded_method->parse(packet, packet_size);
-			else
-				this->state = DONE;
-			if (this->state == READING_BODY)
-				break;
-		case DONE:
-			this->_has_events_changed = true;
-			this->events = EPOLLOUT;
-			break;
-		default:
-			std::cout << "state n°" << this->state << " not supported!" << std::endl;
-			break;
-	}
-	std::cout << "REQUEST PARSING !!" << std::endl;
-	return (true);
-}
-*/

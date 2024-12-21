@@ -11,14 +11,17 @@ class StreamBuffer {
 		size_t		_size;
 		size_t		_head;
 		size_t		_tail;
-		//size_t		_bytes_passed_through;
+		size_t		_bytes_passed_through;
+		size_t		_max_bytes_passed_through;
 		uint8_t*	_intern_buffer;
 
 	public:
 		StreamBuffer(void);
-		StreamBuffer(const size_t buffer_size);
-		StreamBuffer(const StreamBuffer& src, bool takeOwnership);
+		StreamBuffer(const size_t buffer_size, const size_t max_bytes_through);
+		StreamBuffer(const StreamBuffer& src, bool take_ownership);
 		virtual ~StreamBuffer(void);
+
+		void			setMaxBytesThrough(size_t bytes);
 
 		// Getter
 		const size_t&	size(void) const;

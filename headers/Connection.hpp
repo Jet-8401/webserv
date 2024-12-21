@@ -6,33 +6,32 @@ class Connection;
 # include <ctime>
 # include <stdint.h>
 # include <sys/epoll.h>
-# include "HttpServer.hpp"
 # include "HttpParser.hpp"
 
 # define PACKETS_SIZE 8192
 
 class Connection {
 	private:
+		Socket&				_socket_referer;
 		const int			_socket;
-		HttpServer&			_server_referer;
 		bool				_timed_out;
-		const ::uint64_t	_created_at;
-		::uint64_t			_ms_timeout_value;
+		const time_t		_created_at;
+		time_t				_ms_timeout_value;
 
 		bool				_checkTimeout(void);
 
 	public:
-		Connection(const int client_socket_fd, HttpServer& server_referrer);
+		Connection(const int client_socket_fd, Socket& socket_referer);
 		virtual ~Connection(void);
 
 		// Getters
 		const int&			getSocketFD(void) const;
-		bool				isWritable(void) const;
-		const ::uint64_t&	createdAt(void) const;
-		const HttpServer&	getServerReferer(void) const;
+		const time_t&		createdAt(void) const;
 
 		int					changeEvents(::uint32_t events);
 		void				onEvent(::uint32_t events);
+		ssize_t				onOutEvent(uint8_t* io_buffer, size_t buff_len);
+		ssize_t				onInEvent(uint8_t* io_buffer, size_t buff_len);
 
 		HttpParser*			handler;
 		struct epoll_event	event;

@@ -24,7 +24,7 @@ class Location {
 		const std::string&							getAlias() const;
 		const std::vector<std::string>&				getIndexes() const;
 		const std::map<std::string, std::string>&	getCGIs() const;
-		const std::pair<std::string, std::string>&	getRedirection() const;
+		const std::pair<int, std::string>&			getRedirection() const;
 
 		int setMethods(const std::string& value);
 		int setRoot(const std::string& value);
@@ -44,7 +44,7 @@ class Location {
 		long								_client_max_body_size;
 		std::map<std::string, std::string>	_cgis;
 		std::vector<std::string>			_index;
-		std::pair<std::string, std::string>	_return;
+		std::pair<int, std::string>			_return;
 		std::string							_alias;
 };
 

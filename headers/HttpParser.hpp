@@ -4,7 +4,7 @@
 # include "CommonDefinitions.hpp"
 # include "HttpResponse.hpp"
 # include "HttpRequest.hpp"
-#include <ios>
+# include <ios>
 # include <stdint.h>
 # include <sys/types.h>
 
@@ -27,7 +27,7 @@ class HttpParser {
 		int							_error_page_fd;
 
 	public:
-		HttpParser(const ServerConfig& config);
+		HttpParser(const Socket& socket_referer);
 		virtual ~HttpParser(void);
 
 		virtual bool				parse(const uint8_t* packet, const size_t packet_len);

@@ -1,16 +1,16 @@
 NAME = webserv
-CXXFLAGS =-Wall -Wextra -Werror -g -std=c++98
+CXXFLAG = -Wall -Werror -Wextra -g -std=c++98
 SDIR = srcs
 HDIR = headers
 
 SRCS = $(addprefix ${SDIR}/, \
 	main.cpp \
 	utils.cpp \
-	HttpServer.cpp \
 	Location.cpp \
 	ServerCluster.cpp \
 	ServerConfig.cpp \
 	EventWrapper.cpp \
+	Socket.cpp \
 	Connection.cpp \
 	HttpRequest.cpp \
 	HttpResponse.cpp \
@@ -21,19 +21,21 @@ SRCS = $(addprefix ${SDIR}/, \
 	HttpGetStaticFile.cpp \
 	HttpGetDirectory.cpp \
 	HttpGetCGI.cpp \
-	HttpPost.cpp)
+	HttpPost.cpp \
+	HttpDelete.cpp \
+	HttpPostCGI.cpp)
 
 HDRS = $(addprefix ${HDIR}/, \
 	HttpRequest.hpp \
 	HttpResponse.hpp \
-	HttpServer.hpp \
 	Location.hpp \
 	ServerCluster.hpp \
 	ServerConfig.hpp \
 	EventWrapper.hpp \
 	WebServ.hpp \
 	HttpGetDirectory.hpp \
-	HttpGetCGI.hpp)
+	HttpGetCGI.hpp \
+	HttpPostCGI.hpp)
 
 TPLS =
 ODIR = objs
@@ -46,7 +48,7 @@ ${NAME}: ${OBJS}
 	c++ ${CXXFLAGS} $^ -o $@
 
 ${ODIR}/%.o: ${SDIR}/%.cpp ${HDRS} ${TPLS} | ${ODIR}
-	c++ ${DEFINES} ${CXXFLAGS} -I${HDIR} -c $< -o $@
+	c++ ${DEFINES} ${CXXFLAG} -I${HDIR} -c $< -o $@
 
 ${ODIR}:
 	mkdir -p ${ODIR}

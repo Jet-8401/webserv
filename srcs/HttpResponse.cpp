@@ -38,7 +38,7 @@ HttpResponse::HttpResponse(const HttpRequest& request):
 	HttpMessage(),
 	_request(request)
 {
-	this->setHeader("Server", "webserv/1.0");
+	this->setHeader("Server", "42-webserv/1.0");
 	this->setHeader("Connection", "close");
 }
 

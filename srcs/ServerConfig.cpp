@@ -6,15 +6,12 @@
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 ServerConfig::ServerConfig(void):
-	_host("0.0.0.0"),
-	_port(80),
 	_max_connections(1024)
 {}
 
 ServerConfig::ServerConfig(const ServerConfig& src):
 	_server_names(src._server_names),
-	_host(src._host),
-	_port(src._port),
+	_addresses(src._addresses),
 	_max_connections(src._max_connections)
 {
 	// deep copy of locations
@@ -52,8 +49,6 @@ ServerConfig::~ServerConfig(void)
 ServerConfig&	ServerConfig::operator=(const ServerConfig& rhs)
 {
 	this->_server_names = rhs._server_names;
-	this->_host = rhs._host;
-	this->_port = rhs._port;
 	this->_locations = rhs._locations;
 	return (*this);
 }
@@ -66,14 +61,9 @@ const std::vector<std::string>&	ServerConfig::getServerNames(void) const
 	return (this->_server_names);
 }
 
-const std::string&	ServerConfig::getHost(void) const
+const ServerConfig::address_type&	ServerConfig::getAddresses(void) const
 {
-	return (this->_host);
-}
-
-const uint16_t&	ServerConfig::getPort(void) const
-{
-	return (this->_port);
+	return (this->_addresses);
 }
 
 const std::map<std::string, Location*>&	ServerConfig::getLocations(void) const
@@ -91,18 +81,17 @@ const unsigned int&	ServerConfig::getMaxConnections(void) const
 
 void	ServerConfig::setAdress(const std::string& value)
 {
-	size_t colonPos = value.find(':');
+	size_t		colonPos = value.find(':');
+	std::string	host("0.0.0.0");
+	uint16_t	port;
 
-	if (colonPos != std::string::npos)
-	{
-		_host = value.substr(0, colonPos);
-		_port = static_cast<uint16_t>(atoi(value.c_str() + colonPos + 1));
+	if (colonPos != std::string::npos) {
+		host = value.substr(0, colonPos);
+		port = static_cast<uint16_t>(atoi(value.c_str() + colonPos + 1));
+	} else {
+		port = static_cast<uint16_t>(atoi(value.c_str()));
 	}
-	else
-	{
-		_host = "0.0.0.0";
-		_port = static_cast<uint16_t>(atoi(value.c_str()));
-	}
+	this->_addresses.push_back(std::pair<std::string, uint16_t>(host, port));
 }
 
 void	ServerConfig::setServerName(const std::string& value)
@@ -114,9 +103,14 @@ void	ServerConfig::setServerName(const std::string& value)
 	}
 }
 
+#include <iostream>
+
 void	ServerConfig::addLocation(const std::string& path, Location* location)
 {
-	_locations[path] = location;
+	std::string	new_path = path;
+	if (path.length() > 1 && new_path[path.length() - 1] == '/')
+		new_path.resize(path.length() - 1);
+	_locations[new_path] = location;
 }
 
 void	ServerConfig::setMaxConnections(const std::string& value)

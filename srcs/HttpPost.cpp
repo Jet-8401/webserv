@@ -1,7 +1,6 @@
 #include "../headers/HttpPost.hpp"
 #include "../headers/WebServ.hpp"
 #include "../headers/CommonDefinitions.hpp"
-#include "../headers/Connection.hpp"
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
@@ -9,8 +8,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cstdio>
-
-#define MAX_ITERATIONS 100
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -27,6 +24,7 @@ HttpPost::HttpPost(const HttpParser& src):
 	size_t			pos;
 
 	DEBUG("Creating a HttpPost object!");
+	this->_request.getBody().setMaxBytesThrough(this->_request.getMatchingLocation().getClientMaxBodySize());
 
 	content_type = this->_request.getHeader("Content-Type");
 	pos = content_type.find(BOUNDARY_KEY);
@@ -74,6 +72,9 @@ bool	HttpPost::parse(const uint8_t* packet, const size_t packet_size)
 				break;
 			case UP_FILE_CREATE:
 				this->_uploading_state = this->_createFile();
+				break;
+			case UP_UNBUFFERING:
+				this->_uploading_state = this->_writeToFile(0, 0);
 				break;
 			case UP_WRITING_FILE:
 				this->_uploading_state = this->_writeToFile(packet, packet_size);
@@ -182,7 +183,6 @@ uploading_state_t	HttpPost::_checkFileHeaders(void)
 	end = it->second.find('"', begin + 10);
 	if (begin == std::string::npos || end == std::string::npos)
 		return (this->_error(415));
-
 	begin += 10;
 	this->_file_name = it->second.substr(begin, end - begin);
 
@@ -193,8 +193,6 @@ uploading_state_t	HttpPost::_createFile(void)
 {
 	const Location& location = this->_request.getMatchingLocation();
 	StreamBuffer&	body = this->_request.getBody();
-	uint8_t			packet[PACKETS_SIZE];
-	ssize_t			bytes = 0;
 
 	this->_full_path = joinPath(location.getRoot(), this->_request.getPath());
 	this->_full_path = joinPath(this->_full_path, this->_file_name);
@@ -210,11 +208,8 @@ uploading_state_t	HttpPost::_createFile(void)
 	this->_multipart_key += "--";
 
 	// if data is already inside the buffer we write to the file with the consumed buffer
-	bytes = body.consume(packet, sizeof(packet));
-	if (bytes > 0) {
-		return (this->_writeToFile(packet, bytes));
-	} else if (bytes == -1)
-		return (this->_error(500));
+	if (body.size() > 0)
+		return (uploading_state_t(UP_UNBUFFERING, true));
 	return (uploading_state_t(UP_WRITING_FILE, false));
 }
 

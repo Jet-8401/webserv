@@ -1,7 +1,10 @@
 #include "../headers/ServerCluster.hpp"
 #include "../headers/WebServ.hpp"
+#include <algorithm>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <netinet/in.h>
 #include <string>
 #include <sys/socket.h>
@@ -12,12 +15,7 @@
 #include <iostream>
 #include <sys/epoll.h>
 #include <fcntl.h>
-
-// Static variables
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-std::map<std::string, void (ServerConfig::*)(const std::string&)>	ServerCluster::serverSetters;
-std::map<std::string, int (Location::*)(const std::string&)>		ServerCluster::locationSetters;
+#include <utility>
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -27,7 +25,9 @@ std::map<std::string, int (Location::*)(const std::string&)> ServerCluster::_loc
 std::map<std::string, int (Location::*)(const std::string&)> ServerCluster::_http_location_setters;
 std::map<std::string, int (Location::*)(const std::string&)> ServerCluster::_serv_location_setters;
 
-void ServerCluster::initDirectives()
+ServerCluster::ServerCluster(void):
+	_epoll_fd(-1),
+	_running(1)
 {
 	// http
 	_http_location_setters["root"] = &Location::setRoot;
@@ -57,13 +57,6 @@ void ServerCluster::initDirectives()
 	_location_setters["error_page"] = &Location::setErrorPage;
 }
 
-ServerCluster::ServerCluster(void):
-	_epoll_fd(-1),
-	_running(1)
-{
-	this->initDirectives();
-}
-
 ServerCluster::~ServerCluster(void)
 {
 	if (this->_epoll_fd != -1)
@@ -73,13 +66,48 @@ ServerCluster::~ServerCluster(void)
 // Getters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-const ServerCluster::servers_type_t& ServerCluster::getServers(void) const
+const std::list<ServerConfig>	ServerCluster::getConfigs(void) const
 {
-	return (this->_servers);
+	return (this->_configs);
+}
+
+size_t	ServerCluster::getNumberOfConnections(void) const
+{
+	socket_t::const_iterator	it;
+	int							count = 0;
+
+	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++) {
+		count += it->getConnections().size();
+	}
+	return (count);
 }
 
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+struct SocketComparer {
+	ServerConfig::address_type::const_iterator _addr_it;
+
+	SocketComparer(ServerConfig::address_type::const_iterator addr_it): _addr_it(addr_it) {}
+
+	bool	operator()(const Socket& socket) const {
+		return (socket.getIPV4() == _addr_it->first && socket.getPort() == _addr_it->second);
+	}
+};
+
+bool	ServerCluster::_addAddress(std::list<ServerConfig>::const_iterator& conf_it,
+	ServerConfig::address_type::const_iterator& addr_it)
+{
+	socket_t::iterator					it;
+
+	it = std::find_if(this->_sockets.begin(), this->_sockets.end(), SocketComparer(addr_it));
+	if (it == this->_sockets.end()) {
+		this->_sockets.push_front(Socket(addr_it->first, addr_it->second));
+		it = this->_sockets.begin();
+	}
+
+	return (it->addConfig(&(*conf_it)));
+}
 
 int ServerCluster::importConfig(const std::string& config_path)
 {
@@ -94,11 +122,28 @@ int ServerCluster::importConfig(const std::string& config_path)
 	std::string token;
 	while (ss >> token)
 	{
-		if (token == "http")
-		{
-			if (parseHttpBlock(ss) < 0)
+
+		if (token == "http" && parseHttpBlock(ss) < 0)
+			return (-1);
+	}
+
+	// iterate through configurations for setting the sockets
+	std::map<std::pair<std::string, uint16_t>, std::list<ServerConfig*> >	sockets; // socket ip:port, list of configs for that socket
+	std::list<ServerConfig>::const_iterator 	conf_it;
+	ServerConfig::address_type::const_iterator	addr_it;
+
+	for (conf_it = this->_configs.begin(); conf_it != this->_configs.end(); conf_it++) {
+		const ServerConfig::address_type& addresses = conf_it->getAddresses();
+		for (addr_it = addresses.begin(); addr_it != addresses.end(); addr_it++) {
+			if (!this->_addAddress(conf_it, addr_it))
 				return (-1);
 		}
+	}
+
+	std::list<Socket>::iterator	it;
+
+	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++) {
+		std::cout << it->getIPV4() << ':' << it->getPort() << std::endl;
 	}
 	return (0);
 }
@@ -108,10 +153,12 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
 	std::string token;
 	ss >> token;
 	if (token != "{")
-		return (error("Expected '{' after http", true), -1);
+		return (error("Expected '{' after http", false), -1);
 
 	Location http_location;
-	parseHttpBlockDefault(ss, &http_location);
+
+	if (parseHttpBlockDefault(ss, &http_location) < 0)
+		return (-1);
 
 	while (ss >> token)
 	{
@@ -124,8 +171,7 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
 				return (-1);
 		}
 	}
-	std::cout << "FUCK"<< ss.eof() << std::endl;
-	return (error("Unexpected end of http block", true), -1);
+	return (error("Unexpected end of http block", false), -1);
 }
 
 int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_location)
@@ -151,9 +197,10 @@ int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_l
 			std::map<std::string, int (Location::*)(const std::string&)>::iterator it = _http_location_setters.find(token);
 			if (it != _http_location_setters.end())
 			{
-				std::cout << "#####################################################" << std::endl;
 				std::string value;
 				std::getline(ss, value, ';'); // Read until semicolon
+				if (value.find('\n') != std::string::npos)
+					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
 				if ((http_location->*(it->second))(value) < 0)
 					return (-1);
@@ -186,6 +233,8 @@ int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv
 			{
 				std::string value;
 				std::getline(ss, value, ';');
+				if (value.find('\n') != std::string::npos)
+					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t"));
 				if ((serv_location->*(it->second))(value) < 0)
 					return (-1);
@@ -197,32 +246,30 @@ int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv
 
 int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location)
 {
+	bool has_listen = false;
 	std::string token;
 	ss >> token;
 	if (token != "{")
 		return (error("Expected '{' after server", false), -1);
 
-	std::cout << "Parsing server block..." << std::endl; // Debug
-
 	Location serv_location(*http_location);
-	parseServerBlockDefault(ss, &serv_location);
+	if (parseServerBlockDefault(ss, &serv_location) < 0)
+		return (-1);
 	while (ss >> token)
 	{
-		std::cout << "Token: " << token << std::endl; // Debug
 		if (token == "}")
 		{
+			if (!has_listen)
+                return (error("Missing listen directive in server block", false), -1);
 			if (config.getLocations().empty())
 				config.addLocation("/", new Location(serv_location));
-			HttpServer server(config);
-			_servers.push_back(server); // Use size as key instead of invalid socket fd
-			std::cout << "Added server with port: " << config.getPort() << std::endl; // Debug
+			this->_configs.push_back(config);
 			return (0);
 		}
 		else if (token == "location")
 		{
 			std::string paths;
 			std::getline(ss, paths);
-			std::cout << "Parsing location: " << paths  << "|" << std::endl; // Debug
 			Location *location = new Location(serv_location);
 			if (parseLocationBlock(ss, location) < 0)
 				return (-1);
@@ -239,9 +286,12 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 			{
 				std::string value;
 				std::getline(ss, value, ';'); // Read until semicolon
+				if (value.find('\n') != std::string::npos)
+					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
-				//std::cout << "Setting " << token << " to " << value << std::endl; // Debug
 				(config.*(it->second))(value);
+				if (token == "listen")
+                    has_listen = true;
 			}
 		}
 	}
@@ -252,7 +302,6 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 {
 	std::string token;
 	ss >> token;
-	std::cout << "LE token : " << token << std::endl;
 	if (token != "{")
 		return (error("Expected '{' after location", false), -1);
 
@@ -267,6 +316,8 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 			{
 				std::string value;
 				std::getline(ss, value, ';'); // Read until semicolon
+				if (value.find('\n') != std::string::npos)
+					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
 				if ((location->*(it->second))(value) < 0)
 					return (-1);
@@ -275,6 +326,8 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 	}
 	return (error("Unexpected end of location block", false), -1);
 }
+
+// First check if the port exist.
 
 // Make all virtual server listen on their sockets and check for conncetions with epoll.
 //
@@ -286,16 +339,16 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 // on that instance.
 int	ServerCluster::run(void)
 {
-	servers_type_t::iterator	it;
+	socket_t::iterator	it;
 	struct epoll_event			incoming_events[MAX_EPOLL_EVENTS];
 	event_wrapper_t*			event_wrapper;
 	int							events;
 
-	this->_epoll_fd = ::epoll_create(this->_servers.size());
+	this->_epoll_fd = ::epoll_create(this->_sockets.size());
 	if (this->_epoll_fd == -1)
-		return (error(ERR_EPOLL_CREATION, false), -1);
+		return (error(ERR_EPOLL_CREATION, true), -1);
 
-	for (it = this->_servers.begin(); it != this->_servers.end(); it++)
+	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++)
 	{
 		struct epoll_event	ep_event;
 
@@ -313,7 +366,12 @@ int	ServerCluster::run(void)
 	// wait for the events pool to trigger
 	while (!is_done) {
 		::memset(&incoming_events, 0, sizeof(incoming_events));
-		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, MS_TIMEOUT_ROUTINE);
+		events = ::epoll_wait(
+			this->_epoll_fd,
+			incoming_events,
+			MAX_EPOLL_EVENTS,
+			this->getNumberOfConnections() > 0 ? MS_TIMEOUT_ROUTINE : -1
+		);
 		if (events  == -1)
 			return (error(ERR_EPOLL_WAIT, true), -1);
 		this->_resolveEvents(incoming_events, events);
@@ -339,12 +397,12 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 		{
 			case REQUEST:
 				DEBUG("event[" << i << "]: connection request");
-				static_cast<HttpServer*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-				break ;
+				static_cast<Socket*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+				break;
 			case CLIENT:
 				DEBUG("event[" << i << "]: client package");
 				static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-				break ;
+				break;
 			default:
 				break;
 		}

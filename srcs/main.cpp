@@ -40,16 +40,21 @@ void displayIndexes(const std::vector<std::string>& indexes) {
 	}
 }
 
-void displayRedirection(const std::pair<std::string, std::string>& redirection) {
-	if (!redirection.first.empty() && !redirection.second.empty()) {
-	std::cout << "\033[1;34m│   │  Redirection:\033[0m "
-	 << redirection.first << " → " << redirection.second << std::endl;
+void displayRedirection(const std::pair<int, std::string>& redirection) {
+	if (redirection.first != 0 && !redirection.second.empty()) {
+		std::cout << "\033[1;34m│   │  Redirection:\033[0m "
+	 		<< redirection.first << " → " << redirection.second << std::endl;
 	}
 }
 
 void displayServerInfo(const ServerConfig& config) {
-	std::cout << "\033[1;34m│   Port:\033[0m " << config.getPort() << std::endl;
-	std::cout << "\033[1;34m│   Host:\033[0m " << config.getHost() << std::endl;
+	// Replace the current port and host display with:
+    std::cout << "\033[1;34m│   Listening on:\033[0m" << std::endl;
+    const ServerConfig::address_type& addresses = config.getAddresses();
+    for (ServerConfig::address_type::const_iterator it = addresses.begin();
+         it != addresses.end(); ++it) {
+        std::cout << "\033[1;34m│   ├─\033[0m " << it->first << ":" << it->second << std::endl;
+    }
 
 	std::cout << "\033[1;34m│   Server Names:\033[0m ";
 	const std::vector<std::string>& names = config.getServerNames();
@@ -107,26 +112,30 @@ int main(int argc, char* argv[]) {
 	std::cout << "\033[1;32m┌── Starting config import from: \033[0m" << argv[1] << std::endl;
 
 	if (cluster.importConfig(argv[1]) == -1) {
-	std::cout << "\033[1;31m└── Failed to import config\033[0m" << std::endl;
-	return 1;
+		std::cout << "\033[1;31m└── Failed to import config\033[0m" << std::endl;
+		return 1;
+	}
+
+	const std::list<ServerConfig>&	configs = cluster.getConfigs();
+	for (std::list<ServerConfig>::const_iterator it = configs.begin(); it != configs.end(); it++) {
+		displayServerInfo(*it);
 	}
 
 	std::cout << "\033[1;32m├── Config imported successfully\033[0m" << std::endl;
 	std::cout << "\033[1;32m└── Server Configuration Details:\033[0m" << std::endl;
 
-	const std::vector<HttpServer>& servers = cluster.getServers();
+	// const std::vector<HttpServer>& servers = cluster.getServers();
 
-	if (servers.empty()) {
-	std::cout << "\033[1;31m	No servers configured!\033[0m" << std::endl;
-	return 1;
-	}
+	// if (servers.empty()) {
+	// 	std::cout << "\033[1;31m	No servers configured!\033[0m" << std::endl;
+	// 	return 1;
+	// }
 
-	int count = 1;
-	for (std::vector<HttpServer>::const_iterator it = servers.begin();
-	 it != servers.end(); ++it, ++count) {
-	std::cout << "\033[1;33m┌── Server #" << count << "\033[0m" << std::endl;
-	displayServerInfo(it->getConfig());
-	}
+	// int count = 1;
+	// for (std::vector<HttpServer>::const_iterator it = servers.begin(); it != servers.end(); ++it, ++count) {
+	// 	std::cout << "\033[1;33m┌── Server #" << count << "\033[0m" << std::endl;
+	// 	displayServerInfo(it->getConfig());
+	// }
 
 	cluster.run();
 
