@@ -9,6 +9,7 @@
 
 HttpGetDirectory::HttpGetDirectory(const HttpParser& parser):
     HttpParser(parser),
+    _headers_sent(false),
     _dir(NULL)
 {
     this->_request.setEvents(EPOLLOUT);

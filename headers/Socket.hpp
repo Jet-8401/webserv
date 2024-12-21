@@ -8,8 +8,35 @@
 # include <string>
 
 class Socket {
+	public:
+		Socket(const std::string host, const uint16_t port);
+		Socket(const Socket& src);
+		virtual ~Socket(void);
+
+		typedef std::list<Connection*> connections_t;
+
+		// Setters
+		void	setEpollFD(const int epoll_fd);
+
+		// Getters
+		const int&				getSocketFD(void) const;
+		const int&				getEpollFD(void) const;
+		const uint16_t&			getPort(void) const;
+		const std::string		getIPV4(void) const;
+		const std::string		getAddress(void) const;
+		const ServerConfig*		getConfig(const std::string& server_name) const;
+		const connections_t&	getConnections(void) const;
+
+		// Functions
+		bool	addConfig(const ServerConfig* config);
+		int		listen(void) const;
+		void	onEvent(::uint32_t events);
+		int		acceptConnection(void);
+		int		deleteConnection(Connection* connection);
+
+
 	private:
-		std::map<const std::string, const ServerConfig*>	_configs;
+		typedef std::map<const std::string, const ServerConfig*> config_type_t;
 
 		const int				_backlog;
 
@@ -20,33 +47,13 @@ class Socket {
 		const int				_socket_fd;
 		int						_epoll_fd;
 
-		std::list<Connection*>	_connections;
+		config_type_t			_configs;
+		const ServerConfig*		_default_config;
+
+		connections_t			_connections;
 		unsigned int			_max_connections;
 
 		EventWrapper			_event_wrapper;
-
-	public:
-		Socket(const std::string host, const uint16_t port);
-		Socket(const Socket& src);
-		virtual ~Socket(void);
-
-		// Setters
-		void	setEpollFD(const int epoll_fd);
-
-		// Getters
-		const int&			getSocketFD(void) const;
-		const int&			getEpollFD(void) const;
-		const uint16_t&		getPort(void) const;
-		const std::string	getIPV4(void) const;
-		const std::string	getAddress(void) const;
-		const ServerConfig*	getConfig(const std::string& server_name) const;
-
-		// Functions
-		bool	addConfig(const ServerConfig* config);
-		int		listen(void) const;
-		void	onEvent(::uint32_t events);
-		int		acceptConnection(void);
-		int		deleteConnection(Connection* connection);
 };
 
 #endif

@@ -220,11 +220,14 @@ bool	HttpRequest::_resolveLocation(void)
 	if (!alias.empty())
 		this->_resolved_path.replace(this->_resolved_path.find(this->_config_location_str), this->_config_location_str.length(), alias);
 
+	DEBUG(this->_resolved_path);
+
 	// test for multiples index if there is
 	std::string	full_path;
 	if (this->_method == "GET") {
 		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++) {
 			full_path = joinPath(this->_resolved_path, *it);
+			DEBUG(full_path);
 			if (::stat(full_path.c_str(), &this->_path_stat) == -1) {
 				::memset(&this->_path_stat, 0, sizeof(this->_path_stat));
 				continue;
@@ -237,6 +240,7 @@ bool	HttpRequest::_resolveLocation(void)
 	}
 
 	// else take the path as final try
+	DEBUG("taking the final path");
 	if (::stat(this->_resolved_path.c_str(), &this->_path_stat) == -1)
 		return (false);
 	return (true);

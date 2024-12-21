@@ -7,6 +7,7 @@
 #include <ctime>
 #include <stdint.h>
 #include <sys/epoll.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>
 
@@ -17,7 +18,7 @@ Connection::Connection(const int client_socket_fd, Socket& socket_referer):
 	_socket_referer(socket_referer),
 	_socket(client_socket_fd),
 	_timed_out(false),
-	_created_at(0),
+	_created_at(time(0)),
 	_ms_timeout_value(MS_TIMEOUT_ROUTINE),
 	handler(new HttpParser(socket_referer))
 {
@@ -38,13 +39,13 @@ const int&	Connection::getSocketFD(void) const
 	return (this->_socket);
 }
 
-bool	Connection::isWritable(void) const
-{
-	return (this->event.events & EPOLLOUT);
-}
-
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+bool	Connection::_checkTimeout(void)
+{
+	return (false);
+}
 
 int	Connection::changeEvents(::uint32_t events)
 {
@@ -59,48 +60,55 @@ int	Connection::changeEvents(::uint32_t events)
 	return (0);
 }
 
-// timespec	Connection::getTimeout(void)
-// {
-// 	struct timespec	now;
-// 	clock_gettime(CLOCK_MONOTONIC, &now);
-// 	return (now);
-// }
+ssize_t	Connection::onInEvent(uint8_t* io_buffer, size_t buff_len)
+{
+	ssize_t	bytes;
+
+	bytes = ::recv(this->_socket, io_buffer, buff_len, MSG_DONTWAIT);
+	if (bytes == -1) {
+		error(ERR_ACCEPT_REQUEST, true);
+	} else if (bytes == 0) {
+		this->_socket_referer.deleteConnection(this);
+	} else {
+		this->handler->parse(io_buffer, bytes);
+	}
+	return (bytes);
+}
+
+ssize_t	Connection::onOutEvent(uint8_t* io_buffer, size_t buff_len)
+{
+	ssize_t bytes;
+
+	DEBUG("Connection EPOLLOUT event");
+	bytes = this->handler->write(io_buffer, buff_len);
+	DEBUG("Outgoing data (" << bytes << " bytes)");
+
+	if (bytes == -1) {
+		this->_socket_referer.deleteConnection(this);
+	} else if (bytes > 0) {
+		// std::cout.write((char*) io_buffer, bytes);
+		if (::write(this->_socket, io_buffer, bytes) == -1)
+			return (error(ERR_SOCKET_WRITE, true), -1);
+	}
+	return (bytes);
+}
 
 void	Connection::onEvent(::uint32_t events)
 {
 	uint8_t	io_buffer[PACKETS_SIZE];
 	ssize_t bytes;
 
+	if (this->_checkTimeout())
+		return;
+
 	if (events & EPOLLHUP) {
 		this->_socket_referer.deleteConnection(this);
 		return;
 	}
-
-	if (events & EPOLLIN) {
-		bytes = ::recv(this->_socket, io_buffer, sizeof(io_buffer), MSG_DONTWAIT);
-		if (bytes == -1) {
-			error(ERR_ACCEPT_REQUEST, true);
-			return;
-		} else if (bytes == 0) {
-			this->_socket_referer.deleteConnection(this);
-			return;
-		}
-		this->handler->parse(io_buffer, bytes);
-	}
-
-	if (events & EPOLLOUT) {
-		DEBUG("Connection EPOLLOUT event");
-		bytes = this->handler->write(io_buffer, sizeof(io_buffer));
-		DEBUG("Outgoing data (" << bytes << " bytes)");
-		if (bytes == -1) {
-			this->_socket_referer.deleteConnection(this);
-			return;
-		} if (bytes > 0) {
-			std::cout.write((char*) io_buffer, bytes);
-			if (::write(this->_socket, io_buffer, bytes) == -1)
-				error(ERR_SOCKET_WRITE, true);
-		}
-	}
+	if (events & EPOLLIN)
+		bytes = this->onInEvent(io_buffer, sizeof(io_buffer));
+	if (events & EPOLLOUT)
+		bytes = this->onOutEvent(io_buffer, sizeof(io_buffer));
 
 	if (this->handler->checkUpgrade()) {
 		DEBUG("trying to upgrade");

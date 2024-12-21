@@ -14,6 +14,7 @@ Socket::Socket(const std::string ip, const uint16_t port):
 	_address(ip + ':' + unsafe_itoa(port)),
 	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
 	_epoll_fd(-1),
+	_default_config(0),
 	_max_connections(1024)
 {
 	int	opt = 1;
@@ -24,13 +25,14 @@ Socket::Socket(const std::string ip, const uint16_t port):
 }
 
 Socket::Socket(const Socket& src):
-	_configs(src._configs),
 	_backlog(src._backlog),
 	_ip(src._ip),
 	_port(src._port),
 	_address(src._address),
 	_socket_fd(::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)),
 	_epoll_fd(src._epoll_fd),
+	_configs(src._configs),
+	_default_config(src._default_config),
 	_connections(src._connections),
 	_max_connections(src._max_connections)
 {
@@ -96,13 +98,16 @@ const ServerConfig*	Socket::getConfig(const std::string& server_name) const
 	if (it != this->_configs.end())
 		return (it->second);
 	if (this->_configs.size() == 0) {
-		DEBUG("AAAAAAAAAAAAAAAH PUUUUUUUUUUUUUUUUUUUUTAAAAAAAAIN");
+		DEBUG("NULL POINTER DETECTED");
 		return (NULL);
 	}
 	it = this->_configs.begin();
-
-	DEBUG("HEEEEERERERERERERER");
 	return (it->second);
+}
+
+const Socket::connections_t&	Socket::getConnections(void) const
+{
+	return (this->_connections);
 }
 
 // Functions
@@ -112,20 +117,24 @@ bool	Socket::addConfig(const ServerConfig* config)
 {
 	const std::vector<std::string>&	server_names = config->getServerNames();
 
-	// if there is not server names add a "default" one
+	// if there is not server names add the address as the default config name
 	if (server_names.empty()) {
 		// if there is already a default discard this one
 		if (this->_configs.find(this->_address) != this->_configs.end())
 			return (false);
+		if (!this->_default_config)
+			this->_default_config = config;
 		this->_configs[this->_address] = config;
 		return (true);
 	}
 
 	// else add all the server names with that config
 	for (std::vector<std::string>::const_iterator it = server_names.begin(); it != server_names.end(); it++) {
-		if (this->_configs.find(*it) != this->_configs.end())
+		if (this->_configs.find(*it) == this->_configs.end())
 			continue;
-		this->_configs[*it + ":" + unsafe_itoa(this->_port)] = config;
+		if (!this->_default_config)
+			this->_default_config = config;
+		this->_configs[*it] = config;
 	}
 	return (true);
 }

@@ -104,7 +104,6 @@ bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
 				break;
 		}
 	} while (this->_state.continue_loop);
-
 	return (true);
 }
 
@@ -224,5 +223,7 @@ HttpParser*	HttpParser::upgrade(void)
 	} else if (method == "DELETE") {
 		return new HttpDelete(*this);
 	}
+	this->_request.error(404);
+	this->_request.setEvents(EPOLLOUT);
 	return NULL;
 }

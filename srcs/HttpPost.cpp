@@ -73,6 +73,9 @@ bool	HttpPost::parse(const uint8_t* packet, const size_t packet_size)
 			case UP_FILE_CREATE:
 				this->_uploading_state = this->_createFile();
 				break;
+			case UP_UNBUFFERING:
+				this->_uploading_state = this->_writeToFile(0, 0);
+				break;
 			case UP_WRITING_FILE:
 				this->_uploading_state = this->_writeToFile(packet, packet_size);
 				break;
@@ -190,8 +193,6 @@ uploading_state_t	HttpPost::_createFile(void)
 {
 	const Location& location = this->_request.getMatchingLocation();
 	StreamBuffer&	body = this->_request.getBody();
-	// uint8_t			packet[PACKETS_SIZE];
-	// ssize_t			bytes = 0;
 
 	this->_full_path = joinPath(location.getRoot(), this->_request.getPath());
 	this->_full_path = joinPath(this->_full_path, this->_file_name);
@@ -207,11 +208,8 @@ uploading_state_t	HttpPost::_createFile(void)
 	this->_multipart_key += "--";
 
 	// if data is already inside the buffer we write to the file with the consumed buffer
-	if (body.size() > 0) {
-		return (this->_writeToFile(0, 0));
-	} else {
-		return (this->_error(500));
-	}
+	if (body.size() > 0)
+		return (uploading_state_t(UP_UNBUFFERING, true));
 	return (uploading_state_t(UP_WRITING_FILE, false));
 }
 

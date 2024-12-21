@@ -1,6 +1,7 @@
 #include "../headers/ServerCluster.hpp"
 #include "../headers/WebServ.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <map>
@@ -76,6 +77,17 @@ const std::list<ServerConfig>	ServerCluster::getConfigs(void) const
 	return (this->_configs);
 }
 
+size_t	ServerCluster::getNumberOfConnections(void) const
+{
+	socket_t::const_iterator	it;
+	int							count = 0;
+
+	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++) {
+		count += it->getConnections().size();
+	}
+	return (count);
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -89,7 +101,7 @@ struct SocketComparer {
 	}
 };
 
-void	ServerCluster::_addAddress(std::list<ServerConfig>::const_iterator& conf_it,
+bool	ServerCluster::_addAddress(std::list<ServerConfig>::const_iterator& conf_it,
 	ServerConfig::address_type::const_iterator& addr_it)
 {
 	socket_t::iterator					it;
@@ -100,7 +112,7 @@ void	ServerCluster::_addAddress(std::list<ServerConfig>::const_iterator& conf_it
 		it = this->_sockets.begin();
 	}
 
-	it->addConfig(&(*conf_it));
+	return (it->addConfig(&(*conf_it)));
 }
 
 int ServerCluster::importConfig(const std::string& config_path)
@@ -128,7 +140,8 @@ int ServerCluster::importConfig(const std::string& config_path)
 	for (conf_it = this->_configs.begin(); conf_it != this->_configs.end(); conf_it++) {
 		const ServerConfig::address_type& addresses = conf_it->getAddresses();
 		for (addr_it = addresses.begin(); addr_it != addresses.end(); addr_it++) {
-			this->_addAddress(conf_it, addr_it);
+			if (!this->_addAddress(conf_it, addr_it))
+				return (-1);
 		}
 	}
 
@@ -352,7 +365,12 @@ int	ServerCluster::run(void)
 	// wait for the events pool to trigger
 	while (!is_done) {
 		::memset(&incoming_events, 0, sizeof(incoming_events));
-		events = ::epoll_wait(this->_epoll_fd, incoming_events, MAX_EPOLL_EVENTS, MS_TIMEOUT_ROUTINE);
+		events = ::epoll_wait(
+			this->_epoll_fd,
+			incoming_events,
+			MAX_EPOLL_EVENTS,
+			this->getNumberOfConnections() > 0 ? MS_TIMEOUT_ROUTINE : -1
+		);
 		if (events  == -1)
 			return (error(ERR_EPOLL_WAIT, true), -1);
 		this->_resolveEvents(incoming_events, events);
@@ -379,11 +397,11 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 			case REQUEST:
 				DEBUG("event[" << i << "]: connection request");
 				static_cast<Socket*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-				break ;
+				break;
 			case CLIENT:
 				DEBUG("event[" << i << "]: client package");
 				static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-				break ;
+				break;
 			default:
 				break;
 		}

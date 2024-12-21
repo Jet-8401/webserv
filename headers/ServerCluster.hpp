@@ -37,7 +37,7 @@ class ServerCluster {
 		static std::map<std::string, void (Location::*)(const std::string&)>		_serv_location_setters;
 
 		void	_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_EVENTS], int events);
-		void	_addAddress(std::list<ServerConfig>::const_iterator& conf_it,
+		bool	_addAddress(std::list<ServerConfig>::const_iterator& conf_it,
 					ServerConfig::address_type::const_iterator& addr_it);
 
 	public:
@@ -45,6 +45,7 @@ class ServerCluster {
 		virtual	~ServerCluster(void);
 
 		const std::list<ServerConfig>	getConfigs(void) const;
+		size_t							getNumberOfConnections(void) const;
 
 		int	importConfig(const std::string& config_path);
 		int	run(void);
