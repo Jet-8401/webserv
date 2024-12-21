@@ -43,8 +43,10 @@ std::string formatSize(off_t size)
         ss << size << "B";
     else if (size < 1024 * 1024)
         ss << (size / 1024) << "KB";
-    else
+    else if (size < 1024 * 1024 * 1024)
         ss << (size / (1024 * 1024)) << "MB";
+    else
+    	ss << (size / (1024 * 1024 * 1024)) << "GB";
     return ss.str();
 }
 

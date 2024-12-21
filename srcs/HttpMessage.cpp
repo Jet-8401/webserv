@@ -50,7 +50,7 @@ bool	HttpMessage::isRedirection(void) const
 	return (this->_status_code >= 300 && this->_status_code < 400);
 }
 
-std::string	HttpMessage::getHeader(const std::string key)
+std::string	HttpMessage::getHeader(const std::string key) const
 {
 	headers_t::const_iterator	it = this->_headers.find(key);
 	if (it == this->_headers.end())

@@ -170,7 +170,12 @@ void Location::setClientMaxBodySize(const std::string& value)
 	std::string size = value;
 	long multiplier = 1;
 
-	if (size[size.length() - 1] == 'M' || size[size.length() - 1] == 'm')
+	if (size[size.length() - 1] == 'G' || size[size.length() - 1] == 'g')
+	{
+	multiplier = 1024 * 1024 * 1024;
+	size.erase(size.size() - 1);
+	}
+	else if (size[size.length() - 1] == 'M' || size[size.length() - 1] == 'm')
 	{
 	multiplier = 1024 * 1024;
 	size.erase(size.size() - 1);

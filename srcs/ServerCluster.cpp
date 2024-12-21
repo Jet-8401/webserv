@@ -249,6 +249,7 @@ int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv
 
 int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location)
 {
+	bool has_listen = false;
 	std::string token;
 	ss >> token;
 	if (token != "{")
@@ -261,11 +262,11 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 	{
 		if (token == "}")
 		{
+			if (!has_listen)
+                return (error("Missing listen directive in server block", false), -1);
 			if (config.getLocations().empty())
 				config.addLocation("/", new Location(serv_location));
 			this->_configs.push_back(config);
-			// HttpServer server(config);
-			// _servers.push_back(server); // Use size as key instead of invalid socket fd
 			return (0);
 		}
 		else if (token == "location")
@@ -292,6 +293,8 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
 				(config.*(it->second))(value);
+				if (token == "listen")
+                    has_listen = true;
 			}
 		}
 	}

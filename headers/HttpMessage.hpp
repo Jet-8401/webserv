@@ -30,7 +30,7 @@ class HttpMessage {
 
 		virtual	void			setStatusCode(const status_code_t code);
 		virtual void			setHeader(const std::string key, const std::string value);
-		virtual std::string		getHeader(const std::string key);
+		virtual std::string		getHeader(const std::string key) const;
 		virtual handler_state_t	error(status_code_t status_code);
 
 	protected:
