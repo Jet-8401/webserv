@@ -16,13 +16,15 @@ DONE:
 - listen to the same host:port ✓
 - check for 0 sized bytes packet for closing the connection ✓
 - make redirections ✓
+- bug when not puting ';' at the end of the .conf file
+- add checks for unset properties in ServerConfig
 - faire en sorte que la premiere configuration pour hot:port soit celui choisit
-	par défaut (voir sujet) ✓
-- bug when not puting ';' at the end of the .conf file ✓
+	par défaut (voir sujet)
+- catch EVERY throw into the parsing
 
 TODO:
+- alias does not work when no slash in front of the alias
 - check for safety reason the POST method
-- add checks for unset properties in ServerConfig
 - handle connections timeout
 - handle client load balencer (check for too much request in a certain time)
 - handle maximum connection per virtual servers

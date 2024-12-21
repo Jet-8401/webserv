@@ -7,8 +7,6 @@ class HttpGetCGI : public HttpParser {
 	private:
 		pid_t		_cgi_pid;
 		int			_pipe_out[2];
-		std::string	_headers;
-		size_t		_headers_pos;
 
 		void	executeCGI(void);
 

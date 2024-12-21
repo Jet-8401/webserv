@@ -22,7 +22,8 @@ SRCS = $(addprefix ${SDIR}/, \
 	HttpGetDirectory.cpp \
 	HttpGetCGI.cpp \
 	HttpPost.cpp \
-	HttpDelete.cpp)
+	HttpDelete.cpp \
+	HttpPostCGI.cpp)
 
 HDRS = $(addprefix ${HDIR}/, \
 	HttpRequest.hpp \
@@ -33,7 +34,8 @@ HDRS = $(addprefix ${HDIR}/, \
 	EventWrapper.hpp \
 	WebServ.hpp \
 	HttpGetDirectory.hpp \
-	HttpGetCGI.hpp)
+	HttpGetCGI.hpp \
+	HttpPostCGI.hpp)
 
 TPLS =
 ODIR = objs

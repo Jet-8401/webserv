@@ -1,26 +1,24 @@
 #include "../headers/HttpGetCGI.hpp"
+#include "../headers/WebServ.hpp"
+#include <sys/epoll.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <iostream>
 #include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <string>
 #include <cstring>
-#include <iostream>
-#include <sys/wait.h>
-#include <sys/epoll.h>
-#include "../headers/WebServ.hpp"
+#include <string>
 
 HttpGetCGI::HttpGetCGI(const HttpParser& parser):
 	HttpParser(parser),
-	_cgi_pid(-1),
-	_headers("HTTP/1.1 200 OK\r\n"
-			"Content-Type: text/html\r\n"
-			"\r\n"),
-	_headers_pos(0)
+	_cgi_pid(-1)
 {
 	if (pipe(this->_pipe_out) == -1) {
 		this->_request.error(500);
 		return;
 	}
+	this->_response.setHeader("Content-Type", "text/html");
+	this->_state = handler_state_t(READY_TO_SEND, false);
 	this->_request.setEvents(EPOLLOUT);
 	this->executeCGI();
 }
@@ -68,19 +66,13 @@ void	HttpGetCGI::executeCGI(void)
 
 bool	HttpGetCGI::parse(const uint8_t* packet, const size_t packet_size)
 {
-	(void)packet;
-	(void)packet_size;
-	return true;  // Nothing to parse for GET
+	return (this->HttpParser::parse(packet, packet_size));  // Nothing to parse for GET
 }
 
 ssize_t	HttpGetCGI::write(const uint8_t* io_buffer, const size_t buff_length)
 {
-	if (_headers_pos < _headers.length()) {
-		size_t to_send = std::min(_headers.length() - _headers_pos, buff_length);
-		memcpy(const_cast<uint8_t*>(io_buffer), _headers.c_str() + _headers_pos, to_send);
-		_headers_pos += to_send;
-		return to_send;
-	}
+	if (this->_state.flag != SENDING_BODY)
+        return (this->HttpParser::write(io_buffer, buff_length));
 
 	ssize_t bytes_read = read(this->_pipe_out[0],
 		const_cast<uint8_t*>(io_buffer), buff_length);

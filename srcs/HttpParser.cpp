@@ -4,6 +4,7 @@
 #include "../headers/HttpPost.hpp"
 #include "../headers/HttpGetDirectory.hpp"
 #include "../headers/HttpGetCGI.hpp"
+#include "../headers/HttpPostCGI.hpp"
 #include "../headers/HttpDelete.hpp"
 #include <cstddef>
 #include <cstring>
@@ -192,38 +193,41 @@ handler_state_t	HttpParser::handleError(void)
 	return (handler_state_t(BUILD_HEADERS, true));
 }
 
-HttpParser*	HttpParser::upgrade(void)
+HttpParser* HttpParser::upgrade(void)
 {
-	const std::string&	method = this->_request.getMethod();
-	const std::string&	resolved_path = this->_request.getResolvedPath();
-	const Location&		location = this->_request.getMatchingLocation();
+    const std::string&  method = this->_request.getMethod();
+    const std::string&  resolved_path = this->_request.getResolvedPath();
+    const Location&     location = this->_request.getMatchingLocation();
 
-	if (!this->_need_upgrade)
-		return (0);
-	this->_need_upgrade = false;
+    if (!this->_need_upgrade)
+        return (0);
+    this->_need_upgrade = false;
 
-	if (method == "GET") {
-		// check for cgi
-		size_t	ext_pos = resolved_path.rfind('.');
-		if (ext_pos != std::string::npos) {
-			std::string extension(resolved_path, ext_pos);
-			std::cout << "extension: " << extension << std::endl;
-			if (location.getCGIs().find(extension) != location.getCGIs().end())
-				return new HttpGetCGI(*this);
-		}
-		// check for directories/files
-		const struct stat& path_stat = this->_request.getPathStat();
-		if (S_ISDIR(path_stat.st_mode) && location.getAutoIndex()) { // If it's a directory
-			return new HttpGetDirectory(*this);
-		} else if (S_ISREG(path_stat.st_mode)) { // If it's a regular file
-			return new HttpGetStaticFile(*this);
-		}
-	} else if (method == "POST") {
-		return new HttpPost(*this);
-	} else if (method == "DELETE") {
-		return new HttpDelete(*this);
-	}
-	this->_request.error(404);
+    // Check for CGI first for both GET and POST
+    size_t ext_pos = resolved_path.rfind('.');
+    if (ext_pos != std::string::npos) {
+        std::string extension(resolved_path, ext_pos);
+        if (location.getCGIs().find(extension) != location.getCGIs().end()) {
+            if (method == "GET")
+                return new HttpGetCGI(*this);
+            else if (method == "POST")
+                return new HttpPostCGI(*this);
+        }
+    }
+
+    if (method == "GET") {
+        const struct stat& path_stat = this->_request.getPathStat();
+        if (S_ISDIR(path_stat.st_mode) && location.getAutoIndex()) {
+            return new HttpGetDirectory(*this);
+        } else if (S_ISREG(path_stat.st_mode)) {
+            return new HttpGetStaticFile(*this);
+        }
+    } else if (method == "POST") {
+        return new HttpPost(*this);
+    } else if (method == "DELETE") {
+        return new HttpDelete(*this);
+    }
+    this->_request.error(404);
 	this->_request.setEvents(EPOLLOUT);
-	return NULL;
+    return NULL;
 }
