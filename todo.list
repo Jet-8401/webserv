@@ -22,7 +22,9 @@ DONE:
 	par défaut (voir sujet) ✓
 - catch EVERY throw into the parsing ✓
 - handle connections timeout ✓
-- mettre des headers plus précis (pas obligatoire) comme Content-Length etc...
+- mettre des headers plus précis (pas obligatoire) comme Content-Length etc... ✓
+- inclure des pages d'erreur par défaut ✓
+- change le write and send pour empêcher les SIGPIPE ✓
 
 TODO:
 - alias does not work when no slash in front of the alias
@@ -32,7 +34,5 @@ TODO:
 - make warning or error when two servers have same server_name
 - faire marcher les cookies
 - checker les différents CGI
-- change le write and send pour empêcher les SIGPIPE
-- inclure des pages d'erreur par défaut
 
 Note: for stoping the server clean, send a STOP request

@@ -90,8 +90,7 @@ ssize_t	Connection::onOutEvent(uint8_t* io_buffer, size_t buff_len)
 	if (bytes == -1) {
 		this->_socket_referer.deleteConnection(this);
 	} else if (bytes > 0) {
-		// std::cout.write((char*) io_buffer, bytes);
-		if (::write(this->_socket, io_buffer, bytes) == -1)
+		if (::send(this->_socket, io_buffer, bytes, MSG_NOSIGNAL) == -1)
 			return (error(ERR_SOCKET_WRITE, true), -1);
 	}
 	return (bytes);
