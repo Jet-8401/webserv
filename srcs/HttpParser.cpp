@@ -18,10 +18,11 @@
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpParser::HttpParser(const Socket& socket_referer):
+HttpParser::HttpParser(Socket& socket_referer):
 	_need_upgrade(false),
 	_request(_response, socket_referer),
 	_response(_request),
+	_socket_referer(socket_referer),
 	_state(READING_HEADERS, false),
 	_has_error(false),
 	_error_page_fd(-1)
@@ -31,6 +32,7 @@ HttpParser::HttpParser(const HttpParser& src):
 	_need_upgrade(src._need_upgrade),
 	_request(src._request),
 	_response(src._request),
+	_socket_referer(src._socket_referer),
 	_state(src._state),
 	_has_error(src._has_error),
 	_error_page_fd(src._error_page_fd)
@@ -121,7 +123,7 @@ ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
 	// check for redirections
 	if (this->_request.isRedirection() && !this->_response.isRedirection()) {
 		this->_response.setStatusCode(this->_request.getStatusCode());
-		this->_response.setHeader("Location", this->_request.getMatchingLocation().getRedirection().second);
+		this->_response.setHeader("Location", this->_request.getMatchingLocation()->getRedirection().second);
 	}
 
 	do {
@@ -149,14 +151,13 @@ ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
 				break;
 		}
 	} while (this->_state.continue_loop);
-
 	return (bytes_written);
 }
 
 // Set all the properties for the handling of an error base on the matching location.
 handler_state_t	HttpParser::handleError(void)
 {
-	const Location&								location = this->_request.getMatchingLocation();
+	const Location*								location = this->_request.getMatchingLocation();
 	std::map<int, std::string*>::const_iterator	err_page;
 	struct stat									file_stats;
 
@@ -164,14 +165,17 @@ handler_state_t	HttpParser::handleError(void)
 	if (this->_request.isError() && !this->_response.isError())
 		this->_response.error(this->_request.getStatusCode());
 
-	err_page = location.getErrorPages().find(this->_response.getStatusCode());
-	if (err_page != location.getErrorPages().end()) {
+	if (!location)
+		return (handler_state_t(BUILD_HEADERS, true));
+
+	err_page = location->getErrorPages().find(this->_response.getStatusCode());
+	if (err_page != location->getErrorPages().end()) {
 		if (!err_page->second) {
 			error("Error page str is NULL!", false);
 			return (handler_state_t(BUILD_HEADERS, true));
 		}
 
-		this->_error_page_path = joinPath(location.getRoot(), *err_page->second);
+		this->_error_page_path = joinPath(location->getRoot(), *err_page->second);
 		DEBUG("error page paht: " << this->_error_page_path);
 		if (::stat(this->_error_page_path.c_str(), &file_stats) == -1) {
 			error(ERR_STAT, true);
@@ -197,7 +201,7 @@ HttpParser* HttpParser::upgrade(void)
 {
     const std::string&  method = this->_request.getMethod();
     const std::string&  resolved_path = this->_request.getResolvedPath();
-    const Location&     location = this->_request.getMatchingLocation();
+    const Location*     location = this->_request.getMatchingLocation();
 
     if (!this->_need_upgrade)
         return (0);
@@ -207,7 +211,7 @@ HttpParser* HttpParser::upgrade(void)
     size_t ext_pos = resolved_path.rfind('.');
     if (ext_pos != std::string::npos) {
         std::string extension(resolved_path, ext_pos);
-        if (location.getCGIs().find(extension) != location.getCGIs().end()) {
+        if (location->getCGIs().find(extension) != location->getCGIs().end()) {
             if (method == "GET")
                 return new HttpGetCGI(*this);
             else if (method == "POST")
@@ -217,7 +221,7 @@ HttpParser* HttpParser::upgrade(void)
 
     if (method == "GET") {
         const struct stat& path_stat = this->_request.getPathStat();
-        if (S_ISDIR(path_stat.st_mode) && location.getAutoIndex()) {
+        if (S_ISDIR(path_stat.st_mode) && location->getAutoIndex()) {
             return new HttpGetDirectory(*this);
         } else if (S_ISREG(path_stat.st_mode)) {
             return new HttpGetStaticFile(*this);

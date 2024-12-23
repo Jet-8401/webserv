@@ -1,10 +1,13 @@
 #ifndef HTTP_PARSER_HPP
 # define HTTP_PARSER_HPP
 
+class Socket;
+
 # include "CommonDefinitions.hpp"
 # include "HttpResponse.hpp"
 # include "HttpRequest.hpp"
 # include <ios>
+# include <sstream>
 # include <stdint.h>
 # include <sys/types.h>
 
@@ -17,6 +20,7 @@ class HttpParser {
 
 		HttpRequest					_request;
 		HttpResponse				_response;
+		Socket&						_socket_referer;
 
 		handler_state_t				_state;
 
@@ -25,9 +29,10 @@ class HttpParser {
 		bool						_has_error;
 		std::string					_error_page_path;
 		int							_error_page_fd;
+		// std::stringstream			_generated_error_page;
 
 	public:
-		HttpParser(const Socket& socket_referer);
+		HttpParser(Socket& socket_referer);
 		virtual ~HttpParser(void);
 
 		virtual bool				parse(const uint8_t* packet, const size_t packet_len);

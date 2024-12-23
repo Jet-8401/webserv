@@ -50,14 +50,6 @@ HttpResponse::HttpResponse(const HttpResponse& src):
 HttpResponse::~HttpResponse(void)
 {}
 
-// Getters
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-// const bool&	HttpResponse::isDone(void) const
-// {
-// 	return (this->_is_done);
-// }
-
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -66,7 +58,7 @@ handler_state_t	HttpResponse::buildHeaders()
 	DEBUG("Building headers");
 	this->_header_content << "HTTP/1.1 " << this->_status_code << "\r\n";
 	for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
-	this->_header_content << it->first << ": " << it->second << "\r\n";
+		this->_header_content << it->first << ": " << it->second << "\r\n";
 	this->_header_content << "\r\n";
 	return (handler_state_t(SENDING_HEADERS, true));
 }
@@ -102,48 +94,3 @@ handler_state_t	HttpResponse::sendBody(const uint8_t* io_buffer, const size_t bu
 
 	return (handler_state_t(SENDING_BODY, false));
 }
-
-/*
-ssize_t	HttpResponse::writePacket(uint8_t* io_buffer, size_t buff_length)
-{
-	switch (this->state) {
-		case WAITING:
-			if (this->_extanded_method)
-				this->_extanded_method->writePacket(io_buffer, buff_length);
-			else
-				this->state = BUILD_HEADERS;
-			if (this->state == WAITING)
-				break;
-		case BUILD_HEADERS:
-			if (this->_request_reference.getStatusCode() >= 400) {
-				this->state = ERROR;
-				this->_status_code = this->_request_reference.getStatusCode();
-			}
-			this->_buildHeaders();
-			this->state = SEND_HEADERS;
-		case SEND_HEADERS:
-			if (this->_header_content.eof()) {
-				std::cout << "SEND BODY" << std::endl;
-				this->state = SEND_BODY;
-			} else {
-				this->_header_content.read(reinterpret_cast<char*>(io_buffer), buff_length);
-				std::cout << this->_header_content.gcount() << std::endl;
-				return (this->_header_content.gcount());
-			}
-		case SEND_BODY:
-			if (this->_extanded_method)
-				this->_extanded_method->writePacket(io_buffer, buff_length);
-			else
-				this->state = DONE;
-			if (this->state == SEND_BODY)
-				break;
-		case DONE:
-			this->_is_done = true;
-			break;
-		default:
-			std::cout << "state n°" << this->state << " not supported!" << std::endl;
-			break;
-	}
-	return (0);
-}
-*/

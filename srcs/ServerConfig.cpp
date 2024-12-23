@@ -1,3 +1,4 @@
+#include "../headers/WebServ.hpp"
 #include "../headers/ServerConfig.hpp"
 #include <sstream>
 #include <string>
@@ -103,8 +104,6 @@ void	ServerConfig::setServerName(const std::string& value)
 	}
 }
 
-#include <iostream>
-
 void	ServerConfig::addLocation(const std::string& path, Location* location)
 {
 	std::string	new_path = path;
@@ -133,7 +132,9 @@ ServerConfig::locations_t::const_iterator ServerConfig::findLocation(const std::
 			(matching == this->_locations.end() || it->first.length() >= matching->first.length()))
 			matching = it;
 	}
-	if (!matching->second)
+	if (!matching->second) {
+		DEBUG("NULL POINTER DETECTED");
 		return (this->_locations.end());
+	}
 	return (matching);
 }

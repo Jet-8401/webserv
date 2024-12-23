@@ -100,16 +100,16 @@ ssize_t	Connection::onOutEvent(uint8_t* io_buffer, size_t buff_len)
 void	Connection::onEvent(::uint32_t events)
 {
 	uint8_t	io_buffer[PACKETS_SIZE];
-	ssize_t bytes;
 
+	//handle timeouts properly
 	if (events & EPOLLHUP || this->_isTimedout()) {
 		this->_socket_referer.deleteConnection(this);
 		return;
 	}
 	if (events & EPOLLIN)
-		bytes = this->onInEvent(io_buffer, sizeof(io_buffer));
+		this->onInEvent(io_buffer, sizeof(io_buffer));
 	if (events & EPOLLOUT)
-		bytes = this->onOutEvent(io_buffer, sizeof(io_buffer));
+		this->onOutEvent(io_buffer, sizeof(io_buffer));
 
 	if (this->handler->checkUpgrade()) {
 		DEBUG("trying to upgrade");

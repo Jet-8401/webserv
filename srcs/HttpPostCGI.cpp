@@ -55,7 +55,7 @@ void    HttpPostCGI::executeCGI(void)
 
         std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
         char* const args[] = {
-            const_cast<char*>(this->_request.getMatchingLocation().getCGIs().find(extension)->second.c_str()),
+            const_cast<char*>(this->_request.getMatchingLocation()->getCGIs().find(extension)->second.c_str()),
             const_cast<char*>(this->_request.getResolvedPath().c_str()),
             NULL
         };

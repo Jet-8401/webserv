@@ -64,9 +64,9 @@ const std::string&	HttpRequest::getPath(void) const
 	return (this->_path);
 }
 
-const Location&	HttpRequest::getMatchingLocation(void) const
+const Location*	HttpRequest::getMatchingLocation(void) const
 {
-	return (*this->_matching_location);
+	return (this->_matching_location);
 }
 
 const bool&	HttpRequest::hasEventsChanged(void) const
@@ -185,7 +185,7 @@ handler_state_t	HttpRequest::parseHeaders(void)
 		is_done = true;
 	}
 
-	if (this->_version != "HTTP/1.1")
+	if (this->_version != "HTTP/1.1" && this->_version != "HTTP/1.0")
 		return (this->error(505));
 
 	std::string	key, value;

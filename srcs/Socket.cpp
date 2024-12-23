@@ -120,7 +120,7 @@ bool	Socket::addConfig(const ServerConfig* config)
 {
 	const std::vector<std::string>&	server_names = config->getServerNames();
 
-	// if there is not server names add the address as the default config name
+	// if there is not server names add a "default" one
 	if (server_names.empty()) {
 		// if there is already a default discard this one
 		if (this->_configs.find(this->_address) != this->_configs.end())
@@ -133,11 +133,11 @@ bool	Socket::addConfig(const ServerConfig* config)
 
 	// else add all the server names with that config
 	for (std::vector<std::string>::const_iterator it = server_names.begin(); it != server_names.end(); it++) {
-		if (this->_configs.find(*it) == this->_configs.end())
+		if (this->_configs.find(*it) != this->_configs.end())
 			continue;
 		if (!this->_default_config)
 			this->_default_config = config;
-		this->_configs[*it] = config;
+		this->_configs[*it + ":" + unsafe_itoa(this->_port)] = config;
 	}
 	return (true);
 }
@@ -207,7 +207,7 @@ int		Socket::acceptConnection(void)
 
 int		Socket::deleteConnection(Connection* connection)
 {
-	DEBUG("deleting connection");
+	DEBUG("\033[31mdeleting connection\033[0m");
 	if (!connection)
 		return (-1);
 	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_DEL, connection->getSocketFD(), &connection->event) == -1)

@@ -20,7 +20,7 @@ class HttpRequest : public HttpMessage {
 
 		const std::string&	getMethod(void) const;
 		const std::string&	getPath(void) const;
-		const Location&		getMatchingLocation(void) const;
+		const Location*		getMatchingLocation(void) const;
 		const bool&			hasEventsChanged(void) const;
 		const uint32_t&		getEvents(void);
 		const std::string&	getResolvedPath(void) const;
