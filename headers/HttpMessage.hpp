@@ -23,20 +23,23 @@ class HttpMessage {
 		typedef std::map<std::string, uint8_t> 						headers_behavior_t;
 		typedef std::multimap<const std::string, const std::string> headers_t;
 		typedef short unsigned int									status_code_t;
+		typedef std::map<const int, const char*>					status_message_t;
 
-		const status_code_t&	getStatusCode(void) const;
-		bool					isError(void) const;
-		bool					isRedirection(void) const;
+		const status_code_t&		getStatusCode(void) const;
+		bool						isError(void) const;
+		bool						isRedirection(void) const;
+		static const char*			getStatusMessage(const int status_code);
 
-		virtual	void			setStatusCode(const status_code_t code);
-		virtual void			setHeader(const std::string key, const std::string value);
-		virtual std::string		getHeader(const std::string key) const;
-		virtual handler_state_t	error(status_code_t status_code);
+		virtual	void				setStatusCode(const status_code_t code);
+		virtual void				setHeader(const std::string key, const std::string value);
+		virtual std::string			getHeader(const std::string key) const;
+		virtual handler_state_t		error(status_code_t status_code);
 
 	protected:
 		headers_t					_headers;
 		static headers_behavior_t&	_headers_handeled;
 		short unsigned int			_status_code;
+		static status_message_t&	_status_message;
 };
 
 #endif

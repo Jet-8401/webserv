@@ -93,7 +93,7 @@ bool	HttpPost::parse(const uint8_t* packet, const size_t packet_size)
 	return (true);
 }
 
-ssize_t HttpPost::write(const uint8_t* io_buffer, const size_t buff_len)
+ssize_t HttpPost::write(uint8_t* io_buffer, const size_t buff_len)
 {
 	DEBUG("entering HttpPost::write with flag -> " << this->_state.flag);
 	return (this->HttpParser::write(io_buffer, buff_len));

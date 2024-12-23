@@ -50,7 +50,7 @@ std::string formatSize(off_t size)
     return ss.str();
 }
 
-ssize_t HttpGetDirectory::write(const uint8_t* io_buffer, const size_t buff_length)
+ssize_t HttpGetDirectory::write(uint8_t* io_buffer, const size_t buff_length)
 {
 	static std::string		current_entry;
 	static struct dirent* 	entry;

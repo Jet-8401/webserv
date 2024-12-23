@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
+#include <sstream>
+#include <string>
 #include <sys/epoll.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -70,12 +72,73 @@ const enum handler_state_e&	HttpParser::getState(void) const
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-handler_state_t	HttpParser::_sendingErrorPage(const uint8_t* io_buffer, const size_t buff_len,
+handler_state_t	HttpParser::_sendingErrorPage(uint8_t* io_buffer, const size_t buff_len,
 	std::streamsize& bytes_written)
 {
-	if (this->_error_page_fd == -1)
-		return (handler_state_t(DONE, true));
-	return (this->_response.sendBody(io_buffer, buff_len, bytes_written, this->_error_page_fd));
+	// if there is a valid fd send the error page based on that file
+	if (this->_error_page_fd != -1)
+		return (this->_response.sendBody(io_buffer, buff_len, bytes_written, this->_error_page_fd));
+	// else send that error page based on the cached default error pages
+	else if (this->_generated_error_page.tellp() > 0)
+		return (this->_response.sendBody(io_buffer, buff_len, bytes_written, this->_generated_error_page));
+	return (handler_state_t(DONE, true));
+}
+
+bool	HttpParser::_do_custom_error(void)
+{
+	const Location*								location = this->_request.getMatchingLocation();
+	std::map<int, std::string*>::const_iterator	err_page;
+	struct stat									file_stats;
+
+	if (!location)
+		return (false);
+
+	err_page = location->getErrorPages().find(this->_response.getStatusCode());
+	if (err_page != location->getErrorPages().end()) {
+		if (!err_page->second) {
+			error("Error page str is NULL!", false);
+			return (false);
+		}
+
+		this->_error_page_path = joinPath(location->getRoot(), *err_page->second);
+		DEBUG("error page paht: " << this->_error_page_path);
+		if (::stat(this->_error_page_path.c_str(), &file_stats) == -1) {
+			error(ERR_STAT, true);
+			return (false);
+		}
+
+		if (S_ISDIR(file_stats.st_mode))
+			return (false);
+
+		this->_error_page_fd = ::open(this->_error_page_path.c_str(), O_RDONLY);
+		if (this->_error_page_fd == -1) {
+			error(ERR_READING_FILE, true);
+			return (false);
+		}
+
+		return (true);
+	}
+	return (false);
+}
+
+// default hard-coded error page
+bool	HttpParser::_generateError(const int status_code)
+{
+	const char*	message;
+
+	message = HttpMessage::getStatusMessage(status_code);
+	this->_generated_error_page << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">" \
+		"<title>" << message << " - " << status_code << "</title>" \
+		"<style>* {margin: 0;padding: 0;box-sizing: border-box;font-family: 'Roboto', sans-serif;}" \
+		"body {font-size: 140%;text-align: center;}" \
+		"@media (prefers-color-scheme: dark) {body {color: rgb(220, 220, 220); background: rgb(5, 5, 5);}}" \
+		"h1 {margin: 5vh 0;}" \
+		"#credits {border-top: 1px solid grey;margin: 0 20vh;padding: 10px;}" \
+		"</style></head><body>" \
+		"<h1>" << status_code << " - " << message << "</h1>" \
+		"<p id=\"credits\">" << SERVER_VERSION << "</p>" \
+		"</body></html>";
+	return (true);
 }
 
 bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
@@ -112,7 +175,7 @@ bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
 
 // HttpParser::write will handle default errors, redirections and the sending of headers as those tasks are common
 // to all request's methods.
-ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
+ssize_t	HttpParser::write(uint8_t* io_buffer, const size_t buff_len)
 {
 	std::streamsize	bytes_written = -1;
 
@@ -157,41 +220,29 @@ ssize_t	HttpParser::write(const uint8_t* io_buffer, const size_t buff_len)
 // Set all the properties for the handling of an error base on the matching location.
 handler_state_t	HttpParser::handleError(void)
 {
-	const Location*								location = this->_request.getMatchingLocation();
-	std::map<int, std::string*>::const_iterator	err_page;
-	struct stat									file_stats;
-
 	// check if an error previously occured into the request, if so the response inherit its status_code
 	if (this->_request.isError() && !this->_response.isError())
 		this->_response.error(this->_request.getStatusCode());
 
-	if (!location)
-		return (handler_state_t(BUILD_HEADERS, true));
+	if (!this->_do_custom_error()) {
+		this->_generateError(this->_response.getStatusCode());
+	}
 
-	err_page = location->getErrorPages().find(this->_response.getStatusCode());
-	if (err_page != location->getErrorPages().end()) {
-		if (!err_page->second) {
-			error("Error page str is NULL!", false);
-			return (handler_state_t(BUILD_HEADERS, true));
-		}
+	if (this->_error_page_fd != -1) {
+		HttpResponse::mime_types_t::const_iterator	it;
+		std::string	ext = this->_error_page_path.substr(this->_error_page_path.rfind('.'));
+		struct stat	file_stats;
 
-		this->_error_page_path = joinPath(location->getRoot(), *err_page->second);
-		DEBUG("error page paht: " << this->_error_page_path);
-		if (::stat(this->_error_page_path.c_str(), &file_stats) == -1) {
+		it = HttpResponse::mime_types.find(ext);
+		if (it != HttpResponse::mime_types.end())
+			this->_response.setHeader("Content-Type", it->second);
+		if (::stat(this->_error_page_path.c_str(), &file_stats) == -1)
 			error(ERR_STAT, true);
-			return (handler_state_t(BUILD_HEADERS, true));
-		}
-
-		if (S_ISDIR(file_stats.st_mode))
-			return (handler_state_t(BUILD_HEADERS, true));
-
-		this->_error_page_fd = ::open(this->_error_page_path.c_str(), O_RDONLY);
-		if (this->_error_page_fd == -1) {
-			error(ERR_READING_FILE, true);
-			return (handler_state_t(BUILD_HEADERS, true));
-		}
-
-		DEBUG("an error occured, the path to file is: " << this->_error_page_path);
+		else
+			this->_response.setHeader("Content-Length", unsafe_itoa(file_stats.st_size));
+	} else if (this->_generated_error_page.tellp() > 0) {
+		this->_response.setHeader("Content-Type", HttpResponse::mime_types[".html"]);
+		this->_response.setHeader("Content-Length", unsafe_itoa(this->_generated_error_page.tellp()));
 	}
 
 	return (handler_state_t(BUILD_HEADERS, true));

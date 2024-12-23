@@ -15,7 +15,7 @@ class HttpGetCGI : public HttpParser {
 		virtual ~HttpGetCGI(void);
 
 		bool	parse(const uint8_t* packet, const size_t packet_size);
-		ssize_t	write(const uint8_t* io_buffer, const size_t buff_length);
+		ssize_t	write(uint8_t* io_buffer, const size_t buff_length);
 };
 
 #endif

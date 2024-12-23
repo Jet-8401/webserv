@@ -121,13 +121,11 @@ bool    HttpPostCGI::parse(const uint8_t* packet, const size_t packet_size)
     return (true);
 }
 
-ssize_t HttpPostCGI::write(const uint8_t* io_buffer, const size_t buff_len)
+ssize_t HttpPostCGI::write(uint8_t* io_buffer, const size_t buff_len)
 {
     if (WIFEXITED(waitpid(this->_cgi_pid, NULL, WNOHANG)))
         this->_state = handler_state_t(DONE, true);
     else
     	return (0);
     return (this->HttpParser::write(io_buffer, buff_len));
-
-
 }

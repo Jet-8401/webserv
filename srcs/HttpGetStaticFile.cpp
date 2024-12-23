@@ -46,18 +46,20 @@ bool HttpGetStaticFile::parse(const uint8_t* packet, const size_t packet_size)
 	return (this->HttpParser::parse(packet, packet_size));
 }
 
-ssize_t HttpGetStaticFile::write(const uint8_t* io_buffer, const size_t buff_length)
+ssize_t HttpGetStaticFile::write(uint8_t* io_buffer, const size_t buff_length)
 {
 	std::streamsize	bytes_read;
 
-	if (this->_state.flag != SENDING_BODY)
+	if (this->_state.flag != SENDING_BODY) {
 		return (this->HttpParser::write(io_buffer, buff_length));
+	}
 
-	if (_file_fd == -1) {
+	if (this->_file_fd == -1) {
 		this->_state = handler_state_t(ERROR, true);
 		return (-1);
 	}
-	bytes_read = read(_file_fd, const_cast<uint8_t*>(io_buffer), buff_length);
+
+	bytes_read = read(this->_file_fd, const_cast<uint8_t*>(io_buffer), buff_length);
 	if (bytes_read == 0) {
 		this->_state = handler_state_t(DONE, true);
 		return (0);

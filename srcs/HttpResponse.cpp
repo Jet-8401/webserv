@@ -38,7 +38,7 @@ HttpResponse::HttpResponse(const HttpRequest& request):
 	HttpMessage(),
 	_request(request)
 {
-	this->setHeader("Server", "42-webserv/1.0");
+	this->setHeader("Server", SERVER_VERSION);
 	this->setHeader("Connection", "close");
 }
 
@@ -56,14 +56,15 @@ HttpResponse::~HttpResponse(void)
 handler_state_t	HttpResponse::buildHeaders()
 {
 	DEBUG("Building headers");
-	this->_header_content << "HTTP/1.1 " << this->_status_code << "\r\n";
+	this->_header_content << "HTTP/1.1 " << this->_status_code << ' '
+		<< HttpMessage::getStatusMessage(this->_status_code) << "\r\n";
 	for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 		this->_header_content << it->first << ": " << it->second << "\r\n";
 	this->_header_content << "\r\n";
 	return (handler_state_t(SENDING_HEADERS, true));
 }
 
-handler_state_t	HttpResponse::sendHeaders(const uint8_t* io_buffer, const size_t buff_len,
+handler_state_t	HttpResponse::sendHeaders(uint8_t* io_buffer, const size_t buff_len,
 	std::streamsize& bytes_written)
 {
 	DEBUG("HttpResponse::sendHeaders called");
@@ -80,7 +81,7 @@ handler_state_t	HttpResponse::sendHeaders(const uint8_t* io_buffer, const size_t
 	return (handler_state_t(SENDING_HEADERS, false));
 }
 
-handler_state_t	HttpResponse::sendBody(const uint8_t* io_buffer, const size_t buff_len,
+handler_state_t	HttpResponse::sendBody(uint8_t* io_buffer, const size_t buff_len,
 	std::streamsize& bytes_written, const int fd)
 {
 	if (fd == -1) {
@@ -88,9 +89,23 @@ handler_state_t	HttpResponse::sendBody(const uint8_t* io_buffer, const size_t bu
 		return (handler_state_t(ERROR, true));
 	}
 
-	bytes_written = ::read(fd, const_cast<uint8_t*>(io_buffer), buff_len);
+	bytes_written = ::read(fd, io_buffer, buff_len);
 	if (bytes_written == 0)
 		return (handler_state_t(DONE, true));
+
+	return (handler_state_t(SENDING_BODY, false));
+}
+
+handler_state_t	HttpResponse::sendBody(uint8_t* io_buffer, const size_t buff_len, std::streamsize& bytes_written,
+			std::stringstream& stream)
+{
+	if (stream.eof()) {
+		stream.clear();
+		return (handler_state_t(DONE, true));
+	}
+
+	stream.read(reinterpret_cast<char*>(io_buffer), buff_len);
+	bytes_written = stream.gcount();
 
 	return (handler_state_t(SENDING_BODY, false));
 }
