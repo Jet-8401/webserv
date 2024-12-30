@@ -8,6 +8,8 @@ extern bool is_done;
 # include <iomanip>
 # include <stdint.h>
 
+# define SERVER_VERSION "webserv/1.0"
+
 # define PROG_NAME "webserv"
 # define ERR_USAGE "usage: ./webserv <configFile>"
 # define ERR_FILE_OPEN "Cannot open file: "

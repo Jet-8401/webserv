@@ -19,7 +19,7 @@ Connection::Connection(const int client_socket_fd, Socket& socket_referer):
 	_socket(client_socket_fd),
 	_timed_out(false),
 	_created_at(time(0)),
-	_ms_timeout_value(MS_TIMEOUT_ROUTINE),
+	_s_timeout_value(MS_TIMEOUT_ROUTINE / 1000),
 	handler(new HttpParser(socket_referer))
 {
 	::memset(&this->event, 0, sizeof(this->event));
@@ -42,8 +42,12 @@ const int&	Connection::getSocketFD(void) const
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-bool	Connection::_checkTimeout(void)
+bool	Connection::_isTimedout(void)
 {
+	if (time(0) - this->_created_at > this->_s_timeout_value) {
+		DEBUG("Connection timed out");
+		return (true);
+	}
 	return (false);
 }
 
@@ -86,8 +90,7 @@ ssize_t	Connection::onOutEvent(uint8_t* io_buffer, size_t buff_len)
 	if (bytes == -1) {
 		this->_socket_referer.deleteConnection(this);
 	} else if (bytes > 0) {
-		// std::cout.write((char*) io_buffer, bytes);
-		if (::write(this->_socket, io_buffer, bytes) == -1)
+		if (::send(this->_socket, io_buffer, bytes, MSG_NOSIGNAL) == -1)
 			return (error(ERR_SOCKET_WRITE, true), -1);
 	}
 	return (bytes);
@@ -96,19 +99,16 @@ ssize_t	Connection::onOutEvent(uint8_t* io_buffer, size_t buff_len)
 void	Connection::onEvent(::uint32_t events)
 {
 	uint8_t	io_buffer[PACKETS_SIZE];
-	ssize_t bytes;
 
-	if (this->_checkTimeout())
-		return;
-
-	if (events & EPOLLHUP) {
+	//handle timeouts properly
+	if (events & EPOLLHUP || this->_isTimedout()) {
 		this->_socket_referer.deleteConnection(this);
 		return;
 	}
 	if (events & EPOLLIN)
-		bytes = this->onInEvent(io_buffer, sizeof(io_buffer));
+		this->onInEvent(io_buffer, sizeof(io_buffer));
 	if (events & EPOLLOUT)
-		bytes = this->onOutEvent(io_buffer, sizeof(io_buffer));
+		this->onOutEvent(io_buffer, sizeof(io_buffer));
 
 	if (this->handler->checkUpgrade()) {
 		DEBUG("trying to upgrade");

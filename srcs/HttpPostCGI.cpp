@@ -55,7 +55,7 @@ void    HttpPostCGI::executeCGI(void)
 
         std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
         char* const args[] = {
-            const_cast<char*>(this->_request.getMatchingLocation().getCGIs().find(extension)->second.c_str()),
+            const_cast<char*>(this->_request.getMatchingLocation()->getCGIs().find(extension)->second.c_str()),
             const_cast<char*>(this->_request.getResolvedPath().c_str()),
             NULL
         };
@@ -121,13 +121,11 @@ bool    HttpPostCGI::parse(const uint8_t* packet, const size_t packet_size)
     return (true);
 }
 
-ssize_t HttpPostCGI::write(const uint8_t* io_buffer, const size_t buff_len)
+ssize_t HttpPostCGI::write(uint8_t* io_buffer, const size_t buff_len)
 {
     if (WIFEXITED(waitpid(this->_cgi_pid, NULL, WNOHANG)))
         this->_state = handler_state_t(DONE, true);
     else
     	return (0);
     return (this->HttpParser::write(io_buffer, buff_len));
-
-
 }

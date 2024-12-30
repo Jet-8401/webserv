@@ -38,7 +38,7 @@ HttpResponse::HttpResponse(const HttpRequest& request):
 	HttpMessage(),
 	_request(request)
 {
-	this->setHeader("Server", "42-webserv/1.0");
+	this->setHeader("Server", SERVER_VERSION);
 	this->setHeader("Connection", "close");
 }
 
@@ -50,28 +50,21 @@ HttpResponse::HttpResponse(const HttpResponse& src):
 HttpResponse::~HttpResponse(void)
 {}
 
-// Getters
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-// const bool&	HttpResponse::isDone(void) const
-// {
-// 	return (this->_is_done);
-// }
-
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 handler_state_t	HttpResponse::buildHeaders()
 {
 	DEBUG("Building headers");
-	this->_header_content << "HTTP/1.1 " << this->_status_code << "\r\n";
+	this->_header_content << "HTTP/1.1 " << this->_status_code << ' '
+		<< HttpMessage::getStatusMessage(this->_status_code) << "\r\n";
 	for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
-	this->_header_content << it->first << ": " << it->second << "\r\n";
+		this->_header_content << it->first << ": " << it->second << "\r\n";
 	this->_header_content << "\r\n";
 	return (handler_state_t(SENDING_HEADERS, true));
 }
 
-handler_state_t	HttpResponse::sendHeaders(const uint8_t* io_buffer, const size_t buff_len,
+handler_state_t	HttpResponse::sendHeaders(uint8_t* io_buffer, const size_t buff_len,
 	std::streamsize& bytes_written)
 {
 	DEBUG("HttpResponse::sendHeaders called");
@@ -88,7 +81,7 @@ handler_state_t	HttpResponse::sendHeaders(const uint8_t* io_buffer, const size_t
 	return (handler_state_t(SENDING_HEADERS, false));
 }
 
-handler_state_t	HttpResponse::sendBody(const uint8_t* io_buffer, const size_t buff_len,
+handler_state_t	HttpResponse::sendBody(uint8_t* io_buffer, const size_t buff_len,
 	std::streamsize& bytes_written, const int fd)
 {
 	if (fd == -1) {
@@ -96,54 +89,23 @@ handler_state_t	HttpResponse::sendBody(const uint8_t* io_buffer, const size_t bu
 		return (handler_state_t(ERROR, true));
 	}
 
-	bytes_written = ::read(fd, const_cast<uint8_t*>(io_buffer), buff_len);
+	bytes_written = ::read(fd, io_buffer, buff_len);
 	if (bytes_written == 0)
 		return (handler_state_t(DONE, true));
 
 	return (handler_state_t(SENDING_BODY, false));
 }
 
-/*
-ssize_t	HttpResponse::writePacket(uint8_t* io_buffer, size_t buff_length)
+handler_state_t	HttpResponse::sendBody(uint8_t* io_buffer, const size_t buff_len, std::streamsize& bytes_written,
+			std::stringstream& stream)
 {
-	switch (this->state) {
-		case WAITING:
-			if (this->_extanded_method)
-				this->_extanded_method->writePacket(io_buffer, buff_length);
-			else
-				this->state = BUILD_HEADERS;
-			if (this->state == WAITING)
-				break;
-		case BUILD_HEADERS:
-			if (this->_request_reference.getStatusCode() >= 400) {
-				this->state = ERROR;
-				this->_status_code = this->_request_reference.getStatusCode();
-			}
-			this->_buildHeaders();
-			this->state = SEND_HEADERS;
-		case SEND_HEADERS:
-			if (this->_header_content.eof()) {
-				std::cout << "SEND BODY" << std::endl;
-				this->state = SEND_BODY;
-			} else {
-				this->_header_content.read(reinterpret_cast<char*>(io_buffer), buff_length);
-				std::cout << this->_header_content.gcount() << std::endl;
-				return (this->_header_content.gcount());
-			}
-		case SEND_BODY:
-			if (this->_extanded_method)
-				this->_extanded_method->writePacket(io_buffer, buff_length);
-			else
-				this->state = DONE;
-			if (this->state == SEND_BODY)
-				break;
-		case DONE:
-			this->_is_done = true;
-			break;
-		default:
-			std::cout << "state n°" << this->state << " not supported!" << std::endl;
-			break;
+	if (stream.eof()) {
+		stream.clear();
+		return (handler_state_t(DONE, true));
 	}
-	return (0);
+
+	stream.read(reinterpret_cast<char*>(io_buffer), buff_len);
+	bytes_written = stream.gcount();
+
+	return (handler_state_t(SENDING_BODY, false));
 }
-*/

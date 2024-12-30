@@ -77,6 +77,7 @@ size_t	ServerCluster::getNumberOfConnections(void) const
 	int							count = 0;
 
 	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++) {
+		DEBUG("connection on " << it->getAddress());
 		count += it->getConnections().size();
 	}
 	return (count);
@@ -99,6 +100,7 @@ bool	ServerCluster::_addAddress(std::list<ServerConfig>::const_iterator& conf_it
 	ServerConfig::address_type::const_iterator& addr_it)
 {
 	socket_t::iterator					it;
+	bool								returnValue;
 
 	it = std::find_if(this->_sockets.begin(), this->_sockets.end(), SocketComparer(addr_it));
 	if (it == this->_sockets.end()) {
@@ -106,7 +108,9 @@ bool	ServerCluster::_addAddress(std::list<ServerConfig>::const_iterator& conf_it
 		it = this->_sockets.begin();
 	}
 
-	return (it->addConfig(&(*conf_it)));
+	returnValue = it->addConfig(&(*conf_it));
+	DEBUG("return value of addConfig() -> " << returnValue);
+	return returnValue;
 }
 
 int ServerCluster::importConfig(const std::string& config_path)
@@ -365,12 +369,13 @@ int	ServerCluster::run(void)
 
 	// wait for the events pool to trigger
 	while (!is_done) {
+		this->getNumberOfConnections();
 		::memset(&incoming_events, 0, sizeof(incoming_events));
 		events = ::epoll_wait(
 			this->_epoll_fd,
 			incoming_events,
 			MAX_EPOLL_EVENTS,
-			this->getNumberOfConnections() > 0 ? MS_TIMEOUT_ROUTINE : -1
+			-1
 		);
 		if (events  == -1)
 			return (error(ERR_EPOLL_WAIT, true), -1);

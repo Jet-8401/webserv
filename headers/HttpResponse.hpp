@@ -21,9 +21,11 @@ class HttpResponse : public HttpMessage {
 
 		// const bool&				isDone(void) const;
 		handler_state_t	buildHeaders(void);
-		handler_state_t	sendHeaders(const uint8_t* io_buffer, const size_t buff_len, std::streamsize& bytes_written);
-		handler_state_t	sendBody(const uint8_t* io_buffer, const size_t buff_len, std::streamsize& bytes_written,
+		handler_state_t	sendHeaders(uint8_t* io_buffer, const size_t buff_len, std::streamsize& bytes_written);
+		handler_state_t	sendBody(uint8_t* io_buffer, const size_t buff_len, std::streamsize& bytes_written,
 			const int fd);
+		handler_state_t	sendBody(uint8_t* io_buffer, const size_t buff_len, std::streamsize& bytes_written,
+			std::stringstream& stream);
 
 	protected:
 		const HttpRequest&	_request;

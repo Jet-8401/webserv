@@ -49,7 +49,7 @@ void	HttpGetCGI::executeCGI(void)
 
 		std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
 		char* const args[] = {
-			const_cast<char*>(this->_request.getMatchingLocation().getCGIs().find(extension)->second.c_str()),
+			const_cast<char*>(this->_request.getMatchingLocation()->getCGIs().find(extension)->second.c_str()),
 			const_cast<char*>(this->_request.getResolvedPath().c_str()),
 			NULL
 		};
@@ -69,7 +69,7 @@ bool	HttpGetCGI::parse(const uint8_t* packet, const size_t packet_size)
 	return (this->HttpParser::parse(packet, packet_size));  // Nothing to parse for GET
 }
 
-ssize_t	HttpGetCGI::write(const uint8_t* io_buffer, const size_t buff_length)
+ssize_t	HttpGetCGI::write(uint8_t* io_buffer, const size_t buff_length)
 {
 	if (this->_state.flag != SENDING_BODY)
         return (this->HttpParser::write(io_buffer, buff_length));

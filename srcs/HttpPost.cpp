@@ -24,7 +24,7 @@ HttpPost::HttpPost(const HttpParser& src):
 	size_t			pos;
 
 	DEBUG("Creating a HttpPost object!");
-	this->_request.getBody().setMaxBytesThrough(this->_request.getMatchingLocation().getClientMaxBodySize());
+	this->_request.getBody().setMaxBytesThrough(this->_request.getMatchingLocation()->getClientMaxBodySize());
 
 	content_type = this->_request.getHeader("Content-Type");
 	pos = content_type.find(BOUNDARY_KEY);
@@ -93,7 +93,7 @@ bool	HttpPost::parse(const uint8_t* packet, const size_t packet_size)
 	return (true);
 }
 
-ssize_t HttpPost::write(const uint8_t* io_buffer, const size_t buff_len)
+ssize_t HttpPost::write(uint8_t* io_buffer, const size_t buff_len)
 {
 	DEBUG("entering HttpPost::write with flag -> " << this->_state.flag);
 	return (this->HttpParser::write(io_buffer, buff_len));
@@ -191,10 +191,10 @@ uploading_state_t	HttpPost::_checkFileHeaders(void)
 
 uploading_state_t	HttpPost::_createFile(void)
 {
-	const Location& location = this->_request.getMatchingLocation();
+	const Location* location = this->_request.getMatchingLocation();
 	StreamBuffer&	body = this->_request.getBody();
 
-	this->_full_path = joinPath(location.getRoot(), this->_request.getPath());
+	this->_full_path = joinPath(location->getRoot(), this->_request.getPath());
 	this->_full_path = joinPath(this->_full_path, this->_file_name);
 	DEBUG("trying to create file at: " << this->_full_path);
 	this->_file_fd = ::open(this->_full_path.c_str(), O_WRONLY | O_CREAT, 0644);

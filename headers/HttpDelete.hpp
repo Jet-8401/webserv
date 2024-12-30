@@ -9,7 +9,7 @@ class HttpDelete : public HttpParser {
 		virtual ~HttpDelete(void);
 
 		virtual bool	parse(const uint8_t* packet, const size_t packet_len);
-		virtual ssize_t	write(const uint8_t* io_buffer, const size_t buff_len);
+		virtual ssize_t	write(uint8_t* io_buffer, const size_t buff_len);
 };
 
 #endif

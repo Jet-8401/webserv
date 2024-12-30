@@ -40,7 +40,7 @@ bool	HttpDelete::parse(const uint8_t* packet, const size_t packet_len)
 	return (HttpParser::parse(packet, packet_len));
 }
 
-ssize_t	HttpDelete::write(const uint8_t* io_buffer, const size_t buff_len)
+ssize_t	HttpDelete::write(uint8_t* io_buffer, const size_t buff_len)
 {
 	return (HttpParser::write(io_buffer, buff_len));
 }
