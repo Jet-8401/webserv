@@ -8,6 +8,8 @@ class HttpGetCGI : public HttpParser {
 		pid_t		_cgi_pid;
 		int			_pipe_out[2];
 
+		char**	_prepare_env(void);
+		void	_free_env(char** env);
 		void	executeCGI(void);
 
 	public:
