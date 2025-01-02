@@ -30,7 +30,7 @@ class Socket {
 		// Functions
 		bool	addConfig(const ServerConfig* config);
 		int		listen(void) const;
-		void	onEvent(::uint32_t events);
+		// void	onEvent(::uint32_t events);
 		int		acceptConnection(void);
 		int		deleteConnection(Connection* connection);
 

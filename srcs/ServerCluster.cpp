@@ -371,7 +371,6 @@ int	ServerCluster::run(void)
 
 	// wait for the events pool to trigger
 	while (!is_done) {
-		this->getNumberOfConnections();
 		::memset(&incoming_events, 0, sizeof(incoming_events));
 		events = ::epoll_wait(
 			this->_epoll_fd,
@@ -404,7 +403,7 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 		{
 			case REQUEST:
 				DEBUG("event[" << i << "]: connection request");
-				static_cast<Socket*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
+				static_cast<Socket*>(event_wrapper->casted_value)->acceptConnection();
 				break;
 			case CLIENT:
 				DEBUG("event[" << i << "]: client package");

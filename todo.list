@@ -25,12 +25,12 @@ DONE:
 - mettre des headers plus précis (pas obligatoire) comme Content-Length etc... ✓
 - inclure des pages d'erreur par défaut ✓
 - change le write and send pour empêcher les SIGPIPE ✓
+- handle maximum connection per virtual servers ✓
 
 TODO:
 - alias does not work when no slash in front of the alias
 - check for safety reason the POST method
 - handle client load balencer (check for too much request in a certain time)
-- handle maximum connection per virtual servers
 - make warning or error when two servers have same server_name
 - faire marcher les cookies
 - checker les différents CGI

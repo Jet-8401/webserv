@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 Socket::Socket(const std::string ip, const uint16_t port):
-	_backlog(1024),
+	_backlog(128),
 	_ip(ip),
 	_port(port),
 	_address(ip + ':' + unsafe_itoa(port)),
@@ -162,24 +162,29 @@ int		Socket::listen(void) const
 	return (0);
 }
 
-void	Socket::onEvent(::uint32_t events)
-{
-	if (events & EPOLLHUP) {
-		// handle socket hang-up
-		return ;
-	}
+// void	Socket::onEvent(::uint32_t events)
+// {
+// 	if (events & EPOLLHUP) {
+// 		// handle socket hang-up
+// 		return ;
+// 	}
 
-	if (events & EPOLLIN) {
-		this->acceptConnection();
-		// handle client errors
-	}
-}
+// 	if (events & EPOLLIN) {
+// 		this->acceptConnection();
+// 		// handle client errors
+// 	}
+// }
 
 int		Socket::acceptConnection(void)
 {
 	int					client_fd;
 	Connection*			client_connection;
 	event_wrapper_t*	event_wrapper;
+
+	if (this->_connections.size() >= this->_max_connections) {
+		DEBUG("Too many connections, cannot accept !");
+		return (0);
+	}
 
 	client_fd = ::accept(this->_socket_fd, 0, 0);
 	if (client_fd  == -1)
