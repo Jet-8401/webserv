@@ -22,6 +22,8 @@ HttpPostCGI::HttpPostCGI(const HttpParser& parser):
         this->_state = this->_request.error(500);
         return;
     }
+    makeNonBlocking(this->_pipe[0]);
+    makeNonBlocking(this->_pipe[1]);
     this->executeCGI();
 
     std::string length = this->_request.getHeader("Content-Length");
@@ -137,17 +139,21 @@ ssize_t HttpPostCGI::write(uint8_t* io_buffer, const size_t buff_len)
         return (this->HttpParser::write(io_buffer, buff_len));	// go to default write for building and sending headers
 	}
 
-	if (this->_child_proc_exited) {
+	DEBUG("this->_state.flag = " << this->_state.flag);
+	DEBUG("does child proc exited ? " << (this->_child_proc_exited ? "yes" : "no"));
+
+	if (this->_child_proc_exited && this->_state.flag == SENDING_BODY) {
 		ssize_t bytes_read = read(this->_pipe[0], io_buffer, buff_len);
 
+		DEBUG("bytes read -> " << bytes_read);
+
 		if (bytes_read == -1) {
-			this->_state = this->_request.error(500);
-			return (-1);
-		} else if (bytes_read == 0) {
-			DEBUG("bytes read is 0");
+			error("PIPE MON CUL", true);
+			// this->_state = this->_request.error(500);
 			this->_state = handler_state_t(DONE, true);
+		} else {
+			return (bytes_read);
 		}
-		return (bytes_read);
 	}
 
     return (this->HttpParser::write(io_buffer, buff_len));

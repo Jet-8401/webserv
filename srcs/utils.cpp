@@ -1,5 +1,6 @@
 #include "../headers/WebServ.hpp"
 #include <cstdio>
+#include <fcntl.h>
 #include <string>
 #include <sstream>
 #include <sys/time.h>
@@ -60,4 +61,10 @@ void	string_trim(std::string& str)
 	if (i != std::string::npos)
 		str.erase(i + 1);
 	return ;
+}
+
+int	makeNonBlocking(int fd)
+{
+	int flags = ::fcntl(fd, F_GETFL, 0);
+	return (::fcntl(fd, F_SETFL, flags | O_NONBLOCK));
 }

@@ -186,8 +186,7 @@ int		Socket::acceptConnection(void)
 		return (error(ERR_ACCEPT_REQUEST, true), -1);
 
 	// change client socket to non-blocking mode
-	int flags = ::fcntl(client_fd, F_GETFL, 0);
-	::fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+	makeNonBlocking(client_fd);
 
 	// create connection
 	client_connection = new Connection(client_fd, *this);
