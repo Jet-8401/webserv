@@ -369,7 +369,7 @@ int	ServerCluster::run(void)
 
 	// wait for the events pool to trigger
 	while (!is_done) {
-		this->getNumberOfConnections();
+		// this->getNumberOfConnections();
 		::memset(&incoming_events, 0, sizeof(incoming_events));
 		events = ::epoll_wait(
 			this->_epoll_fd,

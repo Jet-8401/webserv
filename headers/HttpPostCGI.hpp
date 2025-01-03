@@ -6,8 +6,8 @@
 class HttpPostCGI : public HttpPost {
     private:
         pid_t   _cgi_pid;
-        int     _pipe_in[2];
-        int     _pipe_out[2];
+        int     _pipe[2];
+        bool	_child_proc_exited;
 
         void    executeCGI(void);
 

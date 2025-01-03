@@ -1,10 +1,10 @@
 #include "../headers/HttpPostCGI.hpp"
 #include "../headers/WebServ.hpp"
+#include <cstdlib>
 #include <sys/epoll.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <iostream>
-#include <errno.h>
 #include <fcntl.h>
 #include <cstring>
 #include <string>
@@ -13,27 +13,36 @@ extern char** environ;
 
 HttpPostCGI::HttpPostCGI(const HttpParser& parser):
     HttpPost(parser),
-    _cgi_pid(-1)
+    _cgi_pid(-1),
+    _child_proc_exited(false)
 {
-    if (pipe(this->_pipe_in) == -1 || pipe(this->_pipe_out) == -1) {
+	DEBUG("Creating a HttpPostCGI object !");
+	this->_response.setStatusCode(200);
+    if (pipe(this->_pipe) == -1) {
         this->_state = this->_request.error(500);
         return;
     }
-    this->_state = handler_state_t(READING_BODY, true);
-    this->_request.setEvents(EPOLLOUT);
     this->executeCGI();
+
+    std::string length = this->_request.getHeader("Content-Length");
+    if (length.empty()) {
+    	this->_state = this->_request.error(411);
+		return;
+    }
+
+    if (this->_request.getBody().size() == (size_t) std::atoi(length.c_str())) {
+		this->_request.setEvents(EPOLLOUT);
+    } else {
+    	this->_state = handler_state_t(READING_BODY, false);
+    }
 }
 
 HttpPostCGI::~HttpPostCGI(void)
 {
-    if (this->_pipe_in[0] != -1)
-        close(this->_pipe_in[0]);
-    if (this->_pipe_in[1] != -1)
-        close(this->_pipe_in[1]);
-    if (this->_pipe_out[0] != -1)
-        close(this->_pipe_out[0]);
-    if (this->_pipe_out[1] != -1)
-        close(this->_pipe_out[1]);
+    if (this->_pipe[0] != -1)
+        close(this->_pipe[0]);
+    if (this->_pipe[1] != -1)
+        close(this->_pipe[1]);
 
     if (this->_cgi_pid != -1) {
         kill(this->_cgi_pid, SIGTERM);
@@ -50,8 +59,7 @@ void    HttpPostCGI::executeCGI(void)
     }
 
     if (this->_cgi_pid == 0) {  // Child process
-        close(this->_pipe_in[1]);
-        close(this->_pipe_out[0]);
+        // close(this->_pipe[0]);
 
         std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
         char* const args[] = {
@@ -92,8 +100,8 @@ void    HttpPostCGI::executeCGI(void)
         }
         new_environ[i] = NULL;
 
-        dup2(this->_pipe_in[0], STDIN_FILENO);
-        dup2(this->_pipe_out[1], STDOUT_FILENO);
+        dup2(this->_pipe[0], 0);
+        dup2(this->_pipe[1], 1);
 
         execve(args[0], args, new_environ);
 
@@ -104,8 +112,7 @@ void    HttpPostCGI::executeCGI(void)
         exit(1);
     }
 
-    close(this->_pipe_in[0]);   // Parent closes read end of input
-    close(this->_pipe_out[1]);  // Parent closes write end of output
+    // close(this->_pipe[1]);   // Parent closes write end of input
 }
 
 bool    HttpPostCGI::parse(const uint8_t* packet, const size_t packet_size)
@@ -113,7 +120,7 @@ bool    HttpPostCGI::parse(const uint8_t* packet, const size_t packet_size)
 	if (this->_state.flag != READING_BODY)
 		return (this->HttpParser::parse(packet, packet_size));
     if (packet && packet_size > 0) {
-        if (::write(this->_pipe_in[1], packet, packet_size) == -1) {
+        if (::write(this->_pipe[1], packet, packet_size) == -1) {
             this->_state = this->_request.error(500);
             return false;
         }
@@ -123,9 +130,25 @@ bool    HttpPostCGI::parse(const uint8_t* packet, const size_t packet_size)
 
 ssize_t HttpPostCGI::write(uint8_t* io_buffer, const size_t buff_len)
 {
-    if (WIFEXITED(waitpid(this->_cgi_pid, NULL, WNOHANG)))
-        this->_state = handler_state_t(DONE, true);
-    else
-    	return (0);
+	if (!this->_child_proc_exited && WIFEXITED(waitpid(this->_cgi_pid, NULL, WNOHANG))) {
+		this->_child_proc_exited = true;
+		this->_state = handler_state_t(READY_TO_SEND, true);
+        DEBUG("CGIPost: child process exited !");
+        return (this->HttpParser::write(io_buffer, buff_len));	// go to default write for building and sending headers
+	}
+
+	if (this->_child_proc_exited) {
+		ssize_t bytes_read = read(this->_pipe[0], io_buffer, buff_len);
+
+		if (bytes_read == -1) {
+			this->_state = this->_request.error(500);
+			return (-1);
+		} else if (bytes_read == 0) {
+			DEBUG("bytes read is 0");
+			this->_state = handler_state_t(DONE, true);
+		}
+		return (bytes_read);
+	}
+
     return (this->HttpParser::write(io_buffer, buff_len));
 }
