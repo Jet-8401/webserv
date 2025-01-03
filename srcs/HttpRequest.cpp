@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
+#include <dirent.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -209,47 +210,95 @@ handler_state_t	HttpRequest::parseHeaders(void)
 	}
 	return (handler_state_t(VALIDATE_REQUEST, true));
 }
+bool HttpRequest::_findFileRecursively(const std::string& basePath, const std::string& filename, std::string& foundPath) const
+{
+	DIR* dir = opendir(basePath.c_str());
+	if (dir == NULL)
+		return false;
+
+	struct dirent* entry;
+	while ((entry = readdir(dir)) != NULL) {
+		std::string name(entry->d_name);
+		if (name == "." || name == "..")
+			continue;
+
+		std::string fullPath = joinPath(basePath, name);
+		struct stat s;
+		if (::stat(fullPath.c_str(), &s) == -1)
+			continue;
+
+		if (S_ISDIR(s.st_mode)) {
+			if (this->_findFileRecursively(fullPath, filename, foundPath)) {
+				closedir(dir);
+				return true;
+			}
+		}
+		else if (name == filename) {
+			foundPath = fullPath;
+			closedir(dir);
+			return true;
+		}
+	}
+	closedir(dir);
+	return false;
+}
 
 // Resolve the path with alias, root, index, etc...
-bool	HttpRequest::_resolveLocation(void)
+bool HttpRequest::_resolveLocation(void)
 {
-	const std::string&			alias = this->_matching_location->getAlias();
-	std::vector<std::string>	indexes = this->_matching_location->getIndexes();
-
 	this->_resolved_path = joinPath(this->_matching_location->getRoot(), this->_path);
+	DEBUG("_path = " << this->_path);
+	DEBUG("_config_location_str = " << this->_config_location_str);
+	DEBUG("*******");
+
+	const std::string& alias = this->_matching_location->getAlias();
 	if (!alias.empty()) {
+		DEBUG("ALIAS");
 		size_t start = this->_resolved_path.find(this->_config_location_str);
 		size_t end = start + this->_config_location_str.length();
 
 		std::string before = this->_resolved_path.substr(0, start);
+		DEBUG(before);
 		std::string after = this->_resolved_path.substr(end);
+		DEBUG(after);
+		if (alias == "/")
+			this->_resolved_path = joinPath(this->_matching_location->getRoot(), after);
+		else
+			this->_resolved_path = joinPath(joinPath(before, alias), after);
+	}
 
-		this->_resolved_path = joinPath(joinPath(before, alias), after);
-}
+	DEBUG("########################");
 	DEBUG(this->_resolved_path);
 
-	// test for multiples index if there is
-	std::string	full_path;
 	if (this->_method == "GET") {
-		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); it++) {
-			full_path = joinPath(this->_resolved_path, *it);
+		const std::vector<std::string>& indexes = this->_matching_location->getIndexes();
+		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it) {
+			std::string full_path = joinPath(this->_resolved_path, *it);
 			DEBUG(full_path);
-			if (::stat(full_path.c_str(), &this->_path_stat) == -1) {
-				::memset(&this->_path_stat, 0, sizeof(this->_path_stat));
-				continue;
-			} else {
-				std::cout << "full_path! " << full_path;
+
+			// First try direct path
+			if (::stat(full_path.c_str(), &this->_path_stat) != -1) {
 				this->_resolved_path = full_path;
-				return (true);
+				return true;
 			}
+
+			// If index file not found in current directory and we have index directive,
+			// try searching recursively
+			if (!indexes.empty()) {
+				std::string found_path;
+				if (this->_findFileRecursively(this->_resolved_path, *it, found_path)) {
+					this->_resolved_path = found_path;
+					if (::stat(this->_resolved_path.c_str(), &this->_path_stat) != -1) {
+						return true;
+					}
+				}
+			}
+			::memset(&this->_path_stat, 0, sizeof(this->_path_stat));
 		}
 	}
 
-	// else take the path as final try
 	DEBUG("taking the final path");
-	if (::stat(this->_resolved_path.c_str(), &this->_path_stat) == -1)
-		return (false);
-	return (true);
+	return (::stat(this->_resolved_path.c_str(), &this->_path_stat) != -1);
 }
 
 // Check if the asked location is found and if mandatory options are ok.

@@ -33,8 +33,10 @@ uint64_t	getTimeMs(void)
 
 std::string	joinPath(const std::string& path1, const std::string& path2)
 {
-	if (path1.empty() || path2.empty())
+	if (path1.empty())
 		return path2;
+	if (path2.empty())
+		return path1;
 
 	char lastChar = path1[path1.length() - 1];
 	char firstChar = path2[0];

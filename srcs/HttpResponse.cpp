@@ -40,6 +40,9 @@ HttpResponse::HttpResponse(const HttpRequest& request):
 {
 	this->setHeader("Server", SERVER_VERSION);
 	this->setHeader("Connection", "close");
+	HttpMessage::headers_range_t range = _request.getHeaders("Cookie");
+	for (headers_t::const_iterator it = range.first; it != range.second ; ++it)
+		this->setHeader("Cookie", it->second);
 }
 
 HttpResponse::HttpResponse(const HttpResponse& src):

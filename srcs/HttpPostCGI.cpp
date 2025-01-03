@@ -58,75 +58,82 @@ HttpPostCGI::~HttpPostCGI(void)
 	}
 }
 
-void	HttpPostCGI::executeCGI(void)
+void HttpPostCGI::executeCGI(void)
 {
-	this->_cgi_pid = fork();
-	if (this->_cgi_pid == -1) {
-		this->_state = this->_request.error(500);
-		return;
-	}
+    this->_cgi_pid = fork();
+    if (this->_cgi_pid == -1) {
+        this->_state = this->_request.error(500);
+        return;
+    }
 
-	if (this->_cgi_pid == 0) {  // Child process
-		std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
-		char* const args[] = {
-			const_cast<char*>(this->_request.getMatchingLocation()->getCGIs().find(extension)->second.c_str()),
-			const_cast<char*>(this->_request.getResolvedPath().c_str()),
-			NULL
-		};
+    if (this->_cgi_pid == 0) {  // Child process
+        std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
+        char* const args[] = {
+            const_cast<char*>(this->_request.getMatchingLocation()->getCGIs().find(extension)->second.c_str()),
+            const_cast<char*>(this->_request.getResolvedPath().c_str()),
+            NULL
+        };
 
-		// Create CGI environment variables
-		std::string env_vars[] = {
-			"GATEWAY_INTERFACE=CGI/1.1",
-			"REQUEST_METHOD=POST",
-			"CONTENT_TYPE=" + this->_request.getHeader("Content-Type"),
-			"CONTENT_LENGTH=" + this->_request.getHeader("Content-Length"),
-			""
-		};
+        // Create map for environment variables
+        std::map<std::string, std::string> env_map;
 
-		// Count existing environment variables
-		size_t env_count = 0;
-		while (environ[env_count] != NULL)
-			env_count++;
+        // Common CGI variables
+        env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
+        env_map["REQUEST_METHOD"] = "POST";
+        env_map["CONTENT_TYPE"] = this->_request.getHeader("Content-Type");
+        env_map["CONTENT_LENGTH"] = this->_request.getHeader("Content-Length");
+        env_map["SCRIPT_NAME"] = this->_request.getConfigLocationStr();
+        env_map["SCRIPT_FILENAME"] = this->_request.getResolvedPath();
+        env_map["PATH_INFO"] = this->_request.getPath();
+        env_map["SERVER_SOFTWARE"] = "YourWebServer/1.0";
+        env_map["SERVER_PROTOCOL"] = "HTTP/1.1";
 
-		// Create new environment array
-		char** new_environ = new char*[env_count + 4 + 1];
+        // Language-specific variables
+        if (extension == ".php") {
+            env_map["REDIRECT_STATUS"] = "200";
+            env_map["PHP_SELF"] = this->_request.getConfigLocationStr();
+        }
+        else if (extension == ".py") {
+            env_map["PYTHONPATH"] = ".:/usr/local/lib/python";
+            env_map["PYTHONIOENCODING"] = "utf-8";
+        }
 
-		// Copy existing environment
-		size_t i = 0;
-		while (environ[i] != NULL) {
-			new_environ[i] = environ[i];
-			i++;
-		}
+        // Convert map to array
+        std::vector<std::string> env_strings;
+        for (std::map<std::string, std::string>::const_iterator it = env_map.begin();
+             it != env_map.end(); ++it) {
+            env_strings.push_back(it->first + "=" + it->second);
+        }
 
-		// Add our CGI variables
-		for (size_t j = 0; !env_vars[j].empty(); j++) {
-			new_environ[i] = new char[env_vars[j].length() + 1];
-			strcpy(new_environ[i], env_vars[j].c_str());
-			i++;
-		}
-		new_environ[i] = NULL;
+        // Create environment array
+        char** new_environ = new char*[env_strings.size() + 1];
+        for (size_t i = 0; i < env_strings.size(); i++) {
+            new_environ[i] = new char[env_strings[i].length() + 1];
+            strcpy(new_environ[i], env_strings[i].c_str());
+        }
+        new_environ[env_strings.size()] = NULL;
 
-		// replacing stdout with the write end of output and stdin with read end of input
-		::dup2(this->_in[0], 0);
-		::dup2(this->_out[1], 1);
-		// closing the unused file descriptors
-		::close(this->_in[1]);
-		::close(this->_out[0]);
+        // replacing stdout with the write end of output and stdin with read end of input
+        ::dup2(this->_in[0], 0);
+        ::dup2(this->_out[1], 1);
+        // closing the unused file descriptors
+        ::close(this->_in[1]);
+        ::close(this->_out[0]);
 
-		::execve(args[0], args, new_environ);
+        ::execve(args[0], args, new_environ);
 
-		// Clean up if execve fails
-		for (size_t j = env_count; new_environ[j] != NULL; j++)
-			delete[] new_environ[j];
-		delete[] new_environ;
-		std::exit(1);
-	}
+        // Clean up if execve fails
+        for (size_t i = 0; new_environ[i] != NULL; i++)
+            delete[] new_environ[i];
+        delete[] new_environ;
+        std::exit(1);
+    }
 
-	// closing read end of input and write end of output into the parent
-	::close(this->_in[0]);
-	::close(this->_out[1]);
-	this->_in[0] = -1;
-	this->_out[1] = -1;
+    // closing read end of input and write end of output into the parent
+    ::close(this->_in[0]);
+    ::close(this->_out[1]);
+    this->_in[0] = -1;
+    this->_out[1] = -1;
 }
 
 bool	HttpPostCGI::parse(const uint8_t* packet, const size_t packet_size)
