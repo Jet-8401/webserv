@@ -217,9 +217,15 @@ bool	HttpRequest::_resolveLocation(void)
 	std::vector<std::string>	indexes = this->_matching_location->getIndexes();
 
 	this->_resolved_path = joinPath(this->_matching_location->getRoot(), this->_path);
-	if (!alias.empty())
-		this->_resolved_path.replace(this->_resolved_path.find(this->_config_location_str), this->_config_location_str.length(), alias);
+	if (!alias.empty()) {
+		size_t start = this->_resolved_path.find(this->_config_location_str);
+		size_t end = start + this->_config_location_str.length();
 
+		std::string before = this->_resolved_path.substr(0, start);
+		std::string after = this->_resolved_path.substr(end);
+
+		this->_resolved_path = joinPath(joinPath(before, alias), after);
+}
 	DEBUG(this->_resolved_path);
 
 	// test for multiples index if there is
@@ -295,6 +301,7 @@ handler_state_t	HttpRequest::validateAndInitLocation(void)
 		return (this->error(404));
 	}
 
+	this->_body.setMaxBytesThrough(this->_matching_location->getClientMaxBodySize());
 	DEBUG("path to search on disk: " << this->_resolved_path);
 
 	return (handler_state_t(NEED_UPGRADE, true));

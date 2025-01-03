@@ -17,19 +17,13 @@
 #include <fcntl.h>
 #include <utility>
 
-// Static variables
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-std::map<std::string, void (ServerConfig::*)(const std::string&)>	ServerCluster::serverSetters;
-std::map<std::string, void (Location::*)(const std::string&)>		ServerCluster::locationSetters;
-
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 std::map<std::string, void (ServerConfig::*)(const std::string&)> ServerCluster::_server_setters;
-std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::_location_setters;
-std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::_http_location_setters;
-std::map<std::string, void (Location::*)(const std::string&)> ServerCluster::_serv_location_setters;
+std::map<std::string, int (Location::*)(const std::string&)> ServerCluster::_location_setters;
+std::map<std::string, int (Location::*)(const std::string&)> ServerCluster::_http_location_setters;
+std::map<std::string, int (Location::*)(const std::string&)> ServerCluster::_serv_location_setters;
 
 ServerCluster::ServerCluster(void):
 	_epoll_fd(-1),
@@ -132,6 +126,7 @@ int ServerCluster::importConfig(const std::string& config_path)
 	std::string token;
 	while (ss >> token)
 	{
+
 		if (token == "http" && parseHttpBlock(ss) < 0)
 			return (-1);
 	}
@@ -203,7 +198,7 @@ int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_l
 		}
 		else
 		{
-			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _http_location_setters.find(token);
+			std::map<std::string, int (Location::*)(const std::string&)>::iterator it = _http_location_setters.find(token);
 			if (it != _http_location_setters.end())
 			{
 				std::string value;
@@ -211,7 +206,8 @@ int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_l
 				if (value.find('\n') != std::string::npos)
 					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
-				(http_location->*(it->second))(value);
+				if ((http_location->*(it->second))(value) < 0)
+					return (-1);
 			}
 		}
 	}
@@ -236,7 +232,7 @@ int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv
 		}
 		else
 		{
-			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _serv_location_setters.find(token);
+			std::map<std::string, int (Location::*)(const std::string&)>::iterator it = _serv_location_setters.find(token);
 			if (it != _serv_location_setters.end())
 			{
 				std::string value;
@@ -244,7 +240,8 @@ int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv
 				if (value.find('\n') != std::string::npos)
 					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t"));
-				(serv_location->*(it->second))(value);
+				if ((serv_location->*(it->second))(value) < 0)
+					return (-1);
 			}
 		}
 	}
@@ -257,7 +254,7 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 	std::string token;
 	ss >> token;
 	if (token != "{")
-		return (error("Expected '{' after server", true), -1);
+		return (error("Expected '{' after server", false), -1);
 
 	Location serv_location(*http_location);
 	if (parseServerBlockDefault(ss, &serv_location) < 0)
@@ -318,7 +315,7 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 			return (0);
 		else
 		{
-			std::map<std::string, void (Location::*)(const std::string&)>::iterator it = _location_setters.find(token);
+			std::map<std::string, int (Location::*)(const std::string&)>::iterator it = _location_setters.find(token);
 			if (it != _location_setters.end())
 			{
 				std::string value;
@@ -326,7 +323,8 @@ int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
 				if (value.find('\n') != std::string::npos)
 					return (error("Missing a ; at the end of the line!", false), -1);
 				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
-				(location->*(it->second))(value);
+				if ((location->*(it->second))(value) < 0)
+					return (-1);
 			}
 		}
 	}

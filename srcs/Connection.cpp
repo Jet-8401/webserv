@@ -106,9 +106,11 @@ void	Connection::onEvent(::uint32_t events)
 		return;
 	}
 	if (events & EPOLLIN)
-		this->onInEvent(io_buffer, sizeof(io_buffer));
+		if (this->onInEvent(io_buffer, sizeof(io_buffer)) == -1)
+			return;
 	if (events & EPOLLOUT)
-		this->onOutEvent(io_buffer, sizeof(io_buffer));
+		if (this->onOutEvent(io_buffer, sizeof(io_buffer)) == -1)
+			return;
 
 	if (this->handler->checkUpgrade()) {
 		DEBUG("trying to upgrade");

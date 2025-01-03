@@ -24,7 +24,6 @@ HttpPost::HttpPost(const HttpParser& src):
 	size_t			pos;
 
 	DEBUG("Creating a HttpPost object!");
-	this->_request.getBody().setMaxBytesThrough(this->_request.getMatchingLocation()->getClientMaxBodySize());
 
 	content_type = this->_request.getHeader("Content-Type");
 	pos = content_type.find(BOUNDARY_KEY);
