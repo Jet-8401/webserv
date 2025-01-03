@@ -162,6 +162,12 @@ void	HttpMessage::setHeader(const std::string key, const std::string value)
 	this->_headers.insert(std::pair<const std::string, const std::string>(key, value));
 }
 
+HttpMessage::headers_range_t HttpMessage::getHeaders(const std::string key) const
+{
+	return (this->_headers.equal_range(key));
+}
+
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 

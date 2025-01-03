@@ -120,11 +120,13 @@ bool	Socket::addConfig(const ServerConfig* config)
 {
 	const std::vector<std::string>&	server_names = config->getServerNames();
 
-	// if there is not server names add a "default" one
+	// If there is no server names for that config, make the default server name as the address.
 	if (server_names.empty()) {
 		// if there is already a default discard this one
-		if (this->_configs.find(this->_address) != this->_configs.end())
+		if (this->_configs.find(this->_address) != this->_configs.end()) {
+			std::cout << "FAAAAAAAAAAAAAAAALSE" << std::endl;
 			return (false);
+		}
 		if (!this->_default_config)
 			this->_default_config = config;
 		this->_configs[this->_address] = config;

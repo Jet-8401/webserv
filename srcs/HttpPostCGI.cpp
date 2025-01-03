@@ -16,8 +16,9 @@ HttpPostCGI::HttpPostCGI(const HttpParser& parser):
 	_cgi_pid(-1),
 	_child_proc_exited(false)
 {
-	::memset(this->_in, -1, sizeof(this->_in));
-	::memset(this->_out, -1, sizeof(this->_out));
+	int	ios[4] = { this->_in[0], this->_in[1], this->_out[0], this->_out[1] };
+	for (unsigned long i = 0; i < 4; i++)
+		ios[i] = -1;
 
 	DEBUG("Creating a HttpPostCGI object !");
 	if (::pipe(this->_in) == -1 || ::pipe(this->_out) == -1) {
@@ -25,15 +26,15 @@ HttpPostCGI::HttpPostCGI(const HttpParser& parser):
 		return;
 	}
 
-	// execute the CGI
-	this->executeCGI();
-
 	// check if we received the full body
 	std::string length = this->_request.getHeader("Content-Length");
 	if (length.empty()) {
 		this->_state = this->_request.error(411);
 		return;
 	}
+
+	// execute the CGI
+	this->executeCGI();
 
 	if (this->_request.getBody().size() == (size_t) std::atoi(length.c_str())) {
 		// we have the full body, we can send the executed CGI
@@ -46,7 +47,7 @@ HttpPostCGI::HttpPostCGI(const HttpParser& parser):
 
 HttpPostCGI::~HttpPostCGI(void)
 {
-	int	ios[4] = {this->_in[0], this->_in[1], this->_out[0], this->_out[1]};
+	int	ios[4] = { this->_in[0], this->_in[1], this->_out[0], this->_out[1] };
 	for (unsigned long i = 0; i < 4; i++)
 		if (ios[i] != -1)
 			::close(ios[i]);

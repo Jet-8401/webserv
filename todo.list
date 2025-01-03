@@ -30,7 +30,7 @@ DONE:
 
 TODO:
 - check for safety reason the POST method
-- handle client load balencer (check for too much request in a certain time)
+- check for better timeouts
 - make warning or error when two servers have same server_name
 - faire marcher les cookies
 - checker les différents CGI

@@ -20,10 +20,11 @@ class HttpMessage {
 			MANDATORY_POST	= 0b00010000		// Mandatory for post requests
 		};
 
-		typedef std::map<std::string, uint8_t> 						headers_behavior_t;
-		typedef std::multimap<const std::string, const std::string> headers_t;
-		typedef short unsigned int									status_code_t;
-		typedef std::map<const int, const char*>					status_message_t;
+		typedef std::map<std::string, uint8_t> 									headers_behavior_t;
+		typedef std::multimap<const std::string, const std::string> 			headers_t;
+		typedef std::pair<headers_t::const_iterator,headers_t::const_iterator>	headers_range_t;
+		typedef short unsigned int												status_code_t;
+		typedef std::map<const int, const char*>								status_message_t;
 
 		const status_code_t&		getStatusCode(void) const;
 		bool						isError(void) const;
@@ -33,6 +34,7 @@ class HttpMessage {
 		virtual	void				setStatusCode(const status_code_t code);
 		virtual void				setHeader(const std::string key, const std::string value);
 		virtual std::string			getHeader(const std::string key) const;
+		virtual headers_range_t 	getHeaders(const std::string key) const;
 		virtual handler_state_t		error(status_code_t status_code);
 
 	protected:

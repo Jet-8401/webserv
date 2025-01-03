@@ -126,7 +126,6 @@ int ServerCluster::importConfig(const std::string& config_path)
 	std::string token;
 	while (ss >> token)
 	{
-
 		if (token == "http" && parseHttpBlock(ss) < 0)
 			return (-1);
 	}
