@@ -19,7 +19,7 @@ Connection::Connection(const int client_socket_fd, Socket& socket_referer):
 	_socket(client_socket_fd),
 	_timed_out(false),
 	_created_at(time(0)),
-	_s_timeout_value(2),
+	_s_timeout_value(60),
 	handler(new HttpParser(socket_referer))
 {
 	::memset(&this->event, 0, sizeof(this->event));

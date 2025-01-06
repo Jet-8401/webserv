@@ -23,6 +23,7 @@ HttpPost::HttpPost(const HttpParser& src):
 	std::string		content_type;
 	size_t			pos;
 
+	this->_setTimeoutValue(600);
 	DEBUG("Creating a HttpPost object!");
 
 	content_type = this->_request.getHeader("Content-Type");
@@ -229,6 +230,9 @@ uploading_state_t	HttpPost::_writeToFile(const uint8_t* packet, const size_t pac
 
 	// search for the multipart_key
 	bytes = body.consume_until((void**) &buffer, this->_multipart_key.c_str(), this->_multipart_key.length());
+	DEBUG(bytes);
+	DEBUG("############################################################");
+
 	if (bytes == -1)
 		return (error(ERR_BUFF_CONSUME, true), this->_error(500));
 	else if (bytes > 0)
@@ -238,6 +242,13 @@ uploading_state_t	HttpPost::_writeToFile(const uint8_t* packet, const size_t pac
 		// `consumable` is the number of available bytes to consume from the buffer to prevent consuming
 		// a part of the multipart_key.
 		ssize_t	consumable = body.size() - this->_multipart_key.length();
+		DEBUG(packet_size);
+		DEBUG("############################################################");
+		DEBUG(consumable);
+		DEBUG("############################################################");
+		DEBUG(body.size());
+		DEBUG("############################################################");
+		DEBUG(this->_multipart_key.length());
 		buffer = new uint8_t[consumable];
 		bytes = body.consume(buffer, consumable);
 		if (bytes == -1) {

@@ -4,6 +4,7 @@ bool is_done = false;
 #include "../headers/WebServ.hpp"
 #include <iostream>
 #include <iomanip>
+#include <signal.h>
 
 void displayErrorPages(const std::map<int, std::string*>& error_pages) {
 	if (!error_pages.empty()) {
@@ -101,11 +102,21 @@ void displayServerInfo(const ServerConfig& config) {
 	std::cout << "\033[1;34m│\033[0m" << std::endl;
 }
 
+void event_handler(int signal)
+{
+	if (signal == SIGQUIT)
+	{
+		is_done = true;
+	}
+}
+
 int main(int argc, char* argv[]) {
 	if (argc != 2) {
 	error(ERR_USAGE, false);
 	return 1;
 	}
+
+	signal(SIGQUIT, event_handler);
 
 	ServerCluster	cluster;
 
