@@ -4,6 +4,7 @@
 extern bool is_done;
 
 # include <string>
+# include "HttpParser.hpp"
 # include <iostream>
 # include <iomanip>
 # include <stdint.h>
@@ -62,5 +63,7 @@ std::string	unsafe_itoa(const int n);
 std::string	joinPath(const std::string& path1, const std::string& path2);
 void		string_trim(std::string& str);
 int			makeNonBlocking(int fd);
+void		free_env(char** env);
+char**		prepare_env(HttpParser& parser, const Socket& socket);
 
 #endif
