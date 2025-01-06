@@ -1,6 +1,5 @@
 #include "../headers/HttpGetCGI.hpp"
 #include "../headers/WebServ.hpp"
-#include "../headers/Socket.hpp"
 #include <sys/epoll.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -36,53 +35,6 @@ HttpGetCGI::~HttpGetCGI(void)
 		waitpid(this->_cgi_pid, NULL, 0);
 	}
 }
-char** HttpGetCGI::_prepare_env(void) {
-	std::map<std::string, std::string> env_map;
-
-	env_map["GATEWAY_INTERFACE"] = "CGI/1.1";
-	env_map["SERVER_PROTOCOL"] = "HTTP/1.1";
-	env_map["REQUEST_METHOD"] = _request.getMethod();
-	env_map["SCRIPT_NAME"] = _request.getConfigLocationStr();
-	env_map["SCRIPT_FILENAME"] = _request.getResolvedPath();
-
-	std::string path = _request.getPath();
-	size_t query_pos = path.find('?');
-	env_map["QUERY_STRING"] = (query_pos != std::string::npos) ?
-		path.substr(query_pos + 1) : "";
-	env_map["PATH_INFO"] = (query_pos != std::string::npos) ?
-		path.substr(0, query_pos) : path;
-
-	env_map["SERVER_SOFTWARE"] = SERVER_VERSION;
-	env_map["SERVER_NAME"] = _socket_referer.getIPV4();
-	env_map["SERVER_PORT"] = unsafe_itoa(_socket_referer.getPort());
-
-	std::string cookie = _request.getHeader("Cookie");
-	std::string content_type = _request.getHeader("Content-Type");
-	std::string content_length = _request.getHeader("Content-Length");
-
-	if (!cookie.empty())
-		env_map["HTTP_COOKIE"] = cookie;
-	if (!content_type.empty())
-		env_map["CONTENT_TYPE"] = content_type;
-	if (!content_length.empty())
-		env_map["CONTENT_LENGTH"] = content_length;
-
-	char** env = new char*[env_map.size() + 1];
-	size_t i = 0;
-
-	for (std::map<std::string, std::string>::const_iterator it = env_map.begin(); it != env_map.end(); ++it)
-		env[i++] = strdup((it->first + "=" + it->second).c_str());
-	env[i] = NULL;
-
-	return env;
-}
-
-void HttpGetCGI::_free_env(char** env) {
-	if (!env) return;
-	for (size_t i = 0; env[i]; i++)
-		free(env[i]);
-	delete[] env;
-}
 
 void HttpGetCGI::executeCGI(void) {
 	this->_cgi_pid = fork();
@@ -101,12 +53,12 @@ void HttpGetCGI::executeCGI(void) {
 			NULL
 		};
 
-		char** env = this->_prepare_env();
+		char** env = prepare_env(*this, this->_socket_referer);
 		dup2(this->_pipe_out[1], STDOUT_FILENO);
 		close(this->_pipe_out[1]);
 
 		execve(args[0], args, env);
-		_free_env(env);
+		free_env(env);
 		exit(1);
 	}
 

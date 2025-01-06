@@ -104,11 +104,15 @@ void	ServerConfig::setServerName(const std::string& value)
 	}
 }
 
-void	ServerConfig::addLocation(const std::string& path, Location* location)
+void ServerConfig::addLocation(const std::string& path, Location* location)
 {
-	std::string	new_path = path;
-	if (path.length() > 1 && new_path[path.length() - 1] == '/')
-		new_path.resize(path.length() - 1);
+	std::string new_path = path;
+
+	if (new_path[0] != '/')
+		new_path = "/" + new_path;
+	if (new_path.length() > 1 && new_path[new_path.length() - 1] == '/')
+		new_path.resize(new_path.length() - 1);
+
 	_locations[new_path] = location;
 }
 

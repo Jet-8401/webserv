@@ -53,14 +53,14 @@ HttpPostCGI::~HttpPostCGI(void)
 			::close(ios[i]);
 
 	if (this->_cgi_pid != -1) {
-		kill(this->_cgi_pid, SIGTERM);
-		waitpid(this->_cgi_pid, NULL, 0);
+		::kill(this->_cgi_pid, SIGTERM);
+		::waitpid(this->_cgi_pid, NULL, 0);
 	}
 }
 
-void	HttpPostCGI::executeCGI(void)
+void HttpPostCGI::executeCGI(void)
 {
-	this->_cgi_pid = fork();
+	this->_cgi_pid = ::fork();
 	if (this->_cgi_pid == -1) {
 		this->_state = this->_request.error(500);
 		return;
@@ -73,39 +73,7 @@ void	HttpPostCGI::executeCGI(void)
 			const_cast<char*>(this->_request.getResolvedPath().c_str()),
 			NULL
 		};
-
-		// Create CGI environment variables
-		std::string env_vars[] = {
-			"GATEWAY_INTERFACE=CGI/1.1",
-			"REQUEST_METHOD=POST",
-			"CONTENT_TYPE=" + this->_request.getHeader("Content-Type"),
-			"CONTENT_LENGTH=" + this->_request.getHeader("Content-Length"),
-			""
-		};
-
-		// Count existing environment variables
-		size_t env_count = 0;
-		while (environ[env_count] != NULL)
-			env_count++;
-
-		// Create new environment array
-		char** new_environ = new char*[env_count + 4 + 1];
-
-		// Copy existing environment
-		size_t i = 0;
-		while (environ[i] != NULL) {
-			new_environ[i] = environ[i];
-			i++;
-		}
-
-		// Add our CGI variables
-		for (size_t j = 0; !env_vars[j].empty(); j++) {
-			new_environ[i] = new char[env_vars[j].length() + 1];
-			strcpy(new_environ[i], env_vars[j].c_str());
-			i++;
-		}
-		new_environ[i] = NULL;
-
+		char** env = prepare_env(*this, this->_socket_referer);
 		// replacing stdout with the write end of output and stdin with read end of input
 		::dup2(this->_in[0], 0);
 		::dup2(this->_out[1], 1);
@@ -113,13 +81,9 @@ void	HttpPostCGI::executeCGI(void)
 		::close(this->_in[1]);
 		::close(this->_out[0]);
 
-		::execve(args[0], args, new_environ);
-
-		// Clean up if execve fails
-		for (size_t j = env_count; new_environ[j] != NULL; j++)
-			delete[] new_environ[j];
-		delete[] new_environ;
-		std::exit(1);
+		::execve(args[0], args, env);
+		free_env(env);
+		::exit(1);
 	}
 
 	// closing read end of input and write end of output into the parent
