@@ -12,10 +12,9 @@ HttpGetDirectory::HttpGetDirectory(const HttpParser& parser):
     _headers_sent(false),
     _dir(NULL)
 {
-    this->_request.setEvents(EPOLLOUT);
     this->_dir = opendir(this->_request.getResolvedPath().c_str());
     if (this->_dir == NULL) {
-        std::cerr << "could not open directory" << std::endl;
+        error(ERR_DIR_OPENING, true);
         this->_state = this->_request.error(404);
     }
 	this->_request.setEvents(EPOLLOUT);

@@ -35,4 +35,7 @@ TODO:
 - faire marcher les cookies
 - checker les différents CGI
 
+- handle raw data in POST request
+- status code for protocol
+
 Note: for stoping the server clean, send a STOP request

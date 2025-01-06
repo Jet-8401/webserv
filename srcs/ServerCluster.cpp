@@ -126,7 +126,7 @@ int ServerCluster::importConfig(const std::string& config_path)
 	std::string token;
 	while (ss >> token)
 	{
-		if (token == "http" && parseHttpBlock(ss) < 0)
+		if (token == "http" && _parseHttpBlock(ss) < 0)
 			return (-1);
 	}
 
@@ -151,7 +151,7 @@ int ServerCluster::importConfig(const std::string& config_path)
 	return (0);
 }
 
-int ServerCluster::parseHttpBlock(std::stringstream& ss)
+int ServerCluster::_parseHttpBlock(std::stringstream& ss)
 {
 	std::string token;
 	ss >> token;
@@ -160,7 +160,7 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
 
 	Location http_location;
 
-	if (parseHttpBlockDefault(ss, &http_location) < 0)
+	if (_parseHttpBlockDefault(ss, &http_location) < 0)
 		return (-1);
 
 	while (ss >> token)
@@ -170,14 +170,14 @@ int ServerCluster::parseHttpBlock(std::stringstream& ss)
 		else if (token == "server")
 		{
 			ServerConfig config;
-			if (parseServerBlock(ss, config, &http_location) < 0)
+			if (_parseServerBlock(ss, config, &http_location) < 0)
 				return (-1);
 		}
 	}
 	return (error("Unexpected end of http block", false), -1);
 }
 
-int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_location)
+int ServerCluster::_parseHttpBlockDefault(std::stringstream& ss, Location* http_location)
 {
 	std::streampos pos = ss.tellg();
 	std::string token;
@@ -213,7 +213,7 @@ int ServerCluster::parseHttpBlockDefault(std::stringstream& ss, Location* http_l
 	return (error("Unexpected end of http block", false), -1);
 }
 
-int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv_location)
+int ServerCluster::_parseServerBlockDefault(std::stringstream& ss, Location* serv_location)
 {
 	std::streampos pos = ss.tellg();
 	std::string token;
@@ -247,7 +247,7 @@ int ServerCluster::parseServerBlockDefault(std::stringstream& ss, Location* serv
 	return (error("Unexpected end of server block", false), -1);
 }
 
-int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location)
+int ServerCluster::_parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location)
 {
 	bool has_listen = false;
 	std::string token;
@@ -256,7 +256,7 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 		return (error("Expected '{' after server", false), -1);
 
 	Location serv_location(*http_location);
-	if (parseServerBlockDefault(ss, &serv_location) < 0)
+	if (_parseServerBlockDefault(ss, &serv_location) < 0)
 		return (-1);
 	while (ss >> token)
 	{
@@ -274,7 +274,7 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 			std::string paths;
 			std::getline(ss, paths);
 			Location *location = new Location(serv_location);
-			if (parseLocationBlock(ss, location) < 0)
+			if (_parseLocationBlock(ss, location) < 0)
 				return (-1);
 			std::stringstream ss_paths(paths);
 			while (ss_paths >> paths)
@@ -301,7 +301,7 @@ int ServerCluster::parseServerBlock(std::stringstream& ss, ServerConfig& config,
 	return (error("Unexpected end of server block", false), -1);
 }
 
-int ServerCluster::parseLocationBlock(std::stringstream& ss, Location* location)
+int ServerCluster::_parseLocationBlock(std::stringstream& ss, Location* location)
 {
 	std::string token;
 	ss >> token;
@@ -373,10 +373,8 @@ int	ServerCluster::run(void)
 			this->_epoll_fd,
 			incoming_events,
 			MAX_EPOLL_EVENTS,
-			-1
+			MS_TIMEOUT_ROUTINE
 		);
-		if (events  == -1)
-			return (error(ERR_EPOLL_WAIT, true), -1);
 		this->_resolveEvents(incoming_events, events);
 	}
 	return (0);
@@ -384,10 +382,12 @@ int	ServerCluster::run(void)
 
 void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_EVENTS], int events)
 {
-	event_wrapper_t*			event_wrapper;
+	if (events  == -1) {
+		error(ERR_EPOLL_WAIT, true);
+		return;
+	}
 
-	if (events != 0)
-		DEBUG(events << " events received");
+	DEBUG(events << " events received");
 	for (int i = 0; i < events; i++) {
 		if (incoming_events[i].events & EPOLLIN)
 			DEBUG("EPOLLIN");
@@ -395,19 +395,36 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 			DEBUG("EPOLLOUT");
 		if (incoming_events[i].events & EPOLLHUP)
 			DEBUG("EPOLLHUP");
-		event_wrapper = static_cast<event_wrapper_t*>(incoming_events[i].data.ptr);
-		switch (event_wrapper->socket_type)
-		{
-			case REQUEST:
-				DEBUG("event[" << i << "]: connection request");
-				static_cast<Socket*>(event_wrapper->casted_value)->acceptConnection();
-				break;
-			case CLIENT:
-				DEBUG("event[" << i << "]: client package");
-				static_cast<Connection*>(event_wrapper->casted_value)->onEvent(incoming_events[i].events);
-				break;
-			default:
-				break;
-		}
+		this->_handleEvent(incoming_events[i], i);
+	}
+
+	std::list<Socket>::iterator	socket;
+	for (socket = this->_sockets.begin(); socket != this->_sockets.end(); socket++) {
+		socket->cleanupRoutine();
+	}
+}
+
+void	ServerCluster::_handleEvent(struct epoll_event& event, const int index)
+{
+	event_wrapper_t*			event_wrapper;
+
+	event_wrapper = static_cast<event_wrapper_t*>(event.data.ptr);
+	if (!event_wrapper) {
+		DEBUG("NULL POINTER DETECTED !");
+		return;
+	}
+
+	switch (event_wrapper->socket_type)
+	{
+		case REQUEST:
+			DEBUG("event[" << index << "]: connection request");
+			static_cast<Socket*>(event_wrapper->casted_value)->acceptConnection();
+			break;
+		case CLIENT:
+			DEBUG("event[" << index << "]: client package");
+			static_cast<Connection*>(event_wrapper->casted_value)->onEvent(event.events);
+			break;
+		default:
+			break;
 	}
 }

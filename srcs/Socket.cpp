@@ -1,6 +1,7 @@
 #include "../headers/WebServ.hpp"
 #include "../headers/Socket.hpp"
 #include "../headers/Connection.hpp"
+#include <iterator>
 #include <sys/socket.h>
 #include <string.h>
 #include <netinet/in.h>
@@ -211,11 +212,13 @@ int		Socket::acceptConnection(void)
 	return (0);
 }
 
-int		Socket::deleteConnection(Connection* connection)
+int	Socket::deleteConnection(Connection* connection)
 {
 	DEBUG("\033[31mdeleting connection\033[0m");
-	if (!connection)
+	if (!connection) {
+		DEBUG("NULL POINTER DETECTED");
 		return (-1);
+	}
 	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_DEL, connection->getSocketFD(), &connection->event) == -1)
 		return (error(ERR_EPOLL_DEL, true), -1);
 	if (::close(connection->getSocketFD()) == -1)
@@ -224,5 +227,23 @@ int		Socket::deleteConnection(Connection* connection)
 	this->_connections.remove(connection);
 	delete connection;
 	connection = 0;
+	return (0);
+}
+
+int	Socket::cleanupRoutine(void)
+{
+	connections_t::iterator	connection;
+	connections_t::iterator	next;
+
+	for (connection = this->_connections.begin(); connection != this->_connections.end();) {
+		if (!(*connection)->isTimedout()) {
+			++connection;
+			continue;
+		}
+		next = connection;
+		std::advance(next, 1);
+		this->deleteConnection(*connection);
+		connection = next;
+	}
 	return (0);
 }

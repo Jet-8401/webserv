@@ -22,6 +22,7 @@
 
 HttpParser::HttpParser(Socket& socket_referer):
 	_need_upgrade(false),
+	_s_timeout_value(5),
 	_request(_response, socket_referer),
 	_response(_request),
 	_socket_referer(socket_referer),
@@ -46,6 +47,15 @@ HttpParser::~HttpParser(void)
 		::close(this->_error_page_fd);
 }
 
+// Setters
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+void	HttpParser::_setTimeoutValue(time_t seconds)
+{
+	DEBUG("Timeout changed to " << seconds << " seconds!");
+	this->_s_timeout_value = seconds;
+}
+
 // Getters
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -67,6 +77,11 @@ const bool&	HttpParser::checkUpgrade(void) const
 const enum handler_state_e&	HttpParser::getState(void) const
 {
 	return (this->_state.flag);
+}
+
+const time_t&	HttpParser::getSecTimeoutValue(void) const
+{
+	return (this->_s_timeout_value);
 }
 
 // Function members

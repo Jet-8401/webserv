@@ -18,7 +18,6 @@ class Connection {
 		const time_t		_created_at;
 		time_t				_s_timeout_value;
 
-		bool				_isTimedout(void);
 
 	public:
 		Connection(const int client_socket_fd, Socket& socket_referer);
@@ -27,6 +26,7 @@ class Connection {
 		// Getters
 		const int&			getSocketFD(void) const;
 		const time_t&		createdAt(void) const;
+		bool				isTimedout(void) const;
 
 		int					changeEvents(::uint32_t events);
 		void				onEvent(::uint32_t events);

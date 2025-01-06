@@ -19,7 +19,7 @@ Connection::Connection(const int client_socket_fd, Socket& socket_referer):
 	_socket(client_socket_fd),
 	_timed_out(false),
 	_created_at(time(0)),
-	_s_timeout_value(MS_TIMEOUT_ROUTINE / 1000),
+	_s_timeout_value(2),
 	handler(new HttpParser(socket_referer))
 {
 	::memset(&this->event, 0, sizeof(this->event));
@@ -42,7 +42,7 @@ const int&	Connection::getSocketFD(void) const
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-bool	Connection::_isTimedout(void)
+bool	Connection::isTimedout(void) const
 {
 	if (time(0) - this->_created_at > this->_s_timeout_value) {
 		DEBUG("Connection timed out");
@@ -100,8 +100,7 @@ void	Connection::onEvent(::uint32_t events)
 {
 	uint8_t	io_buffer[PACKETS_SIZE];
 
-	//handle timeouts properly
-	if (events & EPOLLHUP || this->_isTimedout()) {
+	if (events & EPOLLHUP || this->isTimedout()) {
 		this->_socket_referer.deleteConnection(this);
 		return;
 	}
@@ -118,6 +117,7 @@ void	Connection::onEvent(::uint32_t events)
 		if (newUpgrade) {
 			delete this->handler;
 			this->handler = newUpgrade;
+			this->_s_timeout_value = this->handler->getSecTimeoutValue();
 		} else {
 			DEBUG("Did not find any upgrades!");
 		}

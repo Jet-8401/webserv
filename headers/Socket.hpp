@@ -33,6 +33,7 @@ class Socket {
 		// void	onEvent(::uint32_t events);
 		int		acceptConnection(void);
 		int		deleteConnection(Connection* connection);
+		int		cleanupRoutine(void);
 
 
 	private:

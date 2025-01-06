@@ -6,9 +6,7 @@
 # include "Socket.hpp"
 
 # define MAX_EPOLL_EVENTS 2048
-# define MS_TIMEOUT_ROUTINE 5000
-
-// TODO: add an underscore to all private members
+# define MS_TIMEOUT_ROUTINE 1000
 
 class ServerCluster {
 	private:
@@ -23,17 +21,18 @@ class ServerCluster {
 		bool					_running;
 		EventWrapper			_events_wrapper;
 
-		int parseHttpBlock(std::stringstream& ss);
-		int parseHttpBlockDefault(std::stringstream& original_ss, Location* http_location);
-		int parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location);
-		int parseServerBlockDefault(std::stringstream& original_ss, Location* serv_location);
-		int parseLocationBlock(std::stringstream& ss, Location* location);
+		int _parseHttpBlock(std::stringstream& ss);
+		int _parseHttpBlockDefault(std::stringstream& original_ss, Location* http_location);
+		int _parseServerBlock(std::stringstream& ss, ServerConfig& config, Location* http_location);
+		int _parseServerBlockDefault(std::stringstream& original_ss, Location* serv_location);
+		int _parseLocationBlock(std::stringstream& ss, Location* location);
 		static std::map<std::string, void (ServerConfig::*)(const std::string&)> _server_setters;
 		static std::map<std::string, int (Location::*)(const std::string&)> _location_setters;
 		static std::map<std::string, int (Location::*)(const std::string&)> _http_location_setters;
 		static std::map<std::string, int (Location::*)(const std::string&)> _serv_location_setters;
 
 		void	_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_EVENTS], int events);
+		void	_handleEvent(struct epoll_event& event, const int index);
 		bool	_addAddress(std::list<ServerConfig>::const_iterator& conf_it,
 					ServerConfig::address_type::const_iterator& addr_it);
 

@@ -1,6 +1,7 @@
 #ifndef HTTP_PARSER_HPP
 # define HTTP_PARSER_HPP
 
+#include <ctime>
 #include <fcntl.h>
 class Socket;
 
@@ -15,6 +16,7 @@ class Socket;
 class HttpParser {
 	private:
 		bool						_need_upgrade;
+		time_t						_s_timeout_value;
 
 	protected:
 		HttpParser(const HttpParser& parser);
@@ -35,6 +37,8 @@ class HttpParser {
 		std::stringstream			_generated_error_page;
 		bool						_generateError(const int status_code);
 
+		void						_setTimeoutValue(time_t seconds);
+
 	public:
 		HttpParser(Socket& socket_referer);
 		virtual ~HttpParser(void);
@@ -47,6 +51,7 @@ class HttpParser {
 		HttpRequest&				getRequest(void);
 		const bool&					checkUpgrade(void) const;
 		const enum handler_state_e&	getState(void) const;
+		const time_t&				getSecTimeoutValue(void) const;
 
 		HttpParser*					upgrade(void);
 };

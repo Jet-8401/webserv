@@ -11,6 +11,7 @@ HttpGetStaticFile::HttpGetStaticFile(const HttpParser& parser):
 	_file_fd(-1)
 {
 	const std::string&	resolved_path = this->_request.getResolvedPath();
+	this->_setTimeoutValue(30);
 
 	// switching directly to EPOLLOUT
 	this->_request.setEvents(EPOLLOUT);
