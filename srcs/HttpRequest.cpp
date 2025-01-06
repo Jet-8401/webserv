@@ -210,6 +210,7 @@ handler_state_t	HttpRequest::parseHeaders(void)
 	}
 	return (handler_state_t(VALIDATE_REQUEST, true));
 }
+
 bool HttpRequest::_findFileRecursively(const std::string& basePath, const std::string& filename, std::string& foundPath) const
 {
 	DIR* dir = opendir(basePath.c_str());
@@ -249,7 +250,6 @@ bool HttpRequest::_resolveLocation(void)
 	this->_resolved_path = joinPath(this->_matching_location->getRoot(), this->_path);
 	DEBUG("_path = " << this->_path);
 	DEBUG("_config_location_str = " << this->_config_location_str);
-	DEBUG("*******");
 
 	const std::string& alias = this->_matching_location->getAlias();
 	if (!alias.empty()) {
@@ -267,7 +267,6 @@ bool HttpRequest::_resolveLocation(void)
 			this->_resolved_path = joinPath(joinPath(before, alias), after);
 	}
 
-	DEBUG("########################");
 	DEBUG(this->_resolved_path);
 
 	if (this->_method == "GET") {

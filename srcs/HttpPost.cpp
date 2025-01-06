@@ -238,6 +238,8 @@ uploading_state_t	HttpPost::_writeToFile(const uint8_t* packet, const size_t pac
 		// `consumable` is the number of available bytes to consume from the buffer to prevent consuming
 		// a part of the multipart_key.
 		ssize_t	consumable = body.size() - this->_multipart_key.length();
+		if (consumable <= 0)
+			return (uploading_state_t(UP_WRITING_FILE, false));
 		buffer = new uint8_t[consumable];
 		bytes = body.consume(buffer, consumable);
 		if (bytes == -1) {

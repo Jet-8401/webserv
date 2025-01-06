@@ -375,6 +375,8 @@ int	ServerCluster::run(void)
 			MAX_EPOLL_EVENTS,
 			MS_TIMEOUT_ROUTINE
 		);
+		if (is_done)
+			return (0);
 		this->_resolveEvents(incoming_events, events);
 	}
 	return (0);
