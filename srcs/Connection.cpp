@@ -73,6 +73,7 @@ ssize_t	Connection::onInEvent(uint8_t* io_buffer, size_t buff_len)
 		error(ERR_ACCEPT_REQUEST, true);
 	} else if (bytes == 0) {
 		this->_socket_referer.deleteConnection(this);
+		return (-1);
 	} else {
 		this->handler->parse(io_buffer, bytes);
 	}

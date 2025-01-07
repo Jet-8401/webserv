@@ -230,8 +230,6 @@ uploading_state_t	HttpPost::_writeToFile(const uint8_t* packet, const size_t pac
 
 	// search for the multipart_key
 	bytes = body.consume_until((void**) &buffer, this->_multipart_key.c_str(), this->_multipart_key.length());
-	DEBUG(bytes);
-	DEBUG("############################################################");
 
 	if (bytes == -1)
 		return (error(ERR_BUFF_CONSUME, true), this->_error(500));
@@ -242,13 +240,8 @@ uploading_state_t	HttpPost::_writeToFile(const uint8_t* packet, const size_t pac
 		// `consumable` is the number of available bytes to consume from the buffer to prevent consuming
 		// a part of the multipart_key.
 		ssize_t	consumable = body.size() - this->_multipart_key.length();
-		DEBUG(packet_size);
-		DEBUG("############################################################");
-		DEBUG(consumable);
-		DEBUG("############################################################");
-		DEBUG(body.size());
-		DEBUG("############################################################");
-		DEBUG(this->_multipart_key.length());
+		if (consumable <= 0)
+			return (uploading_state_t(UP_WRITING_FILE, false));
 		buffer = new uint8_t[consumable];
 		bytes = body.consume(buffer, consumable);
 		if (bytes == -1) {
@@ -264,6 +257,9 @@ uploading_state_t	HttpPost::_writeToFile(const uint8_t* packet, const size_t pac
 
 	delete [] buffer;
 	if (found)
+	{
+		DEBUG("END OF BOUNDARY FOUND");
 		return (uploading_state_t(UP_DONE, true));
+	}
 	return (uploading_state_t(UP_WRITING_FILE, false));
 }
