@@ -169,8 +169,19 @@ bool	HttpRequest::_checkHeaderSyntax(const std::string& key, const std::string& 
 	return (true);
 }
 
+bool	HttpRequest::_validateVersion(void)
+{
+	std::string	sub;
+
+	if (this->_version.compare(0, 5, "HTTP/") != 0)
+		return (this->error(400), false);
+	sub = this->_version.substr(5);
+	if (sub == "0.9" || sub == "1.0" || sub == "1.1")
+		return (true);
+	return (this->error(505), false);
+}
+
 // Parse the request-line then all the headers, it also check for syntax.
-// Check for only HTTP/1.1 version.
 handler_state_t	HttpRequest::parseHeaders(void)
 {
 	std::string			str;
@@ -182,12 +193,8 @@ handler_state_t	HttpRequest::parseHeaders(void)
 	parser >> this->_path;
 	parser >> this->_version;
 
-	if (this->_method == "STOP") {
-		is_done = true;
-	}
-
-	if (this->_version != "HTTP/1.1" && this->_version != "HTTP/1.0")
-		return (this->error(505));
+	if (!this->_validateVersion())
+		return (this->error(this->_status_code));
 
 	std::string	key, value;
 	parser.ignore();
@@ -210,6 +217,7 @@ handler_state_t	HttpRequest::parseHeaders(void)
 	}
 	return (handler_state_t(VALIDATE_REQUEST, true));
 }
+
 bool HttpRequest::_findFileRecursively(const std::string& basePath, const std::string& filename, std::string& foundPath) const
 {
 	DIR* dir = opendir(basePath.c_str());
@@ -249,7 +257,6 @@ bool HttpRequest::_resolveLocation(void)
 	this->_resolved_path = joinPath(this->_matching_location->getRoot(), this->_path);
 	DEBUG("_path = " << this->_path);
 	DEBUG("_config_location_str = " << this->_config_location_str);
-	DEBUG("*******");
 
 	const std::string& alias = this->_matching_location->getAlias();
 	if (!alias.empty()) {
@@ -267,7 +274,6 @@ bool HttpRequest::_resolveLocation(void)
 			this->_resolved_path = joinPath(joinPath(before, alias), after);
 	}
 
-	DEBUG("########################");
 	DEBUG(this->_resolved_path);
 
 	if (this->_method == "GET") {

@@ -86,9 +86,11 @@ const size_t&	StreamBuffer::allocatedSize(void) const
 
 ssize_t StreamBuffer::write(const void* data, const size_t size)
 {
+	DEBUG("~~ StreamBuffer state ~~");
 	DEBUG("bytes passed through -> " << this->_bytes_passed_through);
 	DEBUG("MAX bytes passed through -> " << this->_max_bytes_passed_through);
 	DEBUG("size: " << size);
+	DEBUG("~~ StreamBuffer state ~~");
 
 	if (size > this->_allocated_size - this->_size ||
 		this->_bytes_passed_through + size > this->_max_bytes_passed_through)
@@ -128,15 +130,15 @@ ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
 	bytes_until_end = this->_allocated_size - this->_head;
 
 	if (chunk_size > bytes_until_end) {
-	::memcpy(dest, this->_intern_buffer + this->_head, bytes_until_end);
-	::memcpy(((uint8_t*)dest) + bytes_until_end, this->_intern_buffer,
-	 chunk_size - bytes_until_end);
-	this->_head = (chunk_size - bytes_until_end) % this->_allocated_size;
-	bytes_copied = chunk_size;
+		::memcpy(dest, this->_intern_buffer + this->_head, bytes_until_end);
+		::memcpy(((uint8_t*)dest) + bytes_until_end, this->_intern_buffer,
+			chunk_size - bytes_until_end);
+		this->_head = (chunk_size - bytes_until_end) % this->_allocated_size;
+		bytes_copied = chunk_size;
 	} else {
-	::memcpy(dest, this->_intern_buffer + this->_head, chunk_size);
-	this->_head = (this->_head + chunk_size) % this->_allocated_size;
-	bytes_copied = chunk_size;
+		::memcpy(dest, this->_intern_buffer + this->_head, chunk_size);
+		this->_head = (this->_head + chunk_size) % this->_allocated_size;
+		bytes_copied = chunk_size;
 	}
 
 	this->_size -= bytes_copied;
