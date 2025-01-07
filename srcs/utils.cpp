@@ -94,6 +94,7 @@ char** prepare_env(HttpParser& parser, const Socket& socket) {
 	std::string content_type = req.getHeader("Content-Type");
 	std::string content_length = req.getHeader("Content-Length");
 	std::string cookie = req.getHeader("Cookie");
+	DEBUG("Raw Cookie header: [" << cookie << "]");
 
 	if (!content_type.empty())
 		env["CONTENT_TYPE"] = content_type;
@@ -102,12 +103,15 @@ char** prepare_env(HttpParser& parser, const Socket& socket) {
 	if (!cookie.empty()) {
 		std::string combined;
 		HttpMessage::headers_range_t range = req.getHeaders("Cookie");
+		DEBUG("Processing multiple cookies:");
 		for (HttpMessage::headers_t::const_iterator it = range.first; it != range.second; ++it) {
+			DEBUG("  Cookie entry: [" << it->second << "]");
 			if (!combined.empty())
 				combined += "; ";
 			combined += it->second;
 		}
 		env["HTTP_COOKIE"] = combined;
+		DEBUG("Final HTTP_COOKIE env: [" << combined << "]");
 	}
 
 	std::string extension(::strrchr(req.getResolvedPath().c_str(), '.'));

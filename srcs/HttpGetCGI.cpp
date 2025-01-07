@@ -17,7 +17,6 @@ HttpGetCGI::HttpGetCGI(const HttpParser& parser):
 		this->_request.error(500);
 		return;
 	}
-	this->_response.setHeader("Content-Type", "text/html");
 	this->_state = handler_state_t(READY_TO_SEND, false);
 	this->_request.setEvents(EPOLLOUT);
 	this->executeCGI();
@@ -72,13 +71,16 @@ bool	HttpGetCGI::parse(const uint8_t* packet, const size_t packet_size)
 
 ssize_t	HttpGetCGI::write(uint8_t* io_buffer, const size_t buff_length)
 {
+	if (WIFEXITED(waitpid(this->_cgi_pid, NULL, WNOHANG)))
+		return (0);
+
 	if (this->_state.flag != SENDING_BODY)
 		return (this->HttpParser::write(io_buffer, buff_length));
 
 	ssize_t bytes_read = read(this->_pipe_out[0],
 		const_cast<uint8_t*>(io_buffer), buff_length);
 
-	if (bytes_read <= 0 && WIFEXITED(waitpid(this->_cgi_pid, NULL, WNOHANG)))
+	if (bytes_read <= 0)
 		this->_state = handler_state_t(DONE, true);
 
 	return bytes_read;

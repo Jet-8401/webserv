@@ -12,6 +12,7 @@ HttpResponse::mime_types_t&	init_mime_types(void)
 	static HttpResponse::mime_types_t	mime_types;
 
 	mime_types[".html"] = "text/html";
+	mime_types[".sh"] = "text/html";
 	mime_types[".css"] = "text/css";
 	mime_types[".js"] = "application/javascript";
 	mime_types[".json"] = "application/json";
