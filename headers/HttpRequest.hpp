@@ -62,6 +62,7 @@ class HttpRequest : public HttpMessage {
 		bool				_findFileRecursively(const std::string& basePath, const std::string& filename, std::string& foundPath) const;
 		bool				_findLocation(void);
 		bool				_resolveLocation(void);
+		bool				_validateVersion(void);
 };
 
 #endif

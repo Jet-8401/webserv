@@ -25,6 +25,7 @@ HttpPost::HttpPost(const HttpParser& src):
 
 	DEBUG("Creating a HttpPost object!");
 
+	this->_setTimeoutValue(600);
 	content_type = this->_request.getHeader("Content-Type");
 	pos = content_type.find(BOUNDARY_KEY);
 	if (pos == std::string::npos) {
@@ -73,7 +74,7 @@ bool	HttpPost::parse(const uint8_t* packet, const size_t packet_size)
 				this->_uploading_state = this->_createFile();
 				break;
 			case UP_UNBUFFERING:
-				this->_uploading_state = this->_writeToFile(0, 0);
+				this->_uploading_state = this->_writeToFile(packet, 0);
 				break;
 			case UP_WRITING_FILE:
 				this->_uploading_state = this->_writeToFile(packet, packet_size);
@@ -225,7 +226,7 @@ uploading_state_t	HttpPost::_writeToFile(const uint8_t* packet, const size_t pac
 
 	// buffer the packet
 	if (body.write(packet, packet_size) == -1)
-		return (error(ERR_BUFF_WRITING, true), this->_error(500));
+		return (error(ERR_BUFF_WRITING, true), this->_error(507));
 
 	// search for the multipart_key
 	bytes = body.consume_until((void**) &buffer, this->_multipart_key.c_str(), this->_multipart_key.length());

@@ -19,7 +19,7 @@ Connection::Connection(const int client_socket_fd, Socket& socket_referer):
 	_socket(client_socket_fd),
 	_timed_out(false),
 	_created_at(time(0)),
-	_s_timeout_value(2),
+	_s_timeout_value(BASE_TIMEOUT),
 	handler(new HttpParser(socket_referer))
 {
 	::memset(&this->event, 0, sizeof(this->event));
@@ -73,6 +73,7 @@ ssize_t	Connection::onInEvent(uint8_t* io_buffer, size_t buff_len)
 		error(ERR_ACCEPT_REQUEST, true);
 	} else if (bytes == 0) {
 		this->_socket_referer.deleteConnection(this);
+		return (-1);
 	} else {
 		this->handler->parse(io_buffer, bytes);
 	}

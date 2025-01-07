@@ -86,9 +86,11 @@ const size_t&	StreamBuffer::allocatedSize(void) const
 
 ssize_t StreamBuffer::write(const void* data, const size_t size)
 {
+	DEBUG("~~ StreamBuffer state ~~");
 	DEBUG("bytes passed through -> " << this->_bytes_passed_through);
 	DEBUG("MAX bytes passed through -> " << this->_max_bytes_passed_through);
 	DEBUG("size: " << size);
+	DEBUG("~~ StreamBuffer state ~~");
 
 	if (size > this->_allocated_size - this->_size ||
 		this->_bytes_passed_through + size > this->_max_bytes_passed_through)

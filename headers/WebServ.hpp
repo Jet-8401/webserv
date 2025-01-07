@@ -10,6 +10,7 @@ extern bool is_done;
 # include <stdint.h>
 
 # define SERVER_VERSION "webserv/1.0"
+# define BASE_TIMEOUT 60
 
 # define PROG_NAME "webserv"
 # define ERR_USAGE "usage: ./webserv <configFile>"
