@@ -81,16 +81,22 @@ const size_t&	StreamBuffer::allocatedSize(void) const
 	return (this->_allocated_size);
 }
 
+const size_t&	StreamBuffer::bytesPassedThrough(void) const
+{
+	return (this->_bytes_passed_through);
+}
+
 // Function members
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 ssize_t StreamBuffer::write(const void* data, const size_t size)
 {
+	std::cout << "\033[33m";
 	DEBUG("~~ StreamBuffer state ~~");
-	DEBUG("bytes passed through -> " << this->_bytes_passed_through);
+	DEBUG("bytes passed through     -> " << this->_bytes_passed_through);
 	DEBUG("MAX bytes passed through -> " << this->_max_bytes_passed_through);
 	DEBUG("size: " << size);
-	DEBUG("~~ StreamBuffer state ~~");
+	DEBUG("~~ StreamBuffer state ~~\033[0m");
 
 	if (size > this->_allocated_size - this->_size ||
 		this->_bytes_passed_through + size > this->_max_bytes_passed_through)
@@ -142,7 +148,7 @@ ssize_t	StreamBuffer::consume(void* dest, size_t chunk_size)
 	}
 
 	this->_size -= bytes_copied;
-	return bytes_copied;
+	return (bytes_copied);
 }
 
 // Will try to consume everything until `key` is found.

@@ -214,7 +214,7 @@ int		Socket::acceptConnection(void)
 
 int	Socket::deleteConnection(Connection* connection)
 {
-	DEBUG("\033[31mdeleting connection\033[0m");
+	DEBUG("\033[33mdeleting connection\033[0m");
 	if (!connection) {
 		DEBUG("NULL POINTER DETECTED");
 		return (-1);

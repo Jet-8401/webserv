@@ -26,15 +26,23 @@ HttpGetStaticFile::HttpGetStaticFile(const HttpParser& parser):
 	}
 
 	HttpResponse::mime_types_t::const_iterator	it;
+	size_t ext_pos;
 
 	this->_response.setHeader("Content-Length", unsafe_itoa(this->_request.getPathStat().st_size));
-	this->_file_extension = resolved_path.substr(resolved_path.rfind('.'));
-	it = this->_response.mime_types.find(this->_file_extension);
-	if (it != this->_response.mime_types.end())
-		this->_response.setHeader("Content-Type", it->second);
+
+	// try to find the file extension
+	ext_pos = resolved_path.rfind('.');
+	if (ext_pos != std::string::npos) {
+		this->_file_extension = resolved_path.substr(ext_pos);
+		it = this->_response.mime_types.find(this->_file_extension);
+		if (it != this->_response.mime_types.end())
+			this->_response.setHeader("Content-Type", it->second);
+	} else {
+		this->_response.setHeader("Content-Type", "application/octet-stream");
+	}
 }
 
-HttpGetStaticFile::~HttpGetStaticFile()
+HttpGetStaticFile::~HttpGetStaticFile(void)
 {
 	if (_file_fd != -1) {
 		close(_file_fd);
