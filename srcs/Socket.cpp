@@ -53,6 +53,9 @@ Socket::~Socket(void)
 			continue;
 		delete *it;
 	}
+
+	if (this->_socket_fd != -1)
+		::close(this->_socket_fd);
 }
 
 // Setters
@@ -219,10 +222,10 @@ int	Socket::deleteConnection(Connection* connection)
 		DEBUG("NULL POINTER DETECTED");
 		return (-1);
 	}
-	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_DEL, connection->getSocketFD(), &connection->event) == -1)
-		return (error(ERR_EPOLL_DEL, true), -1);
-	if (::close(connection->getSocketFD()) == -1)
-		error(ERR_FD_CLOSE, true);
+	DEBUG("epoll fd -> " << this->_epoll_fd);
+	if (::epoll_ctl(this->_epoll_fd, EPOLL_CTL_DEL, connection->getSocketFD(), &connection->event) == -1) {
+		error(ERR_EPOLL_DEL, true);
+	}
 	this->_event_wrapper.remove(static_cast<event_wrapper_t*>(connection->event.data.ptr));
 	this->_connections.remove(connection);
 	delete connection;

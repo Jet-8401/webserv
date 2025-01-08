@@ -27,8 +27,11 @@ Connection::Connection(const int client_socket_fd, Socket& socket_referer):
 
 Connection::~Connection(void)
 {
+	DEBUG("Connection descructor called");
 	if (this->handler)
 		delete this->handler;
+	if (this->_socket != -1 && ::close(this->_socket) == -1)
+		error(ERR_FD_CLOSE, true);
 }
 
 // Getters
