@@ -13,8 +13,7 @@ extern char** environ;
 
 HttpPostCGI::HttpPostCGI(const HttpParser& parser):
 	HttpParser(parser),
-	_cgi_pid(-1),
-	_child_proc_exited(false)
+	_cgi_pid(-1)
 {
 	int	ios[4] = { this->_in[0], this->_in[1], this->_out[0], this->_out[1] };
 	for (unsigned long i = 0; i < 4; i++)
@@ -24,6 +23,16 @@ HttpPostCGI::HttpPostCGI(const HttpParser& parser):
 	if (::pipe(this->_in) == -1 || ::pipe(this->_out) == -1) {
 		this->_state = this->_request.error(500);
 		return;
+	}
+
+	char			tmp_buffer[512];
+	StreamBuffer	body = this->_request.getBody();
+	ssize_t			bytes;
+
+	while((bytes = body.consume(tmp_buffer, sizeof(tmp_buffer))) > 0) {
+		DEBUG("AODFKGOASJGAOSJG");
+		std::cout.write(tmp_buffer, bytes);
+		::write(this->_in[1], tmp_buffer, bytes);
 	}
 
 	// check if we received the full body
@@ -103,33 +112,73 @@ bool	HttpPostCGI::parse(const uint8_t* packet, const size_t packet_size)
 	}
 	return (true);
 }
+void	HttpPostCGI::_parseAndSetHeaders(char* dest, size_t size)
+{
+	std::stringstream	buffer;
+	std::string			line, key, value;
+
+	buffer.write(dest, size);
+
+	while (std::getline(buffer, line)) {
+		if (line.empty())
+			continue;
+		size_t	colon_pos = line.find(':');
+		if (colon_pos == std::string::npos)
+			continue;
+
+		// separate the key and value, then triming them
+		key = line.substr(0, colon_pos);
+		string_trim(key);
+		value = line.substr(colon_pos + 1);
+		string_trim(value);
+		this->_response.setHeader(key, value);
+	}
+}
+
+bool HttpPostCGI::_processCgiHeader(void)
+{
+	char tmp_buffer[512];
+	ssize_t bytes;
+	char* dest = 0;
+
+	while((bytes = read(this->_out[0], tmp_buffer, sizeof(tmp_buffer))) > 0) {
+		this->_cgi_output.write(tmp_buffer, bytes);
+	}
+
+	bytes = this->_cgi_output.consume_until(
+		(void **)&dest,
+		(char*) HttpRequest::END_SEQUENCE,
+		sizeof(HttpRequest::END_SEQUENCE));
+
+	if (bytes == -1) {
+		delete [] dest;
+		return (error(ERR_BUFF_CONSUME, true), this->_state = this->_response.error(500), false);
+	}
+
+	DEBUG("number of bytes consume: " << bytes);
+	if (bytes > 0)
+		this->_parseAndSetHeaders(dest, bytes);
+	if (dest)
+		delete [] dest;
+	return (true);
+}
 
 ssize_t HttpPostCGI::write(uint8_t* io_buffer, const size_t buff_len)
 {
-	int	wstatus = 0;
+	int	status = 0;
 
-	if (!this->_child_proc_exited) {
-		if (waitpid(this->_cgi_pid, &wstatus, WNOHANG) == -1) {
-			error("Error while waiting for child process", true);
-			return (this->_state = this->_response.error(500), -1);
-		}
+	waitpid(this->_cgi_pid, &status, WNOHANG);
+	if (WIFEXITED(status))
+		this->_processCgiHeader();
+	else return (0);
 
-		if (!WIFEXITED(wstatus)) {
-			DEBUG("PostCGI: waiting on child process...");
-			return (0);
-		}
+	if (this->_state.flag != SENDING_BODY)
+		return (this->HttpParser::write(io_buffer, buff_len));
 
-		DEBUG("PostCGI: child process exited");
-		this->_child_proc_exited = true;
-		this->_state = handler_state_t(READY_TO_SEND, true);
-	}
-
-	if (this->_child_proc_exited && this->_state.flag == SENDING_BODY) {
-		ssize_t	bytes_read = ::read(this->_out[0], io_buffer, buff_len);
-		if (bytes_read == 0)
-			this->_state = handler_state_t(DONE, true);
-		return (bytes_read);
-	}
-
-	return (this->HttpParser::write(io_buffer, buff_len));
+	ssize_t bytes = this->_cgi_output.consume(io_buffer, buff_len);
+	if (bytes == -1)
+		return (error(ERR_BUFF_CONSUME, true), this->_state = this->_response.error(500), -1);
+	else if (bytes == 0)
+		this->_state = handler_state_t(DONE, true);
+	return (bytes);
 }

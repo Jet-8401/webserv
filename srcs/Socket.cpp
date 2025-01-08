@@ -53,7 +53,6 @@ Socket::~Socket(void)
 			continue;
 		delete *it;
 	}
-
 	if (this->_socket_fd != -1)
 		::close(this->_socket_fd);
 }
