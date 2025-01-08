@@ -33,6 +33,7 @@ HttpParser::HttpParser(Socket& socket_referer):
 
 HttpParser::HttpParser(const HttpParser& src):
 	_need_upgrade(src._need_upgrade),
+	_s_timeout_value(src._s_timeout_value),
 	_request(src._request),
 	_response(src._request),
 	_socket_referer(src._socket_referer),
