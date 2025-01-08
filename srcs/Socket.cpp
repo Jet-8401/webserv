@@ -53,6 +53,7 @@ Socket::~Socket(void)
 			continue;
 		delete *it;
 	}
+	::close(this->_socket_fd);
 }
 
 // Setters

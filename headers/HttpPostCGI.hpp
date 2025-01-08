@@ -5,19 +5,21 @@
 
 class HttpPostCGI : public HttpParser {
 	private:
-	pid_t   _cgi_pid;
-	int		_in[2];
-	int		_out[2];
-	bool	_child_proc_exited;
+		pid_t   _cgi_pid;
+		int		_in[2];
+		int		_out[2];
+		StreamBuffer	_cgi_output;
 
-	void	executeCGI(void);
+		void	executeCGI(void);
+		bool	_processCgiHeader();
+		void	_parseAndSetHeaders(char* dest, size_t size);
 
 	public:
-	HttpPostCGI(const HttpParser& parser);
-	virtual ~HttpPostCGI();
+		HttpPostCGI(const HttpParser& parser);
+		virtual ~HttpPostCGI();
 
-	virtual bool	parse(const uint8_t* packet, const size_t packet_size);
-	virtual ssize_t write(uint8_t* io_buffer, const size_t buff_len);
+		virtual bool	parse(const uint8_t* packet, const size_t packet_size);
+		virtual ssize_t write(uint8_t* io_buffer, const size_t buff_len);
 };
 
 #endif
