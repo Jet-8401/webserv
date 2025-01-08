@@ -1,10 +1,8 @@
 #!/bin/bash
 VISIT_COUNT=""
-echo "hdgjhg $HTTP_COOKIE"
 IFS=';' read -r -a cookies <<< "$HTTP_COOKIE"
 echo "Content-Type: text/html"
 for cookie in "${cookies[@]}"; do
-  echo "cookie value : $cookie"
   cookie=$(echo "$cookie" | sed 's/^ *//;s/ *$//')
   IFS='=' read -r -a cookie_parts <<< "$cookie"
   if [ "${cookie_parts[0]}" = "visit" ]; then
@@ -13,14 +11,12 @@ for cookie in "${cookies[@]}"; do
 done
 if [ -z "$VISIT_COUNT" ]; then
   VISIT_COUNT=1
-  echo "Cookie set to 1"  
 else
   VISIT_COUNT=$((VISIT_COUNT + 1))
-  echo "Cookie increment by one"
 fi
 EXPIRATION_DATE=$(date -u -d "+5 minutes" +"%a, %d-%b-%Y %H:%M:%S GMT")
-echo "Set-Cookie: visit=$VISIT_COUNT; Expires=$EXPIRATION_DATE; Path=/"
-echo ""
+echo -n "Set-Cookie: visit=$VISIT_COUNT; Expires=$EXPIRATION_DATE; Path=/"
+echo -en "\r\n\r\n"
 echo "<!DOCTYPE html>"
 echo "<html lang=\"en\">"
 echo "<head>"
@@ -69,5 +65,3 @@ fi
 echo "        <p>You have visited this page: <strong>$VISIT_COUNT times</strong></p>"
 echo "    </div>"
 echo "</body>"
-echo "</html>"
-

@@ -2,13 +2,17 @@
 # define HTTP_GET_CGI_HPP
 
 # include "HttpParser.hpp"
+#include "StreamBuffer.hpp"
 
 class HttpGetCGI : public HttpParser {
 	private:
-		pid_t		_cgi_pid;
-		int			_pipe_out[2];
+		pid_t			_cgi_pid;
+		int				_pipe_out[2];
+		StreamBuffer	_cgi_output;
 
-		void	executeCGI(void);
+		void	_executeCGI(void);
+		bool	_processCgiHeader();
+		void	_parseAndSetHeaders(char* dest, size_t size);
 
 	public:
 		HttpGetCGI(const HttpParser& parser);

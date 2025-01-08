@@ -1,5 +1,6 @@
 #include "../headers/HttpGetCGI.hpp"
 #include "../headers/WebServ.hpp"
+#include <sstream>
 #include <sys/epoll.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -19,7 +20,7 @@ HttpGetCGI::HttpGetCGI(const HttpParser& parser):
 	}
 	this->_state = handler_state_t(READY_TO_SEND, false);
 	this->_request.setEvents(EPOLLOUT);
-	this->executeCGI();
+	this->_executeCGI();
 }
 
 HttpGetCGI::~HttpGetCGI(void)
@@ -35,7 +36,7 @@ HttpGetCGI::~HttpGetCGI(void)
 	}
 }
 
-void HttpGetCGI::executeCGI(void) {
+void HttpGetCGI::_executeCGI(void) {
 	this->_cgi_pid = fork();
 	if (this->_cgi_pid == -1) {
 		this->_state = this->_request.error(500);
@@ -69,19 +70,73 @@ bool	HttpGetCGI::parse(const uint8_t* packet, const size_t packet_size)
 	return (this->HttpParser::parse(packet, packet_size));  // Nothing to parse for GET
 }
 
+void	HttpGetCGI::_parseAndSetHeaders(char* dest, size_t size)
+{
+	std::stringstream	buffer;
+	std::string			line, key, value;
+
+	buffer.write(dest, size);
+
+	while (std::getline(buffer, line)) {
+		if (line.empty())
+			continue;
+		size_t	colon_pos = line.find(':');
+		if (colon_pos == std::string::npos)
+			continue;
+
+		// separate the key and value, then triming them
+		key = line.substr(0, colon_pos);
+		string_trim(key);
+		value = line.substr(colon_pos + 1);
+		string_trim(value);
+		this->_response.setHeader(key, value);
+	}
+}
+
+bool HttpGetCGI::_processCgiHeader(void)
+{
+	char tmp_buffer[512];
+	ssize_t bytes;
+	char* dest = 0;
+
+	while((bytes = read(this->_pipe_out[0], tmp_buffer, sizeof(tmp_buffer))) > 0) {
+		this->_cgi_output.write(tmp_buffer, bytes);
+	}
+
+	bytes = this->_cgi_output.consume_until(
+		(void **)&dest,
+		(char*) HttpRequest::END_SEQUENCE,
+		sizeof(HttpRequest::END_SEQUENCE));
+
+	if (bytes == -1) {
+		delete [] dest;
+		return (error(ERR_BUFF_CONSUME, true), this->_state = this->_response.error(500), false);
+	}
+
+	DEBUG("number of bytes consume: " << bytes);
+	if (bytes > 0)
+		this->_parseAndSetHeaders(dest, bytes);
+	if (dest)
+		delete [] dest;
+	return (true);
+}
+
 ssize_t	HttpGetCGI::write(uint8_t* io_buffer, const size_t buff_length)
 {
-	if (WIFEXITED(waitpid(this->_cgi_pid, NULL, WNOHANG)))
-		return (0);
+	int	status = 0;
+
+	waitpid(this->_cgi_pid, &status, WNOHANG);
+	if (WIFEXITED(status))
+		this->_processCgiHeader();
+	else return (0);
 
 	if (this->_state.flag != SENDING_BODY)
 		return (this->HttpParser::write(io_buffer, buff_length));
 
-	ssize_t bytes_read = read(this->_pipe_out[0],
-		const_cast<uint8_t*>(io_buffer), buff_length);
-
-	if (bytes_read <= 0)
+	ssize_t bytes = this->_cgi_output.consume(io_buffer, buff_length);
+	if (bytes == -1)
+		return (error(ERR_BUFF_CONSUME, true), this->_state = this->_response.error(500), -1);
+	else if (bytes == 0)
 		this->_state = handler_state_t(DONE, true);
-
-	return bytes_read;
+	return (bytes);
 }
