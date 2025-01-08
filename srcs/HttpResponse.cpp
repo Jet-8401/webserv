@@ -2,6 +2,8 @@
 #include "../headers/HttpRequest.hpp"
 #include "../headers/WebServ.hpp"
 #include <ios>
+#include <ctime>
+#include <sstream>
 #include <unistd.h>
 
 // Static variables
@@ -56,9 +58,21 @@ HttpResponse::~HttpResponse(void)
 
 handler_state_t	HttpResponse::buildHeaders()
 {
+	time_t raw_time;
+	struct tm* time_info;
+	char time_buffer[80];
+
 	DEBUG("Building headers");
 	this->_header_content << "HTTP/1.1 " << this->_status_code << ' '
 		<< HttpMessage::getStatusMessage(this->_status_code) << "\r\n";
+
+	// input date
+	std::time(&raw_time);
+	time_info = std::gmtime(&raw_time);
+	std::strftime(time_buffer, sizeof(time_buffer), "%a, %d %b %Y %H:%M:%S GMT", time_info);
+	this->_header_content << "Date: " << time_buffer << "\r\n";
+
+	// rest of headers
 	for (headers_t::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 		this->_header_content << it->first << ": " << it->second << "\r\n";
 	this->_header_content << "\r\n";

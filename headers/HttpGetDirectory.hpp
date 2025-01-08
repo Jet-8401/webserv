@@ -2,12 +2,14 @@
 # define HTTP_GET_DIRECTORY_HPP
 
 # include "HttpParser.hpp"
-#include <dirent.h>
+# include <dirent.h>
 
 class HttpGetDirectory : public HttpParser {
 	private:
-		bool	_headers_sent;
-		DIR*	_dir;
+		DIR*					_dir;
+		std::stringstream		_current_entry;
+
+		void					_createPage(void);
 
 	public:
 		HttpGetDirectory(const HttpParser& parser);

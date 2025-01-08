@@ -27,15 +27,16 @@ DONE:
 - change le write and send pour empêcher les SIGPIPE ✓
 - handle maximum connection per virtual servers ✓
 - alias does not work when no slash in front of the alias ✓
+- status code for protocol ✓
+- make host mandatory header ✓
+- include "Date" field in response headers ✓
+- check for better timeouts ✓
+- handle raw data in POST request ✓
 
 TODO:
 - check for safety reason the POST method
-- check for better timeouts
 - make warning or error when two servers have same server_name
 - faire marcher les cookies
 - checker les différents CGI
-
-- handle raw data in POST request
-- status code for protocol
 
 Note: for stoping the server clean, send a STOP request

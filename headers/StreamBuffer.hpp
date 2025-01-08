@@ -26,6 +26,7 @@ class StreamBuffer {
 		// Getter
 		const size_t&	size(void) const;
 		const size_t&	allocatedSize(void) const;
+		const size_t&	bytesPassedThrough(void) const;
 
 		// I/O opearations
 		ssize_t	write(const void* data, const size_t size);

@@ -176,9 +176,16 @@ bool	HttpRequest::_validateVersion(void)
 	if (this->_version.compare(0, 5, "HTTP/") != 0)
 		return (this->error(400), false);
 	sub = this->_version.substr(5);
-	if (sub == "0.9" || sub == "1.0" || sub == "1.1")
+	if (sub == "1.1" || sub == "1.0" || sub == "0.9")
 		return (true);
 	return (this->error(505), false);
+}
+
+bool	HttpRequest::_checkMandatoryHeaders(void) const
+{
+	if (this->_headers.find("Host") == this->_headers.end())
+		return (false);
+	return (true);
 }
 
 // Parse the request-line then all the headers, it also check for syntax.
@@ -215,6 +222,8 @@ handler_state_t	HttpRequest::parseHeaders(void)
 			return (this->error(400));
 		this->_headers.insert(std::pair<std::string, std::string>(key, value));
 	}
+	if (!this->_checkMandatoryHeaders())
+		return (this->error(400));
 	return (handler_state_t(VALIDATE_REQUEST, true));
 }
 
@@ -251,6 +260,35 @@ bool HttpRequest::_findFileRecursively(const std::string& basePath, const std::s
 	return false;
 }
 
+bool	HttpRequest::_resolveGetMethod(void)
+{
+	const std::vector<std::string>& indexes = this->_matching_location->getIndexes();
+	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it) {
+		std::string full_path = joinPath(this->_resolved_path, *it);
+		DEBUG(full_path);
+
+		// First try direct path
+		if (::stat(full_path.c_str(), &this->_path_stat) != -1) {
+			this->_resolved_path = full_path;
+			return (true);
+		}
+
+		// If index file not found in current directory and we have index directive,
+		// try searching recursively
+		if (!indexes.empty()) {
+			std::string found_path;
+			if (this->_findFileRecursively(this->_resolved_path, *it, found_path)) {
+				this->_resolved_path = found_path;
+				if (::stat(this->_resolved_path.c_str(), &this->_path_stat) != -1) {
+					return (true);
+				}
+			}
+		}
+		::memset(&this->_path_stat, 0, sizeof(this->_path_stat));
+	}
+	return (false);
+}
+
 // Resolve the path with alias, root, index, etc...
 bool HttpRequest::_resolveLocation(void)
 {
@@ -275,36 +313,17 @@ bool HttpRequest::_resolveLocation(void)
 	}
 
 	DEBUG(this->_resolved_path);
+	if (this->_method == "GET" && this->_resolveGetMethod())
+		return (true);
 
-	if (this->_method == "GET") {
-		const std::vector<std::string>& indexes = this->_matching_location->getIndexes();
-		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it) {
-			std::string full_path = joinPath(this->_resolved_path, *it);
-			DEBUG(full_path);
-
-			// First try direct path
-			if (::stat(full_path.c_str(), &this->_path_stat) != -1) {
-				this->_resolved_path = full_path;
-				return true;
-			}
-
-			// If index file not found in current directory and we have index directive,
-			// try searching recursively
-			if (!indexes.empty()) {
-				std::string found_path;
-				if (this->_findFileRecursively(this->_resolved_path, *it, found_path)) {
-					this->_resolved_path = found_path;
-					if (::stat(this->_resolved_path.c_str(), &this->_path_stat) != -1) {
-						return true;
-					}
-				}
-			}
-			::memset(&this->_path_stat, 0, sizeof(this->_path_stat));
-		}
-	}
-
+	// If the path dosen't exist and the method is POST we return true to say the the path can be resolved.
 	DEBUG("taking the final path");
-	return (::stat(this->_resolved_path.c_str(), &this->_path_stat) != -1);
+	if (::stat(this->_resolved_path.c_str(), &this->_path_stat) == -1) {
+		if (this->_method == "POST")
+			return (true);
+		return (false);
+	}
+	return (true);
 }
 
 // Check if the asked location is found and if mandatory options are ok.

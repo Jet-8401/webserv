@@ -3,8 +3,10 @@
 
 # include "HttpParser.hpp"
 # include "HttpRequest.hpp"
+#include <cstdio>
 # include <sstream>
 # include <string>
+#include <sys/types.h>
 
 // File uploading state
 
@@ -30,7 +32,13 @@ class HttpPost : public HttpParser {
 		HttpRequest::headers_t	_file_headers;
 		std::stringstream		_headers_content;
 
+		bool					_raw_data;
+		size_t					_max_bytes_through;
+		size_t					_bytes_passed_through;
+		size_t					_content_length;
 		std::string				_multipart_key;
+		uploading_state_t		(HttpPost::*_writeHandler)(const uint8_t* packet, const size_t packet_size);
+
 		std::string				_file_name;
 		std::string				_full_path;
 		int						_file_fd;
@@ -42,7 +50,8 @@ class HttpPost : public HttpParser {
 		uploading_state_t		_setupAndCheckHeader(void);
 		uploading_state_t		_checkFileHeaders(void);
 		uploading_state_t		_createFile(void);
-		uploading_state_t		_writeToFile(const uint8_t* packet, const size_t packet_size);
+		uploading_state_t		_writeFromMultipart(const uint8_t* packet, const size_t packet_size);
+		uploading_state_t		_writeFromRaw(const uint8_t* packet, const size_t packet_size);
 
 	public:
 		HttpPost(const HttpParser& src);

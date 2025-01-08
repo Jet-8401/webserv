@@ -61,8 +61,10 @@ class HttpRequest : public HttpMessage {
 		bool				_checkHeaderSyntax(const std::string& key, const std::string& value) const;
 		bool				_findFileRecursively(const std::string& basePath, const std::string& filename, std::string& foundPath) const;
 		bool				_findLocation(void);
+		bool				_resolveGetMethod(void);
 		bool				_resolveLocation(void);
 		bool				_validateVersion(void);
+		bool				_checkMandatoryHeaders(void) const;
 };
 
 #endif
