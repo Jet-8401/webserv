@@ -37,7 +37,8 @@ HttpCGI::HttpCGI(const HttpParser& parser):
 
 HttpCGI::~HttpCGI(void)
 {
-	this->_socket_referer.getEventWrapper().remove(this->_event);
+	if (this->_event)
+		this->_socket_referer.getEventWrapper().remove(this->_event);
 
 	int	ios[4] = { this->_in[0], this->_in[1], this->_out[0], this->_out[1] };
 	for (unsigned long i = 0; i < 4; i++)
