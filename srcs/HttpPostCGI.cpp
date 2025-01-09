@@ -26,7 +26,7 @@ HttpPostCGI::HttpPostCGI(const HttpParser& parser):
 	}
 
 	char			tmp_buffer[512];
-	StreamBuffer	body = this->_request.getBody();
+	StreamBuffer&	body = this->_request.getBody();
 	ssize_t			bytes;
 
 	while((bytes = body.consume(tmp_buffer, sizeof(tmp_buffer))) > 0) {
@@ -45,7 +45,7 @@ HttpPostCGI::HttpPostCGI(const HttpParser& parser):
 	// execute the CGI
 	this->executeCGI();
 
-	if (this->_request.getBody().size() == (size_t) std::atoi(length.c_str())) {
+	if (this->_request.getBody().bytesPassedThrough() == (size_t) std::atoi(length.c_str())) {
 		// we have the full body, we can send the executed CGI
 		this->_state = handler_state_t(READY_TO_SEND, true);
 		this->_request.setEvents(EPOLLOUT);
@@ -167,7 +167,7 @@ ssize_t HttpPostCGI::write(uint8_t* io_buffer, const size_t buff_len)
 {
 	int	status = 0;
 
-	waitpid(this->_cgi_pid, &status, WNOHANG);
+	::waitpid(this->_cgi_pid, &status, WNOHANG);
 	if (WIFEXITED(status))
 		this->_processCgiHeader();
 	else return (0);
