@@ -23,7 +23,8 @@ SRCS = $(addprefix ${SDIR}/, \
 	HttpGetCGI.cpp \
 	HttpPost.cpp \
 	HttpDelete.cpp \
-	HttpPostCGI.cpp)
+	HttpPostCGI.cpp \
+	HttpCGI.cpp)
 
 HDRS = $(addprefix ${HDIR}/, \
 	HttpRequest.hpp \

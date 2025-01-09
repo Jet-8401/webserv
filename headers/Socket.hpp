@@ -26,6 +26,7 @@ class Socket {
 		const std::string		getAddress(void) const;
 		const ServerConfig*		getConfig(const std::string& server_name) const;
 		const connections_t&	getConnections(void) const;
+		EventWrapper&			getEventWrapper(void);
 
 		// Functions
 		bool	addConfig(const ServerConfig* config);

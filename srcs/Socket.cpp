@@ -116,6 +116,11 @@ const Socket::connections_t&	Socket::getConnections(void) const
 	return (this->_connections);
 }
 
+EventWrapper&	Socket::getEventWrapper(void)
+{
+	return (this->_event_wrapper);
+}
+
 // Functions
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 

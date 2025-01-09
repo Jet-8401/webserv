@@ -126,6 +126,7 @@ void	Connection::onEvent(::uint32_t events)
 			DEBUG("Did not find any upgrades!");
 		}
 	}
+
 	if (this->handler && this->handler->getRequest().hasEventsChanged()) {
 		this->changeEvents(this->handler->getRequest().getEvents());
 	}

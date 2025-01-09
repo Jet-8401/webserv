@@ -6,7 +6,8 @@
 
 enum socket_type_e {
 	REQUEST,
-	CLIENT
+	CLIENT,
+	CGI_OUTPUT
 };
 
 typedef struct event_wrapper_s {

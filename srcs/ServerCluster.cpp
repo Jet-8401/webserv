@@ -1,5 +1,6 @@
 #include "../headers/ServerCluster.hpp"
 #include "../headers/WebServ.hpp"
+#include "../headers/HttpCGI.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdio>
@@ -425,6 +426,10 @@ void	ServerCluster::_handleEvent(struct epoll_event& event, const int index)
 		case CLIENT:
 			DEBUG("event[" << index << "]: client package");
 			static_cast<Connection*>(event_wrapper->casted_value)->onEvent(event.events);
+			break;
+		case CGI_OUTPUT:
+			DEBUG("event[" << index << "]: cgi_output");
+			static_cast<HttpCGI*>(event_wrapper->casted_value)->onDataOutput();
 			break;
 		default:
 			break;

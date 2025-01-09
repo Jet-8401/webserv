@@ -6,6 +6,7 @@
 #include "../headers/HttpGetCGI.hpp"
 #include "../headers/HttpPostCGI.hpp"
 #include "../headers/HttpDelete.hpp"
+#include "../headers/HttpCGI.hpp"
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
@@ -172,9 +173,6 @@ bool	HttpParser::parse(const uint8_t* packet, const size_t packet_len)
 				this->_state = this->_request.validateAndInitLocation();
 				break;
 			case NEED_UPGRADE:
-				// NEED_UPGRADE is the last state before giving the responsability to the upgraded class to handle
-				// the rest of the request because we its not mandatory to wait for a body depending on the method.
-				// Expl: If a POST request, its the its responsability to make the state.flag = READING_BODY in its constructor
 				this->_state = handler_state_t(READING_BODY, false);
 				this->_need_upgrade = true;
 				break;
@@ -279,10 +277,7 @@ HttpParser* HttpParser::upgrade(void)
     if (ext_pos != std::string::npos) {
         std::string extension(resolved_path, ext_pos);
         if (location->getCGIs().find(extension) != location->getCGIs().end()) {
-            if (method == "GET")
-                return new HttpGetCGI(*this);
-            else if (method == "POST")
-                return new HttpPostCGI(*this);
+        	return (new HttpCGI(*this));
         }
     }
 

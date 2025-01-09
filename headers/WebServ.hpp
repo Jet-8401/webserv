@@ -39,6 +39,7 @@ extern bool is_done;
 # define ERR_BUFF_WRITING "Error while writing in the stream buffer"
 # define ERR_BUFF_CONSUME "Error while consuming the stream buffer"
 # define ERR_FILE_DELETION "Impossible to delete file"
+# define ERR_PIPE_CREATE "Cannot create a pipe"
 
 # ifdef DEBUGGER
 
