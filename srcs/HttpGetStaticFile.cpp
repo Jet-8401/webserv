@@ -17,7 +17,7 @@ HttpGetStaticFile::HttpGetStaticFile(const HttpParser& parser):
 	this->_request.setEvents(EPOLLOUT);
 	this->_state = handler_state_t(READY_TO_SEND, true);
 
-	std::cout << "{" << resolved_path.c_str() << "}" << std::endl;
+	DEBUG("{" << resolved_path.c_str() << "}");
 	this->_file_fd = open(resolved_path.c_str(), O_RDONLY);
 	if (this->_file_fd == -1) {
 		std::cerr << "could not open file" << std::endl;

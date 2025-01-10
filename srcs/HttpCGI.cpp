@@ -126,7 +126,7 @@ bool	HttpCGI::_postPreamble(void)
 	// unbuffer all the body into the pipe
 	this->_bytes_passed_through = body.bytesPassedThrough();
 	while((bytes = body.consume(tmp_buffer, sizeof(tmp_buffer))) > 0) {
-		std::cout.write(tmp_buffer, bytes);
+		//std::cout.write(tmp_buffer, bytes);
 		if (::write(this->_in[1], tmp_buffer, bytes) == -1)
 			return (this->_state = this->_response.error(500), false);
 	}

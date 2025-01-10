@@ -23,15 +23,14 @@
     <div class="container">
         <h1>Server Time and Location</h1>
 
-        <?php
-        // Get current server time
-        date_default_timezone_set("UTC+1"); // Set timezone to UTC
-        $current_time = date("Y-m-d H:i:s");
-        ?>
+        <?php $current_time = date("Y-m-d H:i:s"); ?>
 
-        <p><strong>Current Server Time:</strong> <?php echo htmlspecialchars(
-        	$current_time
-        ); ?></p>
+        <p>
+        	<strong>
+        		Current Server Time:
+        	</strong>
+        	<?php echo htmlspecialchars($current_time); ?>
+        </p>
     </div>
 </body>
 </html>

@@ -30,8 +30,7 @@ HttpPostCGI::HttpPostCGI(const HttpParser& parser):
 	ssize_t			bytes;
 
 	while((bytes = body.consume(tmp_buffer, sizeof(tmp_buffer))) > 0) {
-		DEBUG("AODFKGOASJGAOSJG");
-		std::cout.write(tmp_buffer, bytes);
+		// std::cout.write(tmp_buffer, bytes);
 		::write(this->_in[1], tmp_buffer, bytes);
 	}
 

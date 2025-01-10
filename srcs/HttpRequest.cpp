@@ -138,9 +138,9 @@ handler_state_t	HttpRequest::bufferHeaders(const uint8_t* packet, size_t packet_
 	// And check if there is a body and it is inside the given packet, write it to the buffer body.
 	this->_end_header_index = (reinterpret_cast<size_t>(addr) - reinterpret_cast<size_t>(buffer)) +
 		sizeof(END_SEQUENCE);
-	std::cout << "end header index: " << this->_end_header_index << std::endl;
-	std::cout << "buffer size: " << this->_header_buff.size() << std::endl;
-	std::cout << (char*) buffer;
+	DEBUG("end header index: " << this->_end_header_index);
+	DEBUG("buffer size: " << this->_header_buff.size());
+	DEBUG((char*) buffer);
 	if (this->_end_header_index != this->_header_buff.size()) {
 		this->_body.write(buffer + this->_end_header_index, this->_header_buff.size() - this->_end_header_index);
 	}

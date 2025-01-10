@@ -147,7 +147,7 @@ int ServerCluster::importConfig(const std::string& config_path)
 	std::list<Socket>::iterator	it;
 
 	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++) {
-		std::cout << it->getIPV4() << ':' << it->getPort() << std::endl;
+		DEBUG(it->getIPV4() << ':' << it->getPort());
 	}
 	return (0);
 }
@@ -409,6 +409,7 @@ void	ServerCluster::_resolveEvents(struct epoll_event incoming_events[MAX_EPOLL_
 
 void	ServerCluster::_handleEvent(struct epoll_event& event, const int index)
 {
+	(void)index;
 	event_wrapper_t*			event_wrapper;
 
 	event_wrapper = static_cast<event_wrapper_t*>(event.data.ptr);

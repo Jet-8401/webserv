@@ -115,7 +115,7 @@ int Location::setRoot(const std::string& value)
 		{
 			if (strncmp(*env, "HOME=", 5) == 0) {
 				_root = (*env + 5) + value.substr(1);
-				std::cout << "root :" << _root << std::endl;
+				DEBUG("root :" << _root);
 				return (0);
 			}
 		}
