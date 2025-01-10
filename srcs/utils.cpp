@@ -53,6 +53,33 @@ std::string	joinPath(const std::string& path1, const std::string& path2)
 	}
 }
 
+std::string sanitizePath(const std::string& path) {
+	std::string result;
+	std::vector<std::string> components;
+	std::stringstream ss(path);
+	std::string item;
+
+	// Split path into components
+	while (std::getline(ss, item, '/')) {
+		if (item == "." || item.empty()) {
+			continue;
+		}
+		if (item == "..") {
+			if (!components.empty()) {
+				components.pop_back();
+			}
+			continue;
+		}
+		components.push_back(item);
+	}
+
+	// Rebuild path
+	for (std::vector<std::string>::const_iterator it = components.begin(); it != components.end(); ++it)
+		result += "/" + *it;
+
+	return result.empty() ? "/" : result;
+}
+
 #define NON_DESIRABLES_STR " \t\r\n"
 
 void	string_trim(std::string& str)

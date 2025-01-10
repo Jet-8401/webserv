@@ -200,6 +200,8 @@ handler_state_t	HttpRequest::parseHeaders(void)
 	parser >> this->_path;
 	parser >> this->_version;
 
+	this->_path = sanitizePath(this->_path);
+
 	if (!this->_validateVersion())
 		return (this->error(this->_status_code));
 

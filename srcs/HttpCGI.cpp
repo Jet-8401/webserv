@@ -139,7 +139,7 @@ bool	HttpCGI::_postPreamble(void)
 
 bool	HttpCGI::_executeCGI(void)
 {
-	if (HttpCGI::_child_procs >= 1) {
+	if (HttpCGI::_child_procs >= 20) {
 		this->_state = this->_request.error(503);
 		return (false);
 	}

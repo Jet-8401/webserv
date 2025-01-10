@@ -118,7 +118,7 @@ bool	HttpParser::_do_custom_error(void)
 		}
 
 		this->_error_page_path = joinPath(location->getRoot(), *err_page->second);
-		DEBUG("error page paht: " << this->_error_page_path);
+		DEBUG("error page path: " << this->_error_page_path);
 		if (::stat(this->_error_page_path.c_str(), &file_stats) == -1) {
 			error(ERR_STAT, true);
 			return (false);
