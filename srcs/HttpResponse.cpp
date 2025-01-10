@@ -86,6 +86,8 @@ handler_state_t	HttpResponse::sendHeaders(uint8_t* io_buffer, const size_t buff_
 
 	if (this->_header_content.eof()) {
 		bytes_written = 0;
+		if (this->isError())
+			return (handler_state_t(SENDING_ERROR_FILE, true));
 		return (handler_state_t(SENDING_BODY, false));
 	}
 

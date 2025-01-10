@@ -74,11 +74,8 @@ ssize_t	Connection::onInEvent(uint8_t* io_buffer, size_t buff_len)
 	bytes = ::recv(this->_socket, io_buffer, buff_len, MSG_DONTWAIT);
 	if (bytes == -1) {
 		error(ERR_ACCEPT_REQUEST, true);
-	} else if (bytes == 0) {
-		this->_socket_referer.deleteConnection(this);
+	} else if (bytes == 0 || !this->handler->parse(io_buffer, bytes)) {
 		return (-1);
-	} else {
-		this->handler->parse(io_buffer, bytes);
 	}
 	return (bytes);
 }
@@ -87,13 +84,10 @@ ssize_t	Connection::onOutEvent(uint8_t* io_buffer, size_t buff_len)
 {
 	ssize_t bytes;
 
-	DEBUG("Connection EPOLLOUT event");
 	bytes = this->handler->write(io_buffer, buff_len);
 	DEBUG("Outgoing data (" << bytes << " bytes)");
 
-	if (bytes == -1) {
-		this->_socket_referer.deleteConnection(this);
-	} else if (bytes > 0) {
+	if (bytes > 0) {
 		if (::send(this->_socket, io_buffer, bytes, MSG_NOSIGNAL) == -1)
 			return (error(ERR_SOCKET_WRITE, true), -1);
 	}
@@ -109,11 +103,15 @@ void	Connection::onEvent(::uint32_t events)
 		return;
 	}
 	if (events & EPOLLIN)
-		if (this->onInEvent(io_buffer, sizeof(io_buffer)) == -1)
+		if (this->onInEvent(io_buffer, sizeof(io_buffer)) == -1) {
+			this->_socket_referer.deleteConnection(this);
 			return;
+		}
 	if (events & EPOLLOUT)
-		if (this->onOutEvent(io_buffer, sizeof(io_buffer)) == -1)
+		if (this->onOutEvent(io_buffer, sizeof(io_buffer)) == -1) {
+			this->_socket_referer.deleteConnection(this);
 			return;
+		}
 
 	if (this->handler->checkUpgrade()) {
 		DEBUG("trying to upgrade");
