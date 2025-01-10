@@ -37,7 +37,7 @@ class HttpCGI : public HttpParser {
 		virtual bool	parse(const uint8_t* packet, const size_t packet_size);
 		virtual ssize_t write(uint8_t* io_buffer, const size_t buff_len);
 
-		void	onDataOutput(void);
+		void	onDataOutput(::uint32_t events);
 };
 
 #endif

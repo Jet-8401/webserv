@@ -429,7 +429,7 @@ void	ServerCluster::_handleEvent(struct epoll_event& event, const int index)
 			break;
 		case CGI_OUTPUT:
 			DEBUG("event[" << index << "]: cgi_output");
-			static_cast<HttpCGI*>(event_wrapper->casted_value)->onDataOutput();
+			static_cast<HttpCGI*>(event_wrapper->casted_value)->onDataOutput(event.events);
 			break;
 		default:
 			break;

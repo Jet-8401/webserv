@@ -34,7 +34,7 @@ HttpPost::HttpPost(const HttpParser& src):
 	size_t			pos;
 
 	DEBUG("Creating a HttpPost object!");
-	this->_setTimeoutValue(600);
+	this->_setTimeoutValue(250);
 
 	content_type = this->_request.getHeader("Content-Type");
 	if (content_type.empty()) {
@@ -67,7 +67,12 @@ HttpPost::HttpPost(const HttpParser& src):
 			return;
 		}
 
-		this->_content_length = std::atoi(content_length_str.c_str());
+		int temp_length = std::atoi(content_length_str.c_str());
+		if (temp_length < 0) {
+			this->_state = this->_request.error(400);
+			return;
+		}
+		this->_content_length = temp_length;
 		this->_max_bytes_through = location->getClientMaxBodySize();
 	}
 

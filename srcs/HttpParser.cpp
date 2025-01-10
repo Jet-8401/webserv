@@ -214,7 +214,7 @@ ssize_t	HttpParser::write(uint8_t* io_buffer, const size_t buff_len)
 			case SENDING_HEADERS:
 				this->_state = this->_response.sendHeaders(io_buffer, buff_len, bytes_written);
 				break;
-			case SENDING_BODY:
+			case SENDING_ERROR_FILE:
 				this->_state = this->_sendingErrorPage(io_buffer, buff_len, bytes_written);
 				break;
 			case ERROR:

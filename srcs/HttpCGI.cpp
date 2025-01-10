@@ -42,6 +42,8 @@ HttpCGI::HttpCGI(const HttpParser& parser):
 
 HttpCGI::~HttpCGI(void)
 {
+	DEBUG("HttpCGI Destructor");
+
 	if (this->_event)
 		this->_socket_referer.getEventWrapper().remove(this->_event);
 
@@ -53,12 +55,11 @@ HttpCGI::~HttpCGI(void)
 	if (this->_cgi_pid != -1) {
 		int status = 0;
 
-		::waitpid(this->_cgi_pid, &status, WNOHANG);
+		::waitpid(this->_cgi_pid, &status, 0);
 		if (!WIFEXITED(status))
 			::kill(this->_cgi_pid, SIGKILL);
+		HttpCGI::_child_procs--;
 	}
-
-	HttpCGI::_child_procs--;
 }
 
 bool	HttpCGI::_setupPipes(void)
@@ -95,8 +96,11 @@ bool	HttpCGI::_setupPipes(void)
 	this->_event->fd = this->_out[0];
 	ep_event.events = EPOLLIN | EPOLLET;
 	ep_event.data.ptr = static_cast<void*>( this->_event );
-	if (::epoll_ctl(this->_socket_referer.getEpollFD(), EPOLL_CTL_ADD, this->_event->fd, &ep_event) == -1)
-		return (error(ERR_EPOLL_ADD, true), -1);
+	if (::epoll_ctl(this->_socket_referer.getEpollFD(), EPOLL_CTL_ADD, this->_event->fd, &ep_event) == -1) {
+		error(ERR_EPOLL_ADD, true);
+		this->_state = this->_response.error(500);
+		return (false);
+	}
 	return (true);
 }
 
@@ -139,7 +143,7 @@ bool	HttpCGI::_postPreamble(void)
 
 bool	HttpCGI::_executeCGI(void)
 {
-	if (HttpCGI::_child_procs >= 1) {
+	if (HttpCGI::_child_procs >= 20) {
 		this->_state = this->_request.error(503);
 		return (false);
 	}
@@ -160,10 +164,10 @@ bool	HttpCGI::_executeCGI(void)
 		char** env = prepare_env(*this, this->_socket_referer);
 		// replacing stdout with the write end of output and stdin with read end of input
 		if (this->_in[0] != -1)
-			::dup2(this->_in[0], 0);
+			::dup2(this->_in[0], STDIN_FILENO);
 		else
 			::close(0);
-		::dup2(this->_out[1], 1);
+		::dup2(this->_out[1], STDOUT_FILENO);
 		// closing the unused file descriptors
 		if (this->_in[1] != -1)
 			::close(this->_in[1]);
@@ -171,15 +175,16 @@ bool	HttpCGI::_executeCGI(void)
 
 		::execve(args[0], args, env);
 		free_env(env);
-		::exit(1);
+		std::exit(1);
 	}
 
 	HttpCGI::_child_procs++;
 	// closing read end of input and write end of output into the parent
-	if (this->_in[0] != -1)
+	if (this->_in[0] != -1) {
 		::close(this->_in[0]);
+		this->_in[0] = -1;
+	}
 	::close(this->_out[1]);
-	this->_in[0] = -1;
 	this->_out[1] = -1;
 	return (true);
 }
@@ -250,6 +255,19 @@ bool HttpCGI::_processCgiHeader(void)
 
 ssize_t HttpCGI::write(uint8_t* io_buffer, const size_t buff_len)
 {
+	if (this->_cgi_pid == -1 && !this->_response.isError()) {
+		this->_state = this->_response.error(500);
+	}
+
+	if (this->_response.isError() || this->_request.isError())
+		return (this->HttpParser::write(io_buffer, buff_len));
+
+	int status = 0;
+
+	::waitpid(this->_cgi_pid, &status, 0);
+	if (!WIFEXITED(status)) {
+		return (0);
+	}
 	if (!this->_cgi_eof)
 		return (0);
 
@@ -264,24 +282,34 @@ ssize_t HttpCGI::write(uint8_t* io_buffer, const size_t buff_len)
 	return (bytes);
 }
 
-// read data from the output of the CGI
-void	HttpCGI::onDataOutput(void)
+void	HttpCGI::onDataOutput(::uint32_t events)
 {
 	uint8_t	io_buffer[PACKETS_SIZE];
+	ssize_t	bytes = 0;
 
-	ssize_t	bytes = ::read(this->_out[0], io_buffer, sizeof(io_buffer));
+	if (events & EPOLLIN) {
+		bytes = ::read(this->_out[0], io_buffer, sizeof(io_buffer));
+		if (bytes == 0 && ::epoll_ctl(this->_socket_referer.getEpollFD(), EPOLL_CTL_DEL, this->_out[0], 0) == -1)
+			error(ERR_EPOLL_DEL, true);
+		else if (bytes > 0)
+			this->_cgi_output.write(io_buffer, bytes);
+	}
+
+	if (events & EPOLLHUP) {
+		while ((bytes = ::read(this->_out[0], io_buffer, sizeof(io_buffer))) > 0) {
+			this->_cgi_output.write(io_buffer, bytes);
+		}
+	}
+
 	if (bytes == -1) {
 		error("Cannot read through pipe", true);
 		this->_state = this->_response.error(500);
 		return;
 	} else if (bytes == 0) {
-		DEBUG("EOF of cgi");
 		this->_cgi_eof = true;
-		if (::epoll_ctl(this->_socket_referer.getEpollFD(), EPOLL_CTL_DEL, this->_out[0], 0) == -1)
-			error(ERR_EPOLL_DEL, true);
+		::close(this->_out[0]);
+		this->_out[0] = -1;
 	}
-
-	this->_cgi_output.write(io_buffer, bytes);
 
 	// try to parse headers
 	if (!this->_are_headers_processed && this->_processCgiHeader()) {
