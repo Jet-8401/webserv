@@ -1,6 +1,8 @@
 #include "../headers/HttpCGI.hpp"
 #include "../headers/WebServ.hpp"
 #include "../headers/Socket.hpp"
+#include <csignal>
+#include <cstddef>
 #include <cstdlib>
 #include <sys/epoll.h>
 #include <sys/types.h>
@@ -12,12 +14,15 @@
 
 extern char** environ;
 
+size_t HttpCGI::_child_procs = 0;
+
 HttpCGI::HttpCGI(const HttpParser& parser):
 	HttpParser(parser),
 	_is_post(this->_request.getMethod() == "POST"),
 	_bytes_passed_through(0),
 	_cgi_pid(-1),
 	_are_headers_processed(false),
+	_cgi_eof(false),
 	_event(0)
 {
 	if (!this->_setupPipes())
@@ -46,8 +51,14 @@ HttpCGI::~HttpCGI(void)
 			::close(ios[i]);
 
 	if (this->_cgi_pid != -1) {
-		::kill(this->_cgi_pid, SIGTERM);
+		int status = 0;
+
+		::waitpid(this->_cgi_pid, &status, WNOHANG);
+		if (!WIFEXITED(status))
+			::kill(this->_cgi_pid, SIGKILL);
 	}
+
+	HttpCGI::_child_procs--;
 }
 
 bool	HttpCGI::_setupPipes(void)
@@ -128,13 +139,18 @@ bool	HttpCGI::_postPreamble(void)
 
 bool	HttpCGI::_executeCGI(void)
 {
+	if (HttpCGI::_child_procs >= 1) {
+		this->_state = this->_request.error(503);
+		return (false);
+	}
+
 	this->_cgi_pid = ::fork();
 	if (this->_cgi_pid == -1) {
 		this->_state = this->_request.error(500);
 		return (false);
 	}
 
-	if (this->_cgi_pid == 0) {  // Child process
+	if (this->_cgi_pid == 0) { // Child process
 		std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
 		char* const args[] = {
 			const_cast<char*>(this->_request.getMatchingLocation()->getCGIs().find(extension)->second.c_str()),
@@ -158,6 +174,7 @@ bool	HttpCGI::_executeCGI(void)
 		::exit(1);
 	}
 
+	HttpCGI::_child_procs++;
 	// closing read end of input and write end of output into the parent
 	if (this->_in[0] != -1)
 		::close(this->_in[0]);
@@ -220,11 +237,12 @@ bool HttpCGI::_processCgiHeader(void)
 	if (bytes < 0) {
 		delete [] dest;
 		return (error(ERR_BUFF_CONSUME, true), this->_state = this->_response.error(500), false);
+	} else if (bytes == 0) {
+		return (false);
 	}
 
 	DEBUG("number of bytes consume: " << bytes);
-	if (bytes > 0)
-		this->_parseAndSetHeaders(dest, bytes);
+	this->_parseAndSetHeaders(dest, bytes);
 	if (dest)
 		delete [] dest;
 	return (true);
@@ -232,12 +250,8 @@ bool HttpCGI::_processCgiHeader(void)
 
 ssize_t HttpCGI::write(uint8_t* io_buffer, const size_t buff_len)
 {
-	int	status = 0;
-
-	::waitpid(this->_cgi_pid, &status, WNOHANG);
-	if (!WIFEXITED(status) || !this->_are_headers_processed)
+	if (!this->_cgi_eof)
 		return (0);
-	DEBUG("EXITED");
 
 	if (this->_state.flag != SENDING_BODY)
 		return (this->HttpParser::write(io_buffer, buff_len));
@@ -262,17 +276,15 @@ void	HttpCGI::onDataOutput(void)
 		return;
 	} else if (bytes == 0) {
 		DEBUG("EOF of cgi");
+		this->_cgi_eof = true;
 		if (::epoll_ctl(this->_socket_referer.getEpollFD(), EPOLL_CTL_DEL, this->_out[0], 0) == -1)
 			error(ERR_EPOLL_DEL, true);
 	}
 
-	DEBUG("WIRTE FROM ON DATA OUTPUT");
-	std::cout.write((char*) io_buffer, bytes);
 	this->_cgi_output.write(io_buffer, bytes);
 
 	// try to parse headers
 	if (!this->_are_headers_processed && this->_processCgiHeader()) {
-		DEBUG("HEADERS PROCESSED");
 		this->_are_headers_processed = true;
 	}
 }

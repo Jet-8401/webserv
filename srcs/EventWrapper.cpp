@@ -33,4 +33,5 @@ void	EventWrapper::remove(event_wrapper_t* event)
 {
 	this->_events.remove(event);
 	delete event;
+	event = 0;
 }

@@ -7,6 +7,8 @@
 
 class HttpCGI : public HttpParser {
 	private:
+		static size_t		_child_procs;
+
 		bool				_is_post;
 		size_t				_bytes_passed_through;
 		size_t				_max_bytes_through;
@@ -18,6 +20,7 @@ class HttpCGI : public HttpParser {
 		StreamBuffer		_cgi_output;
 
 		bool				_are_headers_processed;
+		bool				_cgi_eof;
 
 		event_wrapper_t*	_event;
 
