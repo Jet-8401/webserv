@@ -29,6 +29,8 @@ class HttpCGI : public HttpParser {
 		bool	_executeCGI(void);
 		bool	_processCgiHeader();
 		void	_parseAndSetHeaders(char* dest, size_t size);
+		bool	_setupCGIIORedirections(void);
+		char**	_prepCGIEnvironementVariables(void);
 
 	public:
 		HttpCGI(const HttpParser& parser);

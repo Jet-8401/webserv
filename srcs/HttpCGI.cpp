@@ -16,6 +16,9 @@ extern char** environ;
 
 size_t HttpCGI::_child_procs = 0;
 
+// Constructors / Desctructors
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
 HttpCGI::HttpCGI(const HttpParser& parser):
 	HttpParser(parser),
 	_is_post(this->_request.getMethod() == "POST"),
@@ -61,6 +64,9 @@ HttpCGI::~HttpCGI(void)
 		HttpCGI::_child_procs--;
 	}
 }
+
+// Function members
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 bool	HttpCGI::_setupPipes(void)
 {
@@ -161,17 +167,9 @@ bool	HttpCGI::_executeCGI(void)
 			const_cast<char*>(this->_request.getResolvedPath().c_str()),
 			NULL
 		};
-		char** env = prepare_env(*this, this->_socket_referer);
-		// replacing stdout with the write end of output and stdin with read end of input
-		if (this->_in[0] != -1)
-			::dup2(this->_in[0], STDIN_FILENO);
-		else
-			::close(0);
-		::dup2(this->_out[1], STDOUT_FILENO);
-		// closing the unused file descriptors
-		if (this->_in[1] != -1)
-			::close(this->_in[1]);
-		::close(this->_out[0]);
+		char** env = this->_prepCGIEnvironementVariables();
+
+		this->_setupCGIIORedirections();
 
 		if (::execve(args[0], args, env) == -1)
 			error("Error while executing CGI", true);
@@ -188,46 +186,6 @@ bool	HttpCGI::_executeCGI(void)
 	::close(this->_out[1]);
 	this->_out[1] = -1;
 	return (true);
-}
-
-bool	HttpCGI::parse(const uint8_t* packet, const size_t packet_size)
-{
-	if (this->_state.flag != READING_BODY)
-		return (this->HttpParser::parse(packet, packet_size));
-
-	if (this->_bytes_passed_through + packet_size > this->_max_bytes_through) {
-		return (this->_state = this->_request.error(413), false);
-	}
-
-	if (::write(this->_in[1], packet, packet_size) == -1) {
-		this->_state = this->_request.error(500);
-		return false;
-	}
-	this->_bytes_passed_through += packet_size;
-	return (true);
-}
-
-void	HttpCGI::_parseAndSetHeaders(char* dest, size_t size)
-{
-	std::stringstream	buffer;
-	std::string			line, key, value;
-
-	buffer.write(dest, size);
-
-	while (std::getline(buffer, line)) {
-		if (line.empty())
-			continue;
-		size_t	colon_pos = line.find(':');
-		if (colon_pos == std::string::npos)
-			continue;
-
-		// separate the key and value, then triming them
-		key = line.substr(0, colon_pos);
-		string_trim(key);
-		value = line.substr(colon_pos + 1);
-		string_trim(value);
-		this->_response.setHeader(key, value);
-	}
 }
 
 bool HttpCGI::_processCgiHeader(void)
@@ -254,6 +212,121 @@ bool HttpCGI::_processCgiHeader(void)
 	return (true);
 }
 
+void	HttpCGI::_parseAndSetHeaders(char* dest, size_t size)
+{
+	std::stringstream	buffer;
+	std::string			line, key, value;
+
+	buffer.write(dest, size);
+
+	while (std::getline(buffer, line)) {
+		if (line.empty())
+			continue;
+		size_t	colon_pos = line.find(':');
+		if (colon_pos == std::string::npos)
+			continue;
+
+		// separate the key and value, then triming them
+		key = line.substr(0, colon_pos);
+		string_trim(key);
+		value = line.substr(colon_pos + 1);
+		string_trim(value);
+		this->_response.setHeader(key, value);
+	}
+}
+
+bool	HttpCGI::_setupCGIIORedirections(void)
+{
+	// replacing stdout with the write end of output and stdin with read end of input
+	if (this->_in[0] != -1)
+		::dup2(this->_in[0], STDIN_FILENO);
+	else
+		::close(0);
+	::dup2(this->_out[1], STDOUT_FILENO);
+	// closing the unused file descriptors
+	if (this->_in[1] != -1)
+		::close(this->_in[1]);
+	::close(this->_out[0]);
+	return (true);
+}
+
+char**	HttpCGI::_prepCGIEnvironementVariables(void)
+{
+	std::map<std::string, std::string>	env;
+	const HttpRequest&					req = this->_request;
+	const std::string&					path = req.getPath();
+	size_t								query_pos = path.find('?');
+
+	env["GATEWAY_INTERFACE"] = "CGI/1.1";
+	env["SERVER_PROTOCOL"] = "HTTP/1.1";
+	env["REQUEST_METHOD"] = req.getMethod();
+	env["SCRIPT_NAME"] = req.getConfigLocationStr();
+	env["SCRIPT_FILENAME"] = req.getResolvedPath();
+	env["SERVER_SOFTWARE"] = SERVER_VERSION;
+	env["SERVER_NAME"] = this->_socket_referer.getIPV4();
+	env["SERVER_PORT"] = unsafe_itoa(this->_socket_referer.getPort());
+	env["QUERY_STRING"] = (query_pos != std::string::npos) ? path.substr(query_pos + 1) : "";
+	env["PATH_INFO"] = (query_pos != std::string::npos) ? path.substr(0, query_pos) : path;
+
+	std::string content_type = req.getHeader("Content-Type");
+	std::string content_length = req.getHeader("Content-Length");
+	std::string cookie = req.getHeader("Cookie");
+	DEBUG("Raw Cookie header: [" << cookie << "]");
+
+	if (!content_type.empty())
+		env["CONTENT_TYPE"] = content_type;
+	if (!content_length.empty())
+		env["CONTENT_LENGTH"] = content_length;
+	if (!cookie.empty()) {
+		std::string combined;
+		HttpMessage::headers_range_t range = req.getHeaders("Cookie");
+		DEBUG("Processing multiple cookies:");
+		for (HttpMessage::headers_t::const_iterator it = range.first; it != range.second; ++it) {
+			DEBUG("  Cookie entry: [" << it->second << "]");
+			if (!combined.empty())
+				combined += "; ";
+			combined += it->second;
+		}
+		env["HTTP_COOKIE"] = combined;
+		DEBUG("Final HTTP_COOKIE env: [" << combined << "]");
+	}
+
+	std::string extension(::strrchr(req.getResolvedPath().c_str(), '.'));
+	if (extension == ".php") {
+		env["REDIRECT_STATUS"] = "200";
+		env["PHP_SELF"] = req.getConfigLocationStr();
+	}
+	else if (extension == ".py") {
+		env["PYTHONPATH"] = ".:/usr/local/lib/python";
+		env["PYTHONIOENCODING"] = "utf-8";
+	}
+
+	char** envp = new char*[env.size() + 1];
+	size_t i = 0;
+	for (std::map<std::string, std::string>::const_iterator it = env.begin(); it != env.end(); ++it)
+		envp[i++] = ::strdup((it->first + "=" + it->second).c_str());
+	envp[i] = NULL;
+
+	return envp;
+}
+
+bool	HttpCGI::parse(const uint8_t* packet, const size_t packet_size)
+{
+	if (this->_state.flag != READING_BODY)
+		return (this->HttpParser::parse(packet, packet_size));
+
+	if (this->_bytes_passed_through + packet_size > this->_max_bytes_through) {
+		return (this->_state = this->_request.error(413), false);
+	}
+
+	if (::write(this->_in[1], packet, packet_size) == -1) {
+		this->_state = this->_request.error(500);
+		return false;
+	}
+	this->_bytes_passed_through += packet_size;
+	return (true);
+}
+
 ssize_t HttpCGI::write(uint8_t* io_buffer, const size_t buff_len)
 {
 	if (this->_cgi_pid == -1 && !this->_response.isError()) {
@@ -263,8 +336,7 @@ ssize_t HttpCGI::write(uint8_t* io_buffer, const size_t buff_len)
 	if (this->_response.isError() || this->_request.isError())
 		return (this->HttpParser::write(io_buffer, buff_len));
 
-	int status = 0, exit_status = 0;
-
+	int status = 0, exit_status;
 	::waitpid(this->_cgi_pid, &status, WNOHANG);
 	if (!WIFEXITED(status)) {
 		return (0);

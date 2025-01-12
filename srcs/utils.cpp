@@ -74,65 +74,6 @@ int	makeNonBlocking(int fd)
 	return (::fcntl(fd, F_SETFL, flags | O_NONBLOCK));
 }
 
-char** prepare_env(HttpParser& parser, const Socket& socket) {
-	std::map<std::string, std::string> env;
-	const HttpRequest& req = parser.getRequest();
-	const std::string& path = req.getPath();
-	size_t query_pos = path.find('?');
-
-	env["GATEWAY_INTERFACE"] = "CGI/1.1";
-	env["SERVER_PROTOCOL"] = "HTTP/1.1";
-	env["REQUEST_METHOD"] = req.getMethod();
-	env["SCRIPT_NAME"] = req.getConfigLocationStr();
-	env["SCRIPT_FILENAME"] = req.getResolvedPath();
-	env["SERVER_SOFTWARE"] = SERVER_VERSION;
-	env["SERVER_NAME"] = socket.getIPV4();
-	env["SERVER_PORT"] = unsafe_itoa(socket.getPort());
-	env["QUERY_STRING"] = (query_pos != std::string::npos) ? path.substr(query_pos + 1) : "";
-	env["PATH_INFO"] = (query_pos != std::string::npos) ? path.substr(0, query_pos) : path;
-
-	std::string content_type = req.getHeader("Content-Type");
-	std::string content_length = req.getHeader("Content-Length");
-	std::string cookie = req.getHeader("Cookie");
-	DEBUG("Raw Cookie header: [" << cookie << "]");
-
-	if (!content_type.empty())
-		env["CONTENT_TYPE"] = content_type;
-	if (!content_length.empty())
-		env["CONTENT_LENGTH"] = content_length;
-	if (!cookie.empty()) {
-		std::string combined;
-		HttpMessage::headers_range_t range = req.getHeaders("Cookie");
-		DEBUG("Processing multiple cookies:");
-		for (HttpMessage::headers_t::const_iterator it = range.first; it != range.second; ++it) {
-			DEBUG("  Cookie entry: [" << it->second << "]");
-			if (!combined.empty())
-				combined += "; ";
-			combined += it->second;
-		}
-		env["HTTP_COOKIE"] = combined;
-		DEBUG("Final HTTP_COOKIE env: [" << combined << "]");
-	}
-
-	std::string extension(::strrchr(req.getResolvedPath().c_str(), '.'));
-	if (extension == ".php") {
-		env["REDIRECT_STATUS"] = "200";
-		env["PHP_SELF"] = req.getConfigLocationStr();
-	}
-	else if (extension == ".py") {
-		env["PYTHONPATH"] = ".:/usr/local/lib/python";
-		env["PYTHONIOENCODING"] = "utf-8";
-	}
-
-	char** envp = new char*[env.size() + 1];
-	size_t i = 0;
-	for (std::map<std::string, std::string>::const_iterator it = env.begin(); it != env.end(); ++it)
-		envp[i++] = ::strdup((it->first + "=" + it->second).c_str());
-	envp[i] = NULL;
-
-	return envp;
-}
-
 void free_env(char** env) {
 	if (!env) return;
 	for (size_t i = 0; env[i]; i++)

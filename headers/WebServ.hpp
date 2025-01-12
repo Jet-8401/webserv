@@ -66,6 +66,5 @@ std::string	joinPath(const std::string& path1, const std::string& path2);
 void		string_trim(std::string& str);
 int			makeNonBlocking(int fd);
 void		free_env(char** env);
-char**		prepare_env(HttpParser& parser, const Socket& socket);
 
 #endif
