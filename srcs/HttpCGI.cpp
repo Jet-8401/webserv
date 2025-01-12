@@ -173,7 +173,8 @@ bool	HttpCGI::_executeCGI(void)
 			::close(this->_in[1]);
 		::close(this->_out[0]);
 
-		::execve(args[0], args, env);
+		if (::execve(args[0], args, env) == -1)
+			error("Error while executing CGI", true);
 		free_env(env);
 		std::exit(1);
 	}
@@ -262,12 +263,20 @@ ssize_t HttpCGI::write(uint8_t* io_buffer, const size_t buff_len)
 	if (this->_response.isError() || this->_request.isError())
 		return (this->HttpParser::write(io_buffer, buff_len));
 
-	int status = 0;
+	int status = 0, exit_status = 0;
 
-	::waitpid(this->_cgi_pid, &status, 0);
+	::waitpid(this->_cgi_pid, &status, WNOHANG);
 	if (!WIFEXITED(status)) {
 		return (0);
 	}
+
+	exit_status = WEXITSTATUS(status);
+	if (exit_status != 0) {
+		DEBUG("CGI exited with error status of: " << exit_status);
+		this->_state = this->_response.error(500);
+		return (0);
+	}
+
 	if (!this->_cgi_eof)
 		return (0);
 
@@ -287,18 +296,14 @@ void	HttpCGI::onDataOutput(::uint32_t events)
 	uint8_t	io_buffer[PACKETS_SIZE];
 	ssize_t	bytes = 0;
 
-	if (events & EPOLLIN) {
-		bytes = ::read(this->_out[0], io_buffer, sizeof(io_buffer));
-		if (bytes == 0 && ::epoll_ctl(this->_socket_referer.getEpollFD(), EPOLL_CTL_DEL, this->_out[0], 0) == -1)
-			error(ERR_EPOLL_DEL, true);
-		else if (bytes > 0)
-			this->_cgi_output.write(io_buffer, bytes);
-	}
-
 	if (events & EPOLLHUP) {
 		while ((bytes = ::read(this->_out[0], io_buffer, sizeof(io_buffer))) > 0) {
 			this->_cgi_output.write(io_buffer, bytes);
 		}
+	} else if (events & EPOLLIN) {
+		bytes = ::read(this->_out[0], io_buffer, sizeof(io_buffer));
+		if (bytes > 0)
+			this->_cgi_output.write(io_buffer, bytes);
 	}
 
 	if (bytes == -1) {
@@ -306,6 +311,9 @@ void	HttpCGI::onDataOutput(::uint32_t events)
 		this->_state = this->_response.error(500);
 		return;
 	} else if (bytes == 0) {
+		if (::epoll_ctl(this->_socket_referer.getEpollFD(), EPOLL_CTL_DEL, this->_out[0], 0) == -1) {
+			error(ERR_EPOLL_DEL, true);
+		}
 		this->_cgi_eof = true;
 		::close(this->_out[0]);
 		this->_out[0] = -1;

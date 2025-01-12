@@ -20,23 +20,9 @@ SRCS = $(addprefix ${SDIR}/, \
 	StreamBuffer.cpp \
 	HttpGetStaticFile.cpp \
 	HttpGetDirectory.cpp \
-	HttpGetCGI.cpp \
 	HttpPost.cpp \
 	HttpDelete.cpp \
-	HttpPostCGI.cpp \
 	HttpCGI.cpp)
-
-HDRS = $(addprefix ${HDIR}/, \
-	HttpRequest.hpp \
-	HttpResponse.hpp \
-	Location.hpp \
-	ServerCluster.hpp \
-	ServerConfig.hpp \
-	EventWrapper.hpp \
-	WebServ.hpp \
-	HttpGetDirectory.hpp \
-	HttpGetCGI.hpp \
-	HttpPostCGI.hpp)
 
 TPLS =
 ODIR = objs
@@ -48,7 +34,7 @@ all: ${NAME}
 ${NAME}: ${OBJS}
 	c++ ${CXXFLAGS} $^ -o $@
 
-${ODIR}/%.o: ${SDIR}/%.cpp ${HDRS} ${TPLS} | ${ODIR}
+${ODIR}/%.o: ${SDIR}/%.cpp ${TPLS} | ${ODIR}
 	c++ ${DEFINES} ${CXXFLAG} -I${HDIR} -c $< -o $@
 
 ${ODIR}:

@@ -11,9 +11,17 @@ function parseFormData(formData) {
     return result;
 }
 
+async function waitForXAmountOfTime()
+{
+	const number = Math.floor(Math.random() * 1000);
+
+	await sleep(number);
+}
+
 if (process.env.REQUEST_METHOD === "GET") {
+	waitForXAmountOfTime();
 	console.log("Hello World");
-	while (1) { }
+	process.exit(0);
 }
 
 // Handle POST method
@@ -31,5 +39,6 @@ if (process.env.REQUEST_METHOD === "POST") {
         console.log(JSON.stringify(formData, null, 2));
         console.log("</pre>");
         console.log("</body></html>");
+		process.exit(0);
     });
 }
