@@ -4,6 +4,7 @@
 #include <csignal>
 #include <cstddef>
 #include <cstdlib>
+#include <iostream>
 #include <sys/epoll.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -13,8 +14,6 @@
 #include <string>
 
 extern char** environ;
-
-size_t HttpCGI::_child_procs = 0;
 
 // Constructors / Desctructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -58,10 +57,9 @@ HttpCGI::~HttpCGI(void)
 	if (this->_cgi_pid != -1) {
 		int status = 0;
 
-		::waitpid(this->_cgi_pid, &status, 0);
+		::waitpid(this->_cgi_pid, &status, WNOHANG);
 		if (!WIFEXITED(status))
 			::kill(this->_cgi_pid, SIGKILL);
-		HttpCGI::_child_procs--;
 	}
 }
 
@@ -132,7 +130,7 @@ bool	HttpCGI::_postPreamble(void)
 	// unbuffer all the body into the pipe
 	this->_bytes_passed_through = body.bytesPassedThrough();
 	while((bytes = body.consume(tmp_buffer, sizeof(tmp_buffer))) > 0) {
-		std::cout.write(tmp_buffer, bytes);
+		//std::cout.write(tmp_buffer, bytes);
 		if (::write(this->_in[1], tmp_buffer, bytes) == -1)
 			return (this->_state = this->_response.error(500), false);
 	}
@@ -149,14 +147,9 @@ bool	HttpCGI::_postPreamble(void)
 
 bool	HttpCGI::_executeCGI(void)
 {
-	if (HttpCGI::_child_procs >= 20) {
-		this->_state = this->_request.error(503);
-		return (false);
-	}
-
 	this->_cgi_pid = ::fork();
 	if (this->_cgi_pid == -1) {
-		this->_state = this->_request.error(500);
+		this->_state = this->_request.error(503);
 		return (false);
 	}
 
@@ -167,8 +160,8 @@ bool	HttpCGI::_executeCGI(void)
 			const_cast<char*>(this->_request.getResolvedPath().c_str()),
 			NULL
 		};
-		char** env = this->_prepCGIEnvironementVariables();
 
+		char** env = this->_prepCGIEnvironementVariables();
 		this->_setupCGIIORedirections();
 
 		if (::execve(args[0], args, env) == -1)
@@ -177,7 +170,6 @@ bool	HttpCGI::_executeCGI(void)
 		std::exit(1);
 	}
 
-	HttpCGI::_child_procs++;
 	// closing read end of input and write end of output into the parent
 	if (this->_in[0] != -1) {
 		::close(this->_in[0]);
@@ -329,12 +321,11 @@ bool	HttpCGI::parse(const uint8_t* packet, const size_t packet_size)
 
 ssize_t HttpCGI::write(uint8_t* io_buffer, const size_t buff_len)
 {
+	if (this->_response.isError() || this->_request.isError())
+		return (this->HttpParser::write(io_buffer, buff_len));
 	if (this->_cgi_pid == -1 && !this->_response.isError()) {
 		this->_state = this->_response.error(500);
 	}
-
-	if (this->_response.isError() || this->_request.isError())
-		return (this->HttpParser::write(io_buffer, buff_len));
 
 	int status = 0, exit_status;
 	::waitpid(this->_cgi_pid, &status, WNOHANG);

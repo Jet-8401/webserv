@@ -132,7 +132,7 @@ bool	Socket::addConfig(const ServerConfig* config)
 	if (server_names.empty()) {
 		// if there is already a default discard this one
 		if (this->_configs.find(this->_address) != this->_configs.end()) {
-			std::cout << "FAAAAAAAAAAAAAAAALSE" << std::endl;
+			DEBUG("FAAAAAAAAAAAAAAAALSE");
 			return (false);
 		}
 		if (!this->_default_config)

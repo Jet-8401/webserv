@@ -66,5 +66,6 @@ std::string	joinPath(const std::string& path1, const std::string& path2);
 void		string_trim(std::string& str);
 int			makeNonBlocking(int fd);
 void		free_env(char** env);
+std::string	sanitizePath(const std::string& path);
 
 #endif
