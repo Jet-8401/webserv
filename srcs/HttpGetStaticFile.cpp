@@ -37,6 +37,8 @@ HttpGetStaticFile::HttpGetStaticFile(const HttpParser& parser):
 		it = this->_response.mime_types.find(this->_file_extension);
 		if (it != this->_response.mime_types.end())
 			this->_response.setHeader("Content-Type", it->second);
+		else
+			this->_response.setHeader("Content-Type", "application/octet-stream");
 	} else {
 		this->_response.setHeader("Content-Type", "application/octet-stream");
 	}

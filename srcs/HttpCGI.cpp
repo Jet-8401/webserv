@@ -4,7 +4,6 @@
 #include <csignal>
 #include <cstddef>
 #include <cstdlib>
-#include <iostream>
 #include <sys/epoll.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -28,6 +27,13 @@ HttpCGI::HttpCGI(const HttpParser& parser):
 	_cgi_eof(false),
 	_event(0)
 {
+	if (::access(this->_request.getResolvedPath().c_str(), F_OK) == -1) {
+		this->_state = this->_request.error(404);
+		this->_request.setEvents(EPOLLOUT);
+		this->_state = handler_state_t(READY_TO_SEND, true);
+		return;
+	}
+
 	if (!this->_setupPipes())
 		return;
 
@@ -155,11 +161,6 @@ bool	HttpCGI::_executeCGI(void)
 	}
 
 	if (this->_cgi_pid == 0) { // Child process
-		if (::access(CGI_BIN_PATH, X_OK) == -1) {
-			error("CGI directory not found", true);
-			std::exit(1);
-		}
-
 		std::string extension(::strrchr(this->_request.getResolvedPath().c_str(), '.'));
 		char* const args[] = {
 			const_cast<char*>(this->_request.getMatchingLocation()->getCGIs().find(extension)->second.c_str()),
