@@ -1,7 +1,8 @@
 #ifndef WEBSERV_HPP
 # define WEBSERV_HPP
 
-extern bool is_done;
+extern bool	is_done;
+extern bool	child_proc_trigger;
 
 # include <string>
 # include "HttpParser.hpp"
