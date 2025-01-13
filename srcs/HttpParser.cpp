@@ -3,8 +3,6 @@
 #include "../headers/HttpGetStaticFile.hpp"
 #include "../headers/HttpPost.hpp"
 #include "../headers/HttpGetDirectory.hpp"
-#include "../headers/HttpGetCGI.hpp"
-#include "../headers/HttpPostCGI.hpp"
 #include "../headers/HttpDelete.hpp"
 #include "../headers/HttpCGI.hpp"
 #include <cstddef>
