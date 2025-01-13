@@ -61,7 +61,6 @@ extern bool is_done;
 // utils.cpp
 void		error(const std::string message, bool perror);
 std::string	unsafe_itoa(const int n);
-::uint64_t	getTimeMs(void);
 std::string	joinPath(const std::string& path1, const std::string& path2);
 void		string_trim(std::string& str);
 int			makeNonBlocking(int fd);

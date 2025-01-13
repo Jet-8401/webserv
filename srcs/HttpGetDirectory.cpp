@@ -87,7 +87,7 @@ void	HttpGetDirectory::_createPage(void)
 		if (stat(entry_path.c_str(), &entry_stat) == 0) {
 			char timeStr[64];
 			struct tm* timeinfo = localtime(&entry_stat.st_mtime);
-			strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", timeinfo);
+			std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", timeinfo);
 
 			this->_current_entry << "<tr><td><a href=\"" << joinPath(this->_request.getConfigLocationStr(), _entry->d_name);
 			if (S_ISDIR(entry_stat.st_mode))

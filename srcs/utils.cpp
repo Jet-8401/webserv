@@ -24,14 +24,6 @@ std::string	unsafe_itoa(const int n)
 	return ss.str();
 }
 
-uint64_t	getTimeMs(void)
-{
-	struct timeval tv;
-	::gettimeofday(&tv, NULL);
-
-	return (static_cast<uint64_t>((tv.tv_sec) * 1000 + (tv.tv_usec / 1000)));
-}
-
 std::string	joinPath(const std::string& path1, const std::string& path2)
 {
 	if (path1.empty())
