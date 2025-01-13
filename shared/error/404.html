@@ -3,66 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error - Webserv</title>
+    <title>404 Error - Webserv</title>
     <style>
+        :root {
+            --primary-color: #4361ee;
+            --hover-color: #3046b1;
+            --bg-color: #f0f2f5;
+            --text-color: #1a1c24;
+            --card-bg: linear-gradient(135deg, #ffffff, #f2f4f7);
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f0f0f0;
+            padding: 40px 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
 
         .error-container {
-            background-color: white;
-            border-radius: 10px;
+            background: var(--card-bg);
+            border-radius: 20px;
             padding: 40px;
             margin-top: 50px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow);
             text-align: center;
         }
 
         .error-code {
             font-size: 72px;
-            color: #e74c3c;
+            color: var(--primary-color);
             margin: 0;
-            font-weight: bold;
+            font-weight: 700;
         }
 
         .error-message {
-            font-size: 24px;
-            color: #333;
+            font-size: 28px;
+            color: var(--text-color);
             margin: 20px 0;
+            font-weight: 600;
         }
 
         .error-description {
-            color: #666;
+            color: var(--text-color);
             margin-bottom: 30px;
+            font-size: 1.1em;
+            opacity: 0.8;
         }
 
         .nav-button {
-            background-color: #4CAF50;
-            border: none;
+            background: var(--card-bg);
+            border: 2px solid transparent;
             padding: 15px 30px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: var(--shadow);
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s ease;
             text-decoration: none;
-            color: white;
-            display: inline-block;
-            font-weight: bold;
+            color: var(--text-color);
+            display: inline-flex;
+            align-items: center;
+            font-weight: 500;
         }
 
         .nav-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transform: translateY(-5px);
+            border: 2px solid var(--primary-color);
+            background: #ffffff;
+        }
+
+        .nav-button i {
+            margin-right: 10px;
+            color: var(--primary-color);
         }
 
         .error-icon {
             font-size: 64px;
-            color: #e74c3c;
+            color: var(--primary-color);
             margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 10px;
+            }
+
+            .error-container {
+                padding: 20px;
+            }
+
+            .error-code {
+                font-size: 48px;
+            }
+
+            .error-message {
+                font-size: 24px;
+            }
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -70,92 +108,13 @@
 <body>
     <div class="error-container">
         <i class="fas fa-exclamation-circle error-icon"></i>
-        <h1 class="error-code" id="errorCode"></h1>
-        <h2 class="error-message" id="errorMessage"></h2>
-        <p class="error-description" id="errorDescription"></p>
+        <h1 class="error-code" id="errorCode">404</h1>
+        <h2 class="error-message" id="errorMessage">Page Not Found</h2>
+        <p class="error-description" id="errorDescription">The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
         <a href="/" class="nav-button">
             <i class="fas fa-home"></i>
             Back to Home
         </a>
     </div>
-
-    <script>
-        const errorMessages = {
-            400: {
-                message: "Bad Request",
-                description: "The server cannot process the request due to client error."
-            },
-            401: {
-                message: "Unauthorized",
-                description: "Authentication is required to access this resource."
-            },
-            403: {
-                message: "Forbidden",
-                description: "You don't have permission to access this resource."
-            },
-            404: {
-                message: "Page Not Found",
-                description: "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable."
-            },
-            405: {
-                message: "Method Not Allowed",
-                description: "The requested method is not supported for this resource."
-            },
-            408: {
-                message: "Request Timeout",
-                description: "The server timed out waiting for the request."
-            },
-            413: {
-                message: "Payload Too Large",
-                description: "The request is larger than the server is willing or able to process."
-            },
-            414: {
-                message: "URI Too Long",
-                description: "The URI requested by the client is longer than the server is willing to interpret."
-            },
-            415: {
-                message: "Unsupported Media Type",
-                description: "The media format of the requested data is not supported."
-            },
-            500: {
-                message: "Internal Server Error",
-                description: "An unexpected condition was encountered by the server."
-            },
-            501: {
-                message: "Not Implemented",
-                description: "The server does not support the functionality required to fulfill the request."
-            },
-            502: {
-                message: "Bad Gateway",
-                description: "The server received an invalid response from the upstream server."
-            },
-            503: {
-                message: "Service Unavailable",
-                description: "The server is temporarily unable to handle the request."
-            },
-            504: {
-                message: "Gateway Timeout",
-                description: "The server did not receive a timely response from the upstream server."
-            }
-        };
-
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
-
-        function setErrorDetails() {
-            const errorCode = getCookie('error_code') || '404';
-            const errorDetails = errorMessages[errorCode] || errorMessages['404'];
-
-            document.getElementById('errorCode').textContent = errorCode;
-            document.getElementById('errorMessage').textContent = errorDetails.message;
-            document.getElementById('errorDescription').textContent = errorDetails.description;
-            document.title = `${errorCode} - ${errorDetails.message}`;
-        }
-
-        window.onload = setErrorDetails;
-    </script>
 </body>
 </html>

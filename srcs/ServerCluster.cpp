@@ -125,12 +125,20 @@ int ServerCluster::importConfig(const std::string& config_path)
 	ss << file.rdbuf();
 	file.close();
 
-	std::string token;
+	std::string	token;
+	bool		have_http_token = false;
 	while (ss >> token)
 	{
+		if (token == "http")
+			have_http_token = true;
 		if (token == "http" && _parseHttpBlock(ss) < 0)
 			return (-1);
 	}
+
+	if (!have_http_token)
+		return (error("Missing http directive in configuration", false), -1);
+	if (this->_configs.empty())
+		return (error("Missing at least one server configuration", false), -1);
 
 	// iterate through configurations for setting the sockets
 	std::map<std::pair<std::string, uint16_t>, std::list<ServerConfig*> >	sockets; // socket ip:port, list of configs for that socket
@@ -146,7 +154,6 @@ int ServerCluster::importConfig(const std::string& config_path)
 	}
 
 	std::list<Socket>::iterator	it;
-
 	for (it = this->_sockets.begin(); it != this->_sockets.end(); it++) {
 		DEBUG(it->getIPV4() << ':' << it->getPort());
 	}
@@ -293,7 +300,10 @@ int ServerCluster::_parseServerBlock(std::stringstream& ss, ServerConfig& config
 				std::getline(ss, value, ';'); // Read until semicolon
 				if (value.find('\n') != std::string::npos)
 					return (error("Missing a ; at the end of the line!", false), -1);
-				value = value.substr(value.find_first_not_of(" \t")); // Trim leading whitespace
+				size_t index = value.find_first_not_of(" \t");
+				if (index == std::string::npos)
+					return (error("Empty value after directive!", false), -1);
+				value = value.substr(index); // Trim leading whitespace
 				(config.*(it->second))(value);
 				if (token == "listen")
                     has_listen = true;

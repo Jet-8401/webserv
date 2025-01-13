@@ -4,7 +4,6 @@
 #include "../headers/ServerConfig.hpp"
 #include "../headers/Socket.hpp"
 #include <fcntl.h>
-#include <iostream>
 #include <algorithm>
 #include <string>
 #include <sstream>

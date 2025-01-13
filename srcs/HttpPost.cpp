@@ -246,6 +246,8 @@ uploading_state_t	HttpPost::_createFile(void)
 		error(ERR_FILE_CREATION, true);
 		if (errno == EEXIST)
 			return (this->_error(409));
+		else if (errno == EACCES)
+			return (this->_error(403));
 		return (this->_error(500));
 	}
 

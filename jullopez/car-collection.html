@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Porsche 924 Le Mans Edition</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #3e2723;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            color: #f5f5f5;
+        }
+        header {
+            background: #4e342e;
+            color: #f5f5f5;
+            padding: 20px 0;
+            text-align: center;
+            top: 0;
+            z-index: 1000;
+            transition: background 0.3s, padding 0.3s;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+        }
+        .showcase {
+            background: url('/porshe-924-background.jpg') no-repeat center center/cover;
+            height: 100vh;
+            text-align: center;
+            color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: orange;
+            text-shadow: 1px 1px 5px black;
+        }
+        .showcase h1 {
+            font-size: 50px;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            animation: fadeInDown 1s ease-in-out;
+        }
+        .showcase p {
+            font-size: 20px;
+            margin: 10px 0;
+            animation: fadeInUp 1s ease-in-out;
+        }
+        .showcase a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #d84315;
+            color: #f5f5f5;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        .showcase a:hover {
+            background: #bf360c;
+        }
+        .content {
+            padding: 20px;
+            background: #5d4037;
+            margin-top: -50px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .content h2 {
+            text-align: center;
+            color: #f5f5f5;
+            border-bottom: 2px solid #d84315;
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+        .content p {
+            line-height: 1.6;
+            color: #e0e0e0;
+        }
+        .gallery {
+            display: grid;
+            justify-content: space-between;
+            place-items: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .gallery img {
+            width: 30%;
+            border-radius: 10px;
+            transition: transform 0.3s;
+            cursor: pointer;
+            margin-bottom: 20px;
+            border: 5px solid #5d4037;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .gallery img:hover {
+            transform: scale(1.05);
+        }
+        .specs {
+            padding: 20px;
+            background: #5d4037;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .specs h2 {
+            text-align: center;
+            color: #f5f5f5;
+            border-bottom: 2px solid #d84315;
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+        .specs ul {
+            list-style: none;
+            padding: 0;
+        }
+        .specs ul li {
+            background: #3e2723;
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 5px solid #d84315;
+            color: #e0e0e0;
+        }
+        footer {
+            background: #4e342e;
+            color: #f5f5f5;
+            text-align: center;
+            padding: 10px 0;
+            margin-top: 20px;
+        }
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+        .modal-content {
+            margin: 15% auto;
+            display: block;
+            width: 80%;
+            max-width: 700px;
+        }
+        .modal-content img {
+            width: 100%;
+            border-radius: 10px;
+        }
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Porsche 924 Le Mans Edition</h1>
+        </div>
+    </header>
+
+    <section class="showcase">
+        <div class="container">
+            <h1>Experience the Legend</h1>
+            <p>Discover the unique features and history of the Porsche 924 Le Mans Edition.</p>
+            <a href="#about">Learn More</a>
+        </div>
+    </section>
+
+    <section id="about" class="content">
+        <div class="container">
+            <h2>About the Porsche 924 Le Mans Edition</h2>
+            <p>The Porsche 924 Le Mans Edition is a special version of the Porsche 924, created to commemorate Porsche's success at the 24 Hours of Le Mans. This limited edition model features unique styling cues, enhanced performance, and exclusive interior details that set it apart from the standard 924.</p>
+            <p>Under the hood, the 924 Le Mans Edition is powered by a 2.0-liter inline-four engine, delivering a thrilling driving experience. The car's lightweight design and balanced chassis make it a joy to drive on both the road and the track.</p>
+            <p>With its distinctive black and white livery, the 924 Le Mans Edition is a true collector's item, representing a significant chapter in Porsche's racing history.</p>
+        </div>
+    </section>
+
+    <section id="gallery" class="gallery">
+        <div class="container">
+            <img src="/924-chambley.png" alt="Porsche 924 Le Mans Edition Front View" class="gallery-img">
+            <img src="/interior.jpeg" alt="Porsche 924 Le Mans Edition Side View" class="gallery-img">
+            <img src="/engine.jpeg" alt="Porsche 924 Le Mans Edition Interior" class="gallery-img">
+        </div>
+    </section>
+
+    <section id="specs" class="specs">
+        <div class="container">
+            <h2>Specifications</h2>
+            <ul>
+                <li>Engine: 2.0-liter inline-four</li>
+                <li>Power: 125 PS (92 kW)</li>
+                <li>Top Speed: 201 km/h</li>
+                <li>0-100 km/h: 9.5 seconds</li>
+                <li>Transmission: 5-speed manual</li>
+                <li>Weight: 1134 kg</li>
+                <li>Production Year: 1980</li>
+            </ul>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Porsche 924 Le Mans Edition. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <div id="myModal" class="modal">
+        <span class="close">&times;</span>
+        <div class="modal-content">
+            <img id="modal-img" src="" alt="Modal Image">
+        </div>
+    </div>
+
+    <script>
+        // Modal for gallery images
+        var modal = document.getElementById('myModal');
+        var modalImg = document.getElementById('modal-img');
+        var galleryImages = document.querySelectorAll('.gallery-img');
+        var closeBtn = document.querySelector('.close');
+
+        galleryImages.forEach(function(img) {
+            img.onclick = function() {
+                modal.style.display = 'block';
+                modalImg.src = this.src;
+            };
+        });
+
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        };
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>

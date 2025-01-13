@@ -7,6 +7,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <cerrno>
+#include <netdb.h>
 
 Socket::Socket(const std::string ip, const uint16_t port):
 	_backlog(128),
@@ -152,6 +154,24 @@ bool	Socket::addConfig(const ServerConfig* config)
 	return (true);
 }
 
+bool	resolveAddress(const std::string& ip, struct sockaddr_in& addr)
+{
+    struct addrinfo hints, *result;
+    ::memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    int status = getaddrinfo(ip.c_str(), NULL, &hints, &result);
+    if (status != 0) {
+        error(gai_strerror(status), false);
+        return (false);
+    }
+
+    addr.sin_addr = ((struct sockaddr_in *)(result->ai_addr))->sin_addr;
+    freeaddrinfo(result);
+    return (true);
+}
+
 int		Socket::listen(void) const
 {
 	sockaddr_in	addr;
@@ -159,8 +179,8 @@ int		Socket::listen(void) const
 	::memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = ::htons(this->_port);
-	if (::inet_pton(AF_INET, this->_ip.c_str(), &addr.sin_addr) != 1)
-		return (error(ERR_ADDR_VALUE, true), -1);
+	if (!resolveAddress(this->_ip, addr))
+		return (-1);
 
 	if (::bind(this->_socket_fd, (sockaddr*) &addr, sizeof(addr)) == -1)
 		return (error(ERR_BINDING_SOCKET, true), -1);

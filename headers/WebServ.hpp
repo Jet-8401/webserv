@@ -54,7 +54,7 @@ extern bool is_done;
 
 # else
 
-#  define DEBUG(msg)
+#  define DEBUG(msg) ((void)0)
 
 # endif
 

@@ -5,141 +5,189 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Files - Webserv</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f0f0f0;
-        }
+	    :root {
+	        --primary-color: #4361ee;
+	        --hover-color: #3046b1;
+	        --bg-color: #f0f2f5;
+	        --text-color: #1a1c24;
+	        --card-bg: linear-gradient(135deg, #ffffff, #f2f4f7);
+	        --shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+	    }
 
-        .header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
+	    body {
+	        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+	        max-width: 1200px;
+	        margin: 0 auto;
+	        padding: 40px 20px;
+	        background-color: var(--bg-color);
+	        color: var(--text-color);
+	    }
 
-        .header-bar h1 {
-            margin: 0;
-            color: #333;
-        }
+	    .header-bar {
+	        display: flex;
+	        justify-content: space-between;
+	        align-items: center;
+	        padding: 20px 30px;
+	        background: var(--card-bg);
+	        border-radius: 20px;
+	        box-shadow: var(--shadow);
+	        margin-bottom: 30px;
+	    }
 
-        .nav-button {
-            background-color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-decoration: none;
-            color: #333;
-            text-align: center;
-            display: inline-block;
-        }
+	    .header-bar h1 {
+	        margin: 0;
+	        color: var(--text-color);
+	        font-size: 2em;
+	        font-weight: 700;
+	    }
 
-        .nav-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
+	    .nav-button {
+	        background: var(--card-bg);
+	        border: 2px solid transparent;
+	        padding: 15px 25px;
+	        border-radius: 15px;
+	        box-shadow: var(--shadow);
+	        cursor: pointer;
+	        transition: all 0.3s ease;
+	        text-decoration: none;
+	        color: var(--text-color);
+	        display: flex;
+	        align-items: center;
+	        gap: 10px;
+	    }
 
-        .nav-button i {
-            display: block;
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
+	    .nav-button:hover {
+	        transform: translateY(-5px);
+	        border: 2px solid var(--primary-color);
+	        background: #ffffff;
+	    }
 
-        .upload-container {
-            background-color: white;
-            border-radius: 10px;
-            padding: 40px;
-            margin-top: 30px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
+	    .nav-button i {
+	        font-size: 20px;
+	        color: var(--primary-color);
+	    }
 
-        .upload-container input[type="file"] {
-            display: none;
-        }
+	    .upload-container {
+	        background: var(--card-bg);
+	        border-radius: 20px;
+	        padding: 40px;
+	        margin-top: 30px;
+	        box-shadow: var(--shadow);
+	        text-align: center;
+	        display: flex;
+	        flex-direction: column;
+	        align-items: center;
+	    }
 
-        .upload-container label {
-            background-color: #4CAF50;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            display: inline-block;
-            font-weight: bold;
-        }
+		.upload-container form {
+		    width: 100%;
+		    max-width: 800px; /* Increased max-width to accommodate both buttons */
+		    display: flex;
+		    flex-direction: row; /* Changed from column to row */
+		    gap: 20px;
+		    justify-content: center;
+		}
 
-        .upload-container label:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
+	    .upload-container input[type="file"] {
+	        display: none;
+	    }
 
-        .upload-container button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            font-weight: bold;
-            margin-top: 20px;
-        }
+		.upload-container label,
+		.upload-container button {
+		    background: var(--primary-color);
+		    color: white;
+		    padding: 20px 40px;
+		    border-radius: 15px;
+		    cursor: pointer;
+		    transition: all 0.3s ease;
+		    font-weight: 500;
+		    font-size: 1.2em;
+		    width: 250px; /* Fixed width instead of 100% */
+		    border: none;
+		    display: flex;
+		    align-items: center;
+		    justify-content: center;
+		    gap: 10px;
+		}
 
-        .upload-container button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
+	    .upload-container label:hover,
+	    .upload-container button:hover {
+	        transform: translateY(-3px);
+	        background: var(--hover-color);
+	        box-shadow: var(--shadow);
+	    }
 
-        .message {
-            margin-top: 20px;
-            font-size: 18px;
-            display: none;
-        }
+	    .upload-container label i,
+	    .upload-container button i {
+	        font-size: 1.2em;
+	    }
 
-        .message i {
-            margin-right: 10px;
-        }
+	    .message {
+	        margin-top: 20px;
+	        font-size: 18px;
+	        display: none;
+	        padding: 15px;
+	        border-radius: 10px;
+	        transition: all 0.3s ease;
+	        width: 100%;
+	        max-width: 400px;
+	    }
 
-        .message.success {
-            color: #4CAF50;
-        }
+	    .message i {
+	        margin-right: 10px;
+	    }
 
-        .message.error {
-            color: #e74c3c;
-        }
+	    .message.success {
+	        background: rgba(67, 97, 238, 0.1);
+	        color: var(--primary-color);
+	    }
 
-        .progress-bar {
-            width: 100%;
-            background-color: #f3f3f3;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-top: 20px;
-            display: none;
-        }
+	    .message.error {
+	        background: rgba(231, 76, 60, 0.1);
+	        color: #e74c3c;
+	    }
 
-        .progress-bar-inner {
-            height: 20px;
-            width: 0;
-            background-color: #4CAF50;
-            transition: width 0.2s;
-        }
+	    .progress-bar {
+	        width: 100%;
+	        max-width: 400px;
+	        background-color: rgba(67, 97, 238, 0.1);
+	        border-radius: 10px;
+	        overflow: hidden;
+	        margin-top: 20px;
+	        display: none;
+	    }
 
-        .file-name {
-            margin-top: 10px;
-            font-size: 16px;
-            color: #333;
-            display: none;
-        }
+	    .progress-bar-inner {
+	        height: 10px;
+	        width: 0;
+	        background: var(--primary-color);
+	        transition: width 0.3s ease;
+	    }
+
+	    .file-name {
+	        margin-top: 15px;
+	        font-size: 16px;
+	        color: var(--text-color);
+	        display: none;
+	        padding: 10px;
+	        background: rgba(67, 97, 238, 0.1);
+	        border-radius: 10px;
+	        word-break: break-all;
+	        width: 100%;
+	        max-width: 400px;
+	    }
+
+		@media (max-width: 768px) {
+		    .upload-container form {
+		        flex-direction: column; /* Stack buttons on mobile */
+		        max-width: 400px;
+		    }
+
+		    .upload-container label,
+		    .upload-container button {
+		        width: 100%; /* Full width on mobile */
+		    }
+		}
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -197,7 +245,7 @@
             });
 
             xhr.onload = function() {
-            	console.log(xhr.status);
+                console.log(xhr.status);
                 if (xhr.status >= 200 && xhr.status < 300) {
                     document.getElementById('successMessage').style.display = 'block';
                     document.getElementById('errorMessage').style.display = 'none';

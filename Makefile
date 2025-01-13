@@ -29,7 +29,9 @@ ODIR = objs
 OBJS = $(SRCS:${SDIR}/%.cpp=${ODIR}/%.o)
 DEFINES = -DDEBUGGER
 
-all: ${NAME}
+CGI_DIR = shared/cgi-bin
+
+all: setup_dirs ${NAME}
 
 ${NAME}: ${OBJS}
 	c++ ${CXXFLAGS} $^ -o $@
@@ -55,4 +57,10 @@ help:
 	@echo "  fclean: Remove object files and executable"
 	@echo "  re:	 Rebuild the program"
 
-.PHONY: all clean fclean re help
+setup_dirs:
+	@echo "Setting up directories..."
+	@mkdir -p $(CGI_DIR)
+	@chmod u-w $(CGI_DIR)  # Read and execute, but not write
+	@echo "Directory permissions set"
+
+.PHONY: all clean fclean re help setup_dirs
