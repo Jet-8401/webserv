@@ -1,6 +1,4 @@
 #include "../headers/WebServ.hpp"
-#include "../headers/HttpParser.hpp"
-#include "../headers/Socket.hpp"
 #include <cstdio>
 #include <fcntl.h>
 #include <string>
@@ -51,6 +49,30 @@ std::string	joinPath(const std::string& path1, const std::string& path2)
 	} else {
 		return path1 + "/" + path2;
 	}
+}
+
+std::string urlDecode(const std::string& encoded) {
+	std::string decoded;
+	for (size_t i = 0; i < encoded.length(); ++i) {
+		if (encoded[i] == '%' && i + 2 < encoded.length()) {
+			char hex[3] = { encoded[i + 1], encoded[i + 2], 0 };
+			char* endptr;
+			long value = strtol(hex, &endptr, 16);
+			if (*endptr == 0) {
+				decoded += static_cast<char>(value);
+				i += 2;
+			} else {
+				decoded += encoded[i];
+			}
+		}
+		else if (encoded[i] == '+') {
+			decoded += ' ';
+		}
+		else {
+			decoded += encoded[i];
+		}
+	}
+	return decoded;
 }
 
 std::string sanitizePath(const std::string& path) {
