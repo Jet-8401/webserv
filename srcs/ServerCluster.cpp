@@ -17,6 +17,7 @@
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include <utility>
+#include <sys/stat.h>
 
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --

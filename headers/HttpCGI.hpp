@@ -5,6 +5,8 @@
 # include "../headers/EventWrapper.hpp"
 # include <cstddef>
 
+# define CGI_BIN_PATH "cgi-bin/"
+
 class HttpCGI : public HttpParser {
 	private:
 		bool				_is_post;

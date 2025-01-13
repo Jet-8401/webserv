@@ -91,8 +91,7 @@ const size_t&	StreamBuffer::bytesPassedThrough(void) const
 
 ssize_t StreamBuffer::write(const void* data, const size_t size)
 {
-	std::cout << "\033[33m";
-	DEBUG("~~ StreamBuffer state ~~");
+	DEBUG("\033[33m ~~ StreamBuffer state ~~");
 	DEBUG("bytes passed through     -> " << this->_bytes_passed_through);
 	DEBUG("MAX bytes passed through -> " << this->_max_bytes_passed_through);
 	DEBUG("size: " << size);
