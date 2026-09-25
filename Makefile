@@ -1,5 +1,5 @@
 NAME = webserv
-CXXFLAG = -Wall -Werror -Wextra -g -std=c++98
+CXXFLAG = -Wall -Werror -Wextra -O3 -std=c++98
 SDIR = srcs
 HDIR = headers
 
@@ -37,7 +37,7 @@ ${NAME}: ${OBJS}
 	c++ ${CXXFLAGS} $^ -o $@
 
 ${ODIR}/%.o: ${SDIR}/%.cpp ${TPLS} | ${ODIR}
-	c++ ${DEFINES} ${CXXFLAG} -I${HDIR} -c $< -o $@
+	c++ ${CXXFLAG} -I${HDIR} -c $< -o $@
 
 ${ODIR}:
 	mkdir -p ${ODIR}
