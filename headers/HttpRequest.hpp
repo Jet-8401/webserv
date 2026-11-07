@@ -14,7 +14,7 @@ class Socket;
 
 class HttpRequest : public HttpMessage {
 	public:
-		HttpRequest(const HttpResponse& response, const Socket& socket_referer);
+		HttpRequest(const Socket& socket_referer);
 		HttpRequest(const HttpRequest& src);
 		virtual ~HttpRequest(void);
 
@@ -49,7 +49,6 @@ class HttpRequest : public HttpMessage {
 		Location*			_matching_location;
 		struct stat			_path_stat;
 
-		const HttpResponse&	_response;
 		const Socket&		_socket_referer;
 
 		uint32_t			_events;

@@ -28,11 +28,11 @@ BytesBuffer::BytesBuffer(const size_t max_bytes_size):
 	::memset(this->_internal_buff, 0, this->_max_bytes_size);
 }
 
-BytesBuffer::BytesBuffer(const BytesBuffer& src, const bool takeOwnership):
+BytesBuffer::BytesBuffer(const BytesBuffer& src, const bool take_ownership):
 	_size(src._size),
 	_max_bytes_size(src._max_bytes_size)
 {
-	if (takeOwnership) {
+	if (take_ownership) {
 		this->_internal_buff = src._internal_buff;
 
 		// Clear the source's pointers/FD (since we're taking ownership)

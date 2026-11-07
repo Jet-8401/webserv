@@ -102,11 +102,13 @@ void	Connection::onEvent(::uint32_t events)
 		this->_socket_referer.deleteConnection(this);
 		return;
 	}
+
 	if (events & EPOLLIN)
 		if (this->onInEvent(io_buffer, sizeof(io_buffer)) == -1) {
 			this->_socket_referer.deleteConnection(this);
 			return;
 		}
+
 	if (events & EPOLLOUT)
 		if (this->onOutEvent(io_buffer, sizeof(io_buffer)) == -1) {
 			this->_socket_referer.deleteConnection(this);
@@ -125,11 +127,12 @@ void	Connection::onEvent(::uint32_t events)
 		}
 	}
 
-	if (this->handler && this->handler->getRequest().hasEventsChanged()) {
-		this->changeEvents(this->handler->getRequest().getEvents());
+	HttpRequest& request = this->handler->getRequest();
+	if (request.hasEventsChanged()) {
+		this->changeEvents(request.getEvents());
 	}
 
-	if (this->handler && this->handler->getState() == DONE) {
+	if (this->handler->getState() == DONE) {
 		DEBUG("Connection done !");
 		this->_socket_referer.deleteConnection(this);
 	}

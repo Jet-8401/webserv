@@ -2,7 +2,6 @@
 # define LOCATION_HPP
 
 # include <string>
-# include <cstdlib>
 # include <set>
 # include <map>
 # include <vector>
@@ -16,7 +15,7 @@ class Location {
 		typedef	std::map<int, std::string*> error_page_t;
 		typedef std::set<std::string>		methods_t;
 
-		const std::set<std::string>&				getMethods(void) const;
+		const methods_t&				            getMethods(void) const;
 		const std::string&							getRoot(void) const;
 		const error_page_t&							getErrorPages(void) const;
 		const bool&									getAutoIndex(void) const;

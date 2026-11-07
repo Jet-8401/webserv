@@ -9,12 +9,12 @@ class BytesBuffer {
 	private:
 		uint8_t*		_internal_buff;
 		size_t			_size;
-		const size_t	_max_bytes_size;
+		const size_t	_max_bytes_size; // default threshold at 32KB
 
 	public:
-		BytesBuffer(void); // set max_bytes_size at 32KB
-		BytesBuffer(const size_t max_bytes_size); // set threshold by default at 4MB
-		BytesBuffer(const BytesBuffer& src, const bool takeOwnership);
+		BytesBuffer(void);
+		BytesBuffer(const size_t max_bytes_size);
+		BytesBuffer(const BytesBuffer& src, const bool take_ownership);
 		virtual ~BytesBuffer(void);
 
 		// Getters

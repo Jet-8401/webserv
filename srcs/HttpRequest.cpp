@@ -19,12 +19,11 @@ const uint8_t HttpRequest::END_SEQUENCE[4] = {'\r', '\n', '\r', '\n'};
 // Constructors / Destructors
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-HttpRequest::HttpRequest(const HttpResponse& response, const Socket& socket_referer):
+HttpRequest::HttpRequest(const Socket& socket_referer):
 	HttpMessage(),
 	_header_buff(65536),
 	_body(65536, -1),
 	_matching_location(0),
-	_response(response),
 	_socket_referer(socket_referer),
 	_events(0),
 	_has_events_changed(false)
@@ -41,7 +40,6 @@ HttpRequest::HttpRequest(const HttpRequest& src):
 	_config_location_str(src._config_location_str),
 	_matching_location(src._matching_location),
 	_path_stat(src._path_stat),
-	_response(src._response),
 	_socket_referer(src._socket_referer),
 	_events(src._events),
 	_has_events_changed(src._has_events_changed),

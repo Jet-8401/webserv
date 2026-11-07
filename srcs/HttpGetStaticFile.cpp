@@ -52,11 +52,6 @@ HttpGetStaticFile::~HttpGetStaticFile(void)
 	}
 }
 
-bool HttpGetStaticFile::parse(const uint8_t* packet, const size_t packet_size)
-{
-	return (this->HttpParser::parse(packet, packet_size));
-}
-
 ssize_t HttpGetStaticFile::write(uint8_t* io_buffer, const size_t buff_length)
 {
 	std::streamsize	bytes_read;

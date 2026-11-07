@@ -13,7 +13,6 @@ class HttpGetStaticFile : public HttpParser {
 		HttpGetStaticFile(const HttpParser& parser);
 		virtual ~HttpGetStaticFile(void);
 
-		bool	parse(const uint8_t* packet, const size_t packet_size);
 		ssize_t write(uint8_t* io_buffer, const size_t buff_length);
 };
 

@@ -22,7 +22,7 @@
 HttpParser::HttpParser(Socket& socket_referer):
 	_need_upgrade(false),
 	_s_timeout_value(BASE_TIMEOUT),
-	_request(_response, socket_referer),
+	_request(socket_referer),
 	_response(_request),
 	_socket_referer(socket_referer),
 	_state(READING_HEADERS, false),

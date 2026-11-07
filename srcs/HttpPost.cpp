@@ -134,12 +134,6 @@ bool	HttpPost::parse(const uint8_t* packet, const size_t packet_size)
 	return (true);
 }
 
-ssize_t HttpPost::write(uint8_t* io_buffer, const size_t buff_len)
-{
-	DEBUG("entering HttpPost::write with flag -> " << this->_state.flag);
-	return (this->HttpParser::write(io_buffer, buff_len));
-}
-
 uploading_state_t	HttpPost::_error(const short unsigned int status_code)
 {
 	this->_state = this->_request.error(status_code);

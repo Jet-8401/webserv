@@ -8,9 +8,9 @@ HttpMessage::headers_behavior_t&	init_headers_behavior(void)
 {
 	static HttpMessage::headers_behavior_t	headers;
 
-	headers["Host"] = HttpMessage::UNIQUE & HttpMessage::MANDATORY;
-	headers["Content-Length"] = HttpMessage::UNIQUE & HttpMessage::MANDATORY_POST;
-	headers["Content-Type"] = HttpMessage::UNIQUE & HttpMessage::MANDATORY_POST;
+	headers["Host"] = HttpMessage::UNIQUE | HttpMessage::MANDATORY;
+	headers["Content-Length"] = HttpMessage::UNIQUE | HttpMessage::MANDATORY_POST;
+	headers["Content-Type"] = HttpMessage::UNIQUE | HttpMessage::MANDATORY_POST;
 	headers["Set-Cookie"] = HttpMessage::SEPARABLE;
 	return headers;
 }
